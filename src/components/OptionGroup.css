@@ -18,11 +18,10 @@
 
 .option-group__option {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  clip-path: var(--chamfer);
   background: var(--surface);
   color: var(--text);
   padding: 10px 16px;
-  cursor: pointer;
 }
 
 .option-group__option.is-selected {

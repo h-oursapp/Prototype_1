@@ -17,6 +17,27 @@
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --corner-cut: 8px;
+  /* Shared chamfer shapes: a small straight cut on every corner, or on just the top two (for
+   * elements anchored to the bottom edge, like the nav bar). Referenced via clip-path, not
+   * border-radius, everywhere in the app that wants this look. */
+  --chamfer: polygon(
+    var(--corner-cut) 0,
+    calc(100% - var(--corner-cut)) 0,
+    100% var(--corner-cut),
+    100% calc(100% - var(--corner-cut)),
+    calc(100% - var(--corner-cut)) 100%,
+    var(--corner-cut) 100%,
+    0 calc(100% - var(--corner-cut)),
+    0 var(--corner-cut)
+  );
+  --chamfer-top: polygon(
+    var(--corner-cut) 0,
+    calc(100% - var(--corner-cut)) 0,
+    100% var(--corner-cut),
+    100% 100%,
+    0 100%,
+    0 var(--corner-cut)
+  );
 
   font: 16px/145% var(--sans);
   color-scheme: light dark;
@@ -55,14 +76,26 @@ body {
 }
 
 #root {
-  min-height: 100svh;
+  /* A definite height (not min-height) — min-height alone doesn't count as "definite" for CSS
+   * sizing purposes even once it's numerically resolved, which silently broke container query
+   * units several flex levels down (GridSection's square-frame sizing). Content that genuinely
+   * needs more room can still grow past this and scroll; it just isn't the everyday case. */
+  height: 100svh;
   display: flex;
   flex-direction: column;
 }
 
+/* Reset the UA button chrome app-wide (border, background, padding) so every button starts from
+ * the same blank slate — components opt back into a border/background/padding themselves. This
+ * is also what stops the browser's default button border from ever showing through a clip-path. */
 button {
   font: inherit;
   color: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  appearance: none;
 }
 
 h1,

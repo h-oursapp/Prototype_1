@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsProvider } from '../../settings/SettingsContext'
@@ -56,12 +56,26 @@ describe('MainPage', () => {
     expect(screen.queryByRole('dialog', { name: 'Wallet' })).not.toBeInTheDocument()
   })
 
-  it('opens the Wallet sheet via the swipe-up hint', async () => {
-    const user = userEvent.setup()
+  it('opens the Wallet sheet on an upward swipe anywhere on the page, with no on-page hint', () => {
     renderMainPage()
 
-    await user.click(screen.getByRole('button', { name: 'Open Wallet' }))
+    expect(screen.queryByText(/swipe up/i)).not.toBeInTheDocument()
+
+    const page = document.querySelector('.main-page') as HTMLElement
+    fireEvent.pointerDown(page, { clientY: 400 })
+    fireEvent.pointerUp(page, { clientY: 340 })
+
     expect(screen.getByRole('dialog', { name: 'Wallet' })).toBeInTheDocument()
+  })
+
+  it('does not open the Wallet sheet on a small drag or a plain tap', () => {
+    renderMainPage()
+
+    const page = document.querySelector('.main-page') as HTMLElement
+    fireEvent.pointerDown(page, { clientY: 400 })
+    fireEvent.pointerUp(page, { clientY: 390 })
+
+    expect(screen.queryByRole('dialog', { name: 'Wallet' })).not.toBeInTheDocument()
   })
 
   it('calls onOpenSettings when the settings button is pressed', async () => {

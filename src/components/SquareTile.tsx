@@ -7,24 +7,21 @@ interface SquareTileProps {
   onClick?: () => void
 }
 
-/** A grid cell (bordered, so the grid lines stay visible) containing a square shape with a small
- *  straight cut on each corner. The square is sized to the largest square that fits the cell —
- *  whichever of the cell's width/height is smaller — so it stays a true square at any grid size,
- *  even when a row of cells ends up wider or taller than it is square. */
+/** One cell of a grid. Cells are already square by construction (GridSection locks the whole
+ *  grid frame to a square), so the tile just fills its cell — no extra sizing math here. Carries
+ *  the same small straight corner cut as the rest of the app's chamfered look. */
 export function SquareTile({ label, children, onClick }: SquareTileProps) {
-  const shape = <span className="square-tile__shape">{children}</span>
-
   if (!onClick) {
     return (
       <div className="square-tile" aria-label={label}>
-        {shape}
+        {children}
       </div>
     )
   }
 
   return (
     <button type="button" className="square-tile square-tile--clickable" onClick={onClick} aria-label={label}>
-      {shape}
+      {children}
     </button>
   )
 }

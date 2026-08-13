@@ -12,11 +12,16 @@ interface GridSectionProps {
   onSelectOffer: (offer: Offer) => void
 }
 
-/** A fixed, non-scrollable offers grid (Ads or Your offers) with a corner arrow to the full page.
- *  Row count follows from the offer count and the chosen column count, so the grid always uses
- *  exactly the height it's given — it never grows past it (Home must fit without scrolling). */
+/** A fixed, non-scrollable section (Ads or Your offers) with a corner arrow to the full page.
+ *  Always an N×N grid of picture-only square tiles, N being the grid size setting — there's no
+ *  fixed item count, it scales with the setting (1x1, 2x2, 3x3, 4x4, ...).
+ *
+ *  The grid frame itself is locked to a square (the largest that fits the space it's given), so
+ *  its N equal columns and N equal rows are square cells by construction — offers stay locked to
+ *  the same size and the same distance apart, and only the frame's overall size (not its shape)
+ *  responds to available space. */
 export function GridSection({ heading, offers, gridSize, openFullLabel, onOpenFull, onSelectOffer }: GridSectionProps) {
-  const rows = Math.ceil(offers.length / gridSize)
+  const visibleOffers = offers.slice(0, gridSize * gridSize)
 
   return (
     <section className="grid-section">
@@ -27,18 +32,19 @@ export function GridSection({ heading, offers, gridSize, openFullLabel, onOpenFu
         </button>
       </header>
 
-      <div
-        className="grid-section__grid"
-        style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}
-      >
-        {offers.map((offer) => (
-          <SquareTile key={offer.id} label={offer.title} onClick={() => onSelectOffer(offer)}>
-            <span className="square-tile__icon" aria-hidden="true">
-              {offer.icon}
-            </span>
-            <span className="square-tile__title">{offer.title}</span>
-          </SquareTile>
-        ))}
+      <div className="grid-section__frame">
+        <div
+          className="grid-section__grid"
+          style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)`, gridTemplateRows: `repeat(${gridSize}, 1fr)` }}
+        >
+          {visibleOffers.map((offer) => (
+            <SquareTile key={offer.id} label={offer.title} onClick={() => onSelectOffer(offer)}>
+              <span className="square-tile__icon" aria-hidden="true">
+                {offer.icon}
+              </span>
+            </SquareTile>
+          ))}
+        </div>
       </div>
     </section>
   )

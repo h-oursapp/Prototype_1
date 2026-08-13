@@ -26,19 +26,31 @@
   width: 28px;
   height: 28px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  clip-path: var(--chamfer);
   background: var(--surface);
   color: var(--brand-primary);
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+}
+
+/* Centers the grid frame, giving .grid-section__grid a fixed square box to size itself against
+ * via cqw/cqh — the largest square that fits whatever space is left in the section. */
+.grid-section__frame {
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .grid-section__grid {
-  flex: 1;
-  min-height: 0;
+  width: min(100%, 100cqh);
+  aspect-ratio: 1;
   display: grid;
-  gap: 4px;
+  /* Gap scales a little with the frame's own size, but is always the same horizontally and
+   * vertically — offers stay evenly, uniformly spaced. */
+  gap: clamp(2px, 2cqw, 12px);
 }

@@ -72,13 +72,11 @@
 
 .onboarding-step__primary {
   flex: 1;
-  border: none;
-  border-radius: 12px;
   padding: 14px;
   font-weight: 600;
   color: #fff;
   background: var(--brand-primary);
-  cursor: pointer;
+  clip-path: var(--chamfer);
 }
 
 .onboarding-step__primary:hover {

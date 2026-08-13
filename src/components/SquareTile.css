@@ -1,5 +1,5 @@
 .square-tile {
-  /* Lets .square-tile__shape size itself off *this* cell's box via cqw/cqh, not the whole grid's. */
+  /* Lets .square-tile__icon size itself off this (already-square) cell via cqw/cqh. */
   container-type: size;
 
   width: 100%;
@@ -9,67 +9,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  padding: 4px;
 
-  /* The cell border is the visible grid line — always the full (possibly non-square) cell. */
   border: 1px solid var(--gridline);
-  background: none;
+  background: var(--surface);
   color: var(--text);
   font: inherit;
-  padding: 2px;
+
+  /* Small straight cut on each corner — no rounded corners — matching the rest of the app. */
+  clip-path: var(--chamfer);
 }
 
 .square-tile--clickable {
   cursor: pointer;
 }
 
-.square-tile--clickable:hover .square-tile__shape {
+.square-tile--clickable:hover {
   background: var(--surface-alt);
 }
 
-.square-tile__shape {
-  /* The largest square that fits inside the cell: bounded by both its width and its height. */
-  width: min(100%, 100cqh);
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  overflow: hidden;
-  padding: 4px;
-  background: var(--surface);
-
-  /* Square with a small straight cut on each corner — no rounded corners. */
-  clip-path: polygon(
-    var(--corner-cut) 0,
-    calc(100% - var(--corner-cut)) 0,
-    100% var(--corner-cut),
-    100% calc(100% - var(--corner-cut)),
-    calc(100% - var(--corner-cut)) 100%,
-    var(--corner-cut) 100%,
-    0 calc(100% - var(--corner-cut)),
-    0 var(--corner-cut)
-  );
-}
-
 .square-tile__icon {
-  font-size: 24px;
+  font-size: clamp(16px, 40cqw, 36px);
   line-height: 1;
-}
-
-.square-tile__title {
-  font-size: 11px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-/* At grid size 1, six stacked cells leave too little height for icon + label — drop the label
- * rather than let it clip mid-character. */
-@container (max-height: 64px) {
-  .square-tile__title {
-    display: none;
-  }
 }
