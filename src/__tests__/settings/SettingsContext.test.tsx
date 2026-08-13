@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { SettingsProvider } from './SettingsContext'
-import { useSettings } from './useSettings'
+import { SettingsProvider } from '../../settings/SettingsContext'
+import { useSettings } from '../../settings/useSettings'
 
 beforeEach(() => {
   window.localStorage.clear()

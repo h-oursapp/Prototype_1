@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getSystemColorTheme, loadSettings, loadSettingsOrDefault, saveSettings } from './settingsStorage'
+import { getSystemColorTheme, loadSettings, loadSettingsOrDefault, saveSettings } from '../../settings/settingsStorage'
 
 function mockMatchMedia(prefersDark: boolean) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({

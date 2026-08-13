@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { SquareTile } from './SquareTile'
+import { SquareTile } from '../../components/SquareTile'
 
 describe('SquareTile', () => {
   it('renders as a plain, non-interactive element when no onClick is given', () => {

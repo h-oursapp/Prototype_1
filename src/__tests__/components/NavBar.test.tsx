@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { NavBar } from './NavBar'
+import { NavBar } from '../../components/NavBar'
 
 describe('NavBar', () => {
   it('renders all six nav items and marks the active one', () => {

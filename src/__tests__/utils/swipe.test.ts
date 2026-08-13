@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isSwipeUp } from './swipe'
+import { isSwipeUp } from '../../utils/swipe'
 
 describe('isSwipeUp', () => {
   it('is true once the upward drag reaches the default threshold', () => {

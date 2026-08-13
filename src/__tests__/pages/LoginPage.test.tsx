@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { LoginPage } from './LoginPage'
+import { LoginPage } from '../../pages/LoginPage'
 
 describe('LoginPage', () => {
   it('calls onLogin when the log in button is pressed', async () => {

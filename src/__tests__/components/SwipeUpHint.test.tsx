@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { SwipeUpHint } from './SwipeUpHint'
+import { SwipeUpHint } from '../../components/SwipeUpHint'
 
 describe('SwipeUpHint', () => {
   it('triggers on an upward pointer drag past the threshold', () => {

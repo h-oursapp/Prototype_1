@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { expect, it } from 'vitest'
-import { useSettings } from './useSettings'
+import { useSettings } from '../../settings/useSettings'
 
 it('throws when used outside a SettingsProvider', () => {
   const BareProbe = () => {

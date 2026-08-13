@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { Offer } from '../data/mockOffers'
-import { GridSection } from './GridSection'
+import type { Offer } from '../../data/mockOffers'
+import { GridSection } from '../../components/GridSection'
 
 const OFFERS: Offer[] = [
   { id: '1', title: 'Guitar lessons', icon: '🎸' },
