@@ -1,0 +1,46 @@
+.login-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.login-page__mark {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+}
+
+.login-page h1 {
+  font-size: 32px;
+}
+
+.login-page__tagline {
+  color: var(--text-muted);
+  margin: 0 0 24px;
+}
+
+.login-page__button {
+  border: none;
+  border-radius: 12px;
+  padding: 14px 40px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand-primary);
+  cursor: pointer;
+}
+
+.login-page__button:hover {
+  background: var(--brand-primary-deep);
+}
+
+.login-page__note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
