@@ -1,0 +1,38 @@
+.settings-page {
+  flex: 1;
+  padding: 16px 24px 32px;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.settings-page__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.settings-page__header h1 {
+  font-size: 22px;
+}
+
+.settings-page__back {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-page__note {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 8px;
+}

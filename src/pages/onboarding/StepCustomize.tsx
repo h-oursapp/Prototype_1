@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { OptionGroup } from '../../components/OptionGroup'
 import { useSettings } from '../../settings/useSettings'
 import { GRID_SIZE_OPTIONS, type ColorTheme, type GridSize } from '../../settings/types'
 import { OnboardingStepShell } from './OnboardingStepShell'
@@ -54,33 +55,5 @@ export function StepCustomize({ step, totalSteps, onFinish }: StepCustomizeProps
         onSelect={setProfileVisibility}
       />
     </OnboardingStepShell>
-  )
-}
-
-interface OptionGroupProps<T extends string | number> {
-  legend: string
-  options: { value: T; label: string }[]
-  selected: T
-  onSelect: (value: T) => void
-}
-
-function OptionGroup<T extends string | number>({ legend, options, selected, onSelect }: OptionGroupProps<T>) {
-  return (
-    <fieldset className="onboarding-customize__group">
-      <legend>{legend}</legend>
-      <div className="onboarding-customize__options">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={`onboarding-customize__option ${selected === option.value ? 'is-selected' : ''}`}
-            aria-pressed={selected === option.value}
-            onClick={() => onSelect(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </fieldset>
   )
 }

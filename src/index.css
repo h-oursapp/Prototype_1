@@ -12,6 +12,7 @@
   --text: #1c1730;
   --text-muted: #6b6478;
   --border: #e4defa;
+  --gridline: rgba(134, 59, 255, 0.28);
   --shadow: rgba(124, 58, 237, 0.12);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -39,6 +40,7 @@
   --text: #f3f0fb;
   --text-muted: #b0a8c4;
   --border: #362d52;
+  --gridline: rgba(168, 102, 255, 0.35);
   --shadow: rgba(0, 0, 0, 0.4);
 }
 

@@ -1,0 +1,33 @@
+.option-group {
+  border: none;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+.option-group legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.option-group__options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.option-group__option {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.option-group__option.is-selected {
+  border-color: var(--brand-primary);
+  background: var(--brand-tint);
+  color: var(--brand-primary-deep);
+  font-weight: 600;
+}

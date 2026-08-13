@@ -1,6 +1,6 @@
 export type ColorTheme = 'light' | 'dark'
 
-export type GridSize = 2 | 3 | 4
+export type GridSize = 1 | 2 | 3 | 4
 
 export interface AppSettings {
   colorTheme: ColorTheme
@@ -9,4 +9,4 @@ export interface AppSettings {
 
 export const DEFAULT_GRID_SIZE: GridSize = 3
 
-export const GRID_SIZE_OPTIONS: GridSize[] = [2, 3, 4]
+export const GRID_SIZE_OPTIONS: GridSize[] = [1, 2, 3, 4]

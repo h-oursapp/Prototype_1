@@ -12,8 +12,12 @@ interface GridSectionProps {
   onSelectOffer: (offer: Offer) => void
 }
 
-/** A fixed, non-scrollable offers grid (Ads or Your offers) with a corner arrow to the full page. */
+/** A fixed, non-scrollable offers grid (Ads or Your offers) with a corner arrow to the full page.
+ *  Row count follows from the offer count and the chosen column count, so the grid always uses
+ *  exactly the height it's given — it never grows past it (Home must fit without scrolling). */
 export function GridSection({ heading, offers, gridSize, openFullLabel, onOpenFull, onSelectOffer }: GridSectionProps) {
+  const rows = Math.ceil(offers.length / gridSize)
+
   return (
     <section className="grid-section">
       <header className="grid-section__header">
@@ -23,7 +27,10 @@ export function GridSection({ heading, offers, gridSize, openFullLabel, onOpenFu
         </button>
       </header>
 
-      <div className="grid-section__grid" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
+      <div
+        className="grid-section__grid"
+        style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}
+      >
         {offers.map((offer) => (
           <SquareTile key={offer.id} label={offer.title} onClick={() => onSelectOffer(offer)}>
             <span className="square-tile__icon" aria-hidden="true">

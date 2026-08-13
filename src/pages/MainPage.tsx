@@ -10,10 +10,14 @@ import './MainPage.css'
 // Dummy balance for the prototype — real balance comes from the (out of scope) Wallet.
 const DUMMY_HOURS_BALANCE = 12
 
+interface MainPageProps {
+  onOpenSettings: () => void
+}
+
 /** Home: two fixed, non-scrollable grids (Ads, Your offers) plus the nav bar.
  *  Everything a tap/swipe here would open (Search, Offers page, Wallet, ad detail, Profile, ...)
  *  is out of scope for this prototype, so those actions just surface a "coming soon" status line. */
-export function MainPage() {
+export function MainPage({ onOpenSettings }: MainPageProps) {
   const { gridSize } = useSettings()
   const [status, setStatus] = useState<string | null>(null)
   const [walletOpen, setWalletOpen] = useState(false)
@@ -23,6 +27,10 @@ export function MainPage() {
   const handleNavigate = (key: NavKey, label: string) => {
     if (key === 'wallet') {
       setWalletOpen(true)
+      return
+    }
+    if (key === 'settings') {
+      onOpenSettings()
       return
     }
     if (key !== 'home') announceComingSoon(label)

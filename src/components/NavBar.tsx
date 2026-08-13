@@ -1,6 +1,6 @@
 import './NavBar.css'
 
-export type NavKey = 'wallet' | 'profile' | 'community' | 'trades' | 'inventory' | 'home'
+export type NavKey = 'wallet' | 'profile' | 'community' | 'trades' | 'inventory' | 'home' | 'settings'
 
 interface NavItem {
   key: NavKey
@@ -12,9 +12,12 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'wallet', label: 'Hours', icon: '⏱️' },
   { key: 'profile', label: 'Profile', icon: '👤' },
   { key: 'community', label: 'Community', icon: '👥' },
-  { key: 'trades', label: 'Active trades', icon: '🔄' },
+  { key: 'trades', label: 'Trades', icon: '🔄' },
   { key: 'inventory', label: 'Inventory', icon: '📦' },
   { key: 'home', label: 'Home', icon: '🏠' },
+  // Not in the original Appkarte nav (Settings was reached via Profile there) — added directly
+  // here per request, since Profile itself isn't built yet.
+  { key: 'settings', label: 'Settings', icon: '⚙️' },
 ]
 
 interface NavBarProps {

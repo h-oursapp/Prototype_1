@@ -26,6 +26,40 @@ describe('GridSection', () => {
     expect(screen.getByRole('button', { name: 'Bike repair' })).toBeInTheDocument()
     const grid = document.querySelector('.grid-section__grid') as HTMLElement
     expect(grid.style.gridTemplateColumns).toBe('repeat(3, 1fr)')
+    // 2 offers over 3 columns still need at least 1 row.
+    expect(grid.style.gridTemplateRows).toBe('repeat(1, 1fr)')
+  })
+
+  it('computes row count from offer count and grid size, so it never overflows its given height', () => {
+    const sixOffers: Offer[] = Array.from({ length: 6 }, (_, i) => ({ id: `${i}`, title: `Offer ${i}`, icon: '🎸' }))
+
+    const { rerender } = render(
+      <GridSection
+        heading="Ads"
+        offers={sixOffers}
+        gridSize={1}
+        openFullLabel="Open search"
+        onOpenFull={vi.fn()}
+        onSelectOffer={vi.fn()}
+      />,
+    )
+    expect((document.querySelector('.grid-section__grid') as HTMLElement).style.gridTemplateRows).toBe(
+      'repeat(6, 1fr)',
+    )
+
+    rerender(
+      <GridSection
+        heading="Ads"
+        offers={sixOffers}
+        gridSize={4}
+        openFullLabel="Open search"
+        onOpenFull={vi.fn()}
+        onSelectOffer={vi.fn()}
+      />,
+    )
+    expect((document.querySelector('.grid-section__grid') as HTMLElement).style.gridTemplateRows).toBe(
+      'repeat(2, 1fr)',
+    )
   })
 
   it('calls onOpenFull when the corner arrow is pressed', async () => {

@@ -1,12 +1,18 @@
 .grid-section {
-  padding: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px;
 }
 
 .grid-section__header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .grid-section__header h2 {
@@ -31,6 +37,8 @@
 }
 
 .grid-section__grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }

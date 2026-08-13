@@ -40,4 +40,24 @@ describe('App', () => {
       gridSize: 4,
     })
   })
+
+  it('opens Settings from Home, lets you tweak settings, and returns to Home', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Log in' }))
+    await user.click(screen.getByText('Skip'))
+    await user.click(screen.getByText('Skip'))
+    await user.click(screen.getByText('Skip'))
+    await user.click(screen.getByText('Next'))
+    await user.click(screen.getByText('Finish'))
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '2 per row' }))
+    expect(JSON.parse(window.localStorage.getItem('h-ours:settings') ?? '{}')).toMatchObject({ gridSize: 2 })
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByText('Ads')).toBeInTheDocument()
+  })
 })

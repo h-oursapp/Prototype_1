@@ -14,12 +14,13 @@ beforeEach(() => {
   })) as unknown as typeof window.matchMedia
 })
 
-function renderMainPage() {
+function renderMainPage(onOpenSettings = vi.fn()) {
   render(
     <SettingsProvider>
-      <MainPage />
+      <MainPage onOpenSettings={onOpenSettings} />
     </SettingsProvider>,
   )
+  return onOpenSettings
 }
 
 describe('MainPage', () => {
@@ -61,5 +62,13 @@ describe('MainPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open Wallet' }))
     expect(screen.getByRole('dialog', { name: 'Wallet' })).toBeInTheDocument()
+  })
+
+  it('calls onOpenSettings when the settings button is pressed', async () => {
+    const user = userEvent.setup()
+    const onOpenSettings = renderMainPage()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(onOpenSettings).toHaveBeenCalledTimes(1)
   })
 })
