@@ -34,6 +34,7 @@
     -add swiping from left to right, opens your offers
     -add swiping from right to left, opens search
     -after the last of your offers or in the last grid space make a button to create new offer.
+    -overlay the tiles with the name of the offer and the rating.
 
 4.Nav bar:
     -put home in the middle
@@ -107,3 +108,9 @@
     -on the bottom have a chat window showing only the last message.
     -but its a scrollable area, on scrolling up extend the chat window to the full screen.
     -leave the extension button as is.
+
+12.Trades:
+    -add search bar and filters to the page. default filter open trades
+    -order by date
+    -when loading a closed trade show the ratings and the amount of reviews(if its a skill)
+    -show a new message icon on the trading crads when there is an unread message.

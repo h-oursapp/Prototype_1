@@ -1,6 +1,8 @@
 .square-tile {
   /* Lets .square-tile__icon size itself off this (already-square) cell via cqw/cqh. */
   container-type: size;
+  /* Anchors .square-tile__overlay to this tile rather than to some further-out ancestor. */
+  position: relative;
 
   width: 100%;
   height: 100%;
@@ -32,4 +34,17 @@
 .square-tile__icon {
   font-size: clamp(16px, 40cqw, 36px);
   line-height: 1;
+}
+
+/* SkillsPage's "data inside the square" (TODO #6): pinned to the bottom edge, over the icon,
+   rather than pushing it — the icon stays centred and the overlay just sits on top of it. */
+.square-tile__overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 4px 4px;
+  background: linear-gradient(to top, var(--surface) 40%, transparent);
+  text-align: center;
+  line-height: 1.2;
 }

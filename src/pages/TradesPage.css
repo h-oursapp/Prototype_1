@@ -4,6 +4,30 @@
   width: 100%;
 }
 
+/* TODO #5/#7: shown only when ?status=/&skill= narrow the page. Tinted like InventoryPage's
+   trade-context banner, for the same reason — it makes the filtered mode obvious at a glance. */
+.trades-page__filter-banner {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+}
+
+.trades-page__filter-text {
+  margin: 0;
+  font-size: 14px;
+}
+
+.trades-page__filter-clear {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--brand-primary-deep);
+  font-weight: 600;
+}
+
 /* Appkarte §8 asks for a grid-based layout. Columns are filled by available width rather than by
  * the grid-size setting — see the page's JSDoc. */
 .trades-page__grid {

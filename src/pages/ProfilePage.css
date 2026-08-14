@@ -14,14 +14,15 @@
   gap: 12px;
 }
 
+/* TODO #5: "somewhat bigger" than the original 72px/36px. */
 .profile-page__avatar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
-  font-size: 36px;
+  width: 96px;
+  height: 96px;
+  font-size: 48px;
   background: var(--surface-alt);
   border: 1px solid var(--border);
   clip-path: var(--chamfer);
@@ -55,10 +56,26 @@
   gap: 8px;
 }
 
-.profile-page__skill {
+/* Zeroes out .page-card's own padding (the compound selector outranks it regardless of CSS
+   import order) so the button below can fill the whole card — its hover then reaches the card's
+   own border instead of leaving an inactive 12px margin around it. */
+.profile-page__skill.page-card {
+  padding: 0;
+}
+
+/* The whole row is one button now (TODO #5: opens the Skill page). */
+.profile-page__skill-button {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  background: none;
+}
+
+.profile-page__skill-button:hover {
+  background: var(--surface-alt);
 }
 
 /* Fixed square frame for the reused SquareTile, which fills whatever box it is given. */
@@ -71,6 +88,16 @@
 .profile-page__skill-name {
   flex: 1;
   min-width: 0;
+}
+
+/* Both ratings, stacked, next to the name — self-rating above the review rating, matching TODO
+   #5's "the upper one is your rating ... the lower is the review score." */
+.profile-page__skill-ratings {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 

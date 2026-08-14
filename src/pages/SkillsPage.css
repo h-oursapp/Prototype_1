@@ -4,153 +4,163 @@
   width: 100%;
 }
 
-/* §7: skills are displayed as icons. The name and rating sit under each icon so the list is still
-   readable before you have learned what the icons mean. */
+/* ---------- Grid ---------- */
+
+/* Column count follows the Settings grid-size setting (grid-template-columns is set inline from
+   it — see SkillsPage.tsx), but unlike Home's fixed grids there is no row cap: every skill
+   renders, and the page (already inside PageShell's scrolling content) just grows and scrolls. */
 .skills-page__grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   gap: 8px;
 }
 
-.skills-page__skill {
+.skills-page__cell {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  text-align: center;
+  gap: 4px;
 }
 
 /* Square frame for the reused SquareTile, which fills whatever box it is given. */
-.skills-page__skill-icon {
+.skills-page__tile {
   width: 100%;
   aspect-ratio: 1;
 }
 
-.skills-page__skill-name {
-  font-size: 13px;
-}
-
-
-.skills-page__proof {
-  font-size: 11px;
-  color: var(--text-muted);
+/* TODO #6: the name and both ratings sit inside the square, over the icon, rather than below it —
+   SquareTile's `overlay` prop pins this to the tile's bottom edge. */
+.skills-page__tile-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
 }
 
-.skills-page__label {
-  display: block;
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.skills-page__input {
-  width: 100%;
-  padding: 10px;
-  font: inherit;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.skills-page__input:focus {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 1px;
-}
-
-.skills-page__results {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 4px;
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.skills-page__result {
+.skills-page__tile-ratings {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px;
-  text-align: left;
+  gap: 1px;
+}
+
+/* Two star rows have to fit a small square, so they run smaller than StarRating's default size. */
+.skills-page__tile-ratings .star-rating {
+  font-size: 10px;
+}
+
+.skills-page__add-to-offer {
+  font-size: 12px;
+  color: var(--brand-primary-deep);
   background: var(--surface);
   border: 1px solid var(--border);
+  padding: 6px;
   clip-path: var(--chamfer);
 }
 
-.skills-page__result:hover {
+.skills-page__add-to-offer:hover:enabled {
+  background: var(--brand-tint);
+}
+
+.skills-page__add-to-offer:disabled {
+  color: var(--text-muted);
   background: var(--surface-alt);
+  cursor: not-allowed;
 }
 
-.skills-page__cap {
-  margin: 16px 0 8px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
+/* ---------- Trading context ---------- */
 
-.skills-page__form {
-  display: grid;
-  gap: 12px;
-}
-
-.skills-page__field {
-  display: block;
-}
-
-.skills-page__icons {
-  border: none;
-  margin: 0;
-  padding: 0;
-}
-
-.skills-page__icons legend {
-  font-size: 13px;
-  color: var(--text-muted);
-  padding: 0;
-  margin-bottom: 4px;
-}
-
-.skills-page__icon-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.skills-page__icon {
-  width: 44px;
-  height: 44px;
-  font-size: 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.skills-page__icon.is-active {
+/* Tinted rather than plain, so it is obvious at a glance that the page is in its trading mode —
+   same convention as InventoryPage's own trade banner. */
+.skills-page__trade-banner {
+  margin-bottom: 12px;
   background: var(--brand-tint);
   border-color: var(--brand-primary);
 }
 
-.skills-page__problem {
+.skills-page__banner-title {
+  font-size: 15px;
+}
+
+.skills-page__banner-subject {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---------- Transfer box ---------- */
+
+.skills-page__offer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Where the real drag-and-drop target will be — dashed, because it isn't wired up yet. */
+.skills-page__drop {
+  min-height: 84px;
+  padding: 6px;
+  background: var(--surface-alt);
+  border: 1px dashed var(--border);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__drop-empty {
   margin: 0;
-  padding: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.skills-page__drop-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skills-page__drop-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 6px;
+  background: var(--surface);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__drop-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skills-page__drop-remove {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--brand-primary-deep);
+}
+
+.skills-page__accepted {
+  margin: 0;
+  padding: 8px;
   font-size: 13px;
   color: var(--brand-primary-deep);
   background: var(--brand-tint);
-  border: 1px solid var(--brand-primary);
+  border: 1px solid var(--brand-accent);
   clip-path: var(--chamfer);
 }
 
 .skills-page__actions {
   display: flex;
+  align-items: stretch;
   gap: 8px;
 }
 
