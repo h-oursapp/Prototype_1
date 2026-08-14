@@ -1,0 +1,95 @@
+.offers-page {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.offers-page__grid {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Squares the box without giving it a pixel height, so SquareTile's height:100% still resolves
+ * and every box stays the same size as the page flips. */
+.offers-page__cell {
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+.offers-page__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* Smaller than Home's picture-only tiles: these boxes carry a title and a price as well.
+ * Sized against SquareTile's own container, which is a size container. */
+.offers-page__tile-icon {
+  font-size: clamp(14px, 26cqw, 30px);
+  line-height: 1;
+}
+
+.offers-page__tile-title {
+  font-size: clamp(9px, 9cqw, 13px);
+  line-height: 1.2;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.offers-page__tile--add .offers-page__tile-title {
+  color: var(--brand-primary-deep);
+  font-weight: 600;
+}
+
+.offers-page__tile--add .offers-page__tile-icon {
+  color: var(--brand-primary);
+}
+
+.offers-page__tile-hours {
+  font-size: clamp(8px, 8cqw, 12px);
+  color: var(--text-muted);
+}
+
+.offers-page__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.offers-page__flip {
+  width: 40px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--brand-primary);
+  clip-path: var(--chamfer);
+}
+
+.offers-page__flip:hover:not(:disabled) {
+  background: var(--brand-tint);
+}
+
+.offers-page__flip:disabled {
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  cursor: default;
+}
+
+.offers-page__page-indicator {
+  margin: 0;
+  min-width: 92px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}

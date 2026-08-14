@@ -1,26 +1,22 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { SettingsProvider } from '../../settings/SettingsContext'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { SettingsPage } from '../../pages/SettingsPage'
+import { LocationProbe, renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
 
 beforeEach(() => {
   window.localStorage.clear()
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  })) as unknown as typeof window.matchMedia
+  stubMatchMedia()
 })
 
-function renderSettingsPage(onBack = vi.fn()) {
-  render(
-    <SettingsProvider>
-      <SettingsPage onBack={onBack} />
-    </SettingsProvider>,
+function renderSettingsPage() {
+  renderWithRouter(
+    <>
+      <SettingsPage />
+      <LocationProbe />
+    </>,
+    { route: '/settings' },
   )
-  return onBack
 }
 
 describe('SettingsPage', () => {
@@ -44,11 +40,11 @@ describe('SettingsPage', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
-  it('calls onBack when the back button is pressed', async () => {
+  it('links through to the Legal page', async () => {
     const user = userEvent.setup()
-    const onBack = renderSettingsPage()
+    renderSettingsPage()
 
-    await user.click(screen.getByRole('button', { name: 'Back' }))
-    expect(onBack).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Legal' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/legal')
   })
 })

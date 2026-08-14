@@ -1,0 +1,139 @@
+.legal-page {
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* The unmissable label. It has to survive being screenshotted out of context, so it is loud
+   rather than subtle — this page's whole job is to be impossible to mistake for real terms. */
+.legal-page__stamp {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--surface);
+  background: var(--brand-primary-deep);
+  clip-path: var(--chamfer);
+}
+
+.legal-page__stamp--page {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.legal-page__intro {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.legal-page__documents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+/* The card is the frame; the toggle inside it is the tap target, so the card carries no padding. */
+.legal-page__document {
+  padding: 0;
+}
+
+.legal-page__document-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  color: var(--text);
+}
+
+.legal-page__document-toggle:hover {
+  background: var(--surface-alt);
+}
+
+.legal-page__document-toggle.is-active {
+  background: var(--surface-alt);
+}
+
+.legal-page__document-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.legal-page__document-status {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  clip-path: var(--chamfer);
+}
+
+.legal-page__document-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.legal-page__document-panel {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.legal-page__document-body {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.legal-page__facts {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+/* Inside a document panel the facts follow a paragraph, so they need the gap the standalone
+   version (a .page-card of its own) doesn't. */
+.legal-page__document-panel .legal-page__facts {
+  margin-top: 12px;
+}
+
+.legal-page__fact {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.legal-page__fact dt {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.legal-page__fact dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-muted);
+}
+
+/* Kept visually distinct from the document rows: it is an instruction to the project, not another
+   entry in the index. */
+.legal-page__review {
+  border-color: var(--brand-primary);
+  background: var(--brand-tint);
+}
+
+.legal-page__review-line {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}

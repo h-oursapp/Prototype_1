@@ -1,0 +1,120 @@
+.profile-page {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Sits in PageShell's header via headerAction, so it matches the back button's size and look. */
+
+
+/* §7: picture with the personal info beside it. */
+.profile-page__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-page__avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  font-size: 36px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.profile-page__personal {
+  min-width: 0;
+}
+
+.profile-page__name {
+  font-size: 20px;
+}
+
+.profile-page__meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.profile-page__intro {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.profile-page__skills,
+.profile-page__reviews {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.profile-page__skill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Fixed square frame for the reused SquareTile, which fills whatever box it is given. */
+.profile-page__skill-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+
+.profile-page__skill-name {
+  flex: 1;
+  min-width: 0;
+}
+
+
+.profile-page__link {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.profile-page__link:hover {
+  background: var(--surface-alt);
+}
+
+.profile-page__review-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.profile-page__review-author {
+  font-weight: 600;
+}
+
+.profile-page__review-date {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.profile-page__review-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.profile-page__review-comment {
+  margin: 6px 0 0;
+}

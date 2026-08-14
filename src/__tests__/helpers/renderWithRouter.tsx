@@ -1,0 +1,50 @@
+import { render } from '@testing-library/react'
+import type { ReactElement } from 'react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { SettingsProvider } from '../../settings/SettingsContext'
+
+/** Render alongside a component to assert where a navigation actually landed. Kept opt-in
+ *  rather than always-on, so it can't interfere with a page's own text queries. */
+export function LocationProbe() {
+  const { pathname } = useLocation()
+  return <div data-testid="location">{pathname}</div>
+}
+
+interface Options {
+  /** Where the router starts, e.g. '/trades/trade-1/review'. */
+  route?: string
+  /** The route pattern the element is mounted at — needed when the page reads useParams(),
+   *  e.g. '/trades/:tradeId/review'. Defaults to rendering the element at whatever `route` is. */
+  path?: string
+}
+
+/** Renders a page the way the app does: inside a router (so useNavigate/useParams/useLocation
+ *  work) and inside SettingsProvider (so useSettings works).
+ *
+ *  Not named *.test.tsx, so vitest treats it as a helper rather than collecting it as a suite. */
+export function renderWithRouter(ui: ReactElement, { route = '/', path }: Options = {}) {
+  return render(
+    <SettingsProvider>
+      <MemoryRouter initialEntries={[route]}>
+        {path ? (
+          <Routes>
+            <Route path={path} element={ui} />
+          </Routes>
+        ) : (
+          ui
+        )}
+      </MemoryRouter>
+    </SettingsProvider>,
+  )
+}
+
+/** jsdom has no matchMedia, which SettingsContext calls when resolving the system color theme.
+ *  Call this in a beforeEach alongside localStorage.clear() before rendering anything. */
+export function stubMatchMedia() {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  })) as unknown as typeof window.matchMedia
+}

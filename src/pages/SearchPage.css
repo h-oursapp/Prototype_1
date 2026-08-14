@@ -1,0 +1,165 @@
+.search-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.search-page__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* OptionGroup carries its own bottom margin for stacked settings forms; here the flex gap already
+ * spaces the rows. */
+.search-page__controls .option-group {
+  margin-bottom: 0;
+}
+
+.search-page__search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.search-page__field {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.search-page__count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* §4: roughly half the space is the map, the other half the nearby hits. */
+.search-page__map-view {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 280px;
+}
+
+.search-page__nearby,
+.search-page__map {
+  flex: 1 1 50%;
+  min-width: 0;
+}
+
+.search-page__nearby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-page__hit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.search-page__hit:hover {
+  background: var(--surface-alt);
+}
+
+.search-page__hit-title {
+  font-size: 14px;
+}
+
+.search-page__hit-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Dashed edge plus faux grid lines: reads as a map panel at a glance, and as unfinished on a
+ * second look. */
+.search-page__map {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  clip-path: var(--chamfer);
+  background-color: var(--surface-alt);
+  background-image:
+    repeating-linear-gradient(0deg, var(--border) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 28px);
+}
+
+.search-page__map-badge {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-primary);
+  background: var(--brand-tint);
+  clip-path: var(--chamfer);
+}
+
+.search-page__results {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Squares the box without a pixel height, so SquareTile's height:100% resolves. */
+.search-page__result {
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+.search-page__result-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.search-page__result-icon {
+  font-size: clamp(14px, 26cqw, 30px);
+  line-height: 1;
+}
+
+.search-page__result-title {
+  font-size: clamp(9px, 9cqw, 13px);
+  line-height: 1.2;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.search-page__result-meta {
+  font-size: clamp(8px, 8cqw, 12px);
+  color: var(--text-muted);
+}

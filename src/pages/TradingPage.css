@@ -1,0 +1,395 @@
+/* Trading (§6). Three stacked zones inside PageShell's scrolling content area: the two
+ * inventories, the trading table, then the chat. Colours come only from the theme tokens in
+ * index.css, and corners are cut with clip-path — never border-radius. */
+
+.trading-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.trading-page__summary {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.trading-page__panel-title {
+  font-size: 15px;
+}
+
+.trading-page__link {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--brand-primary);
+}
+
+.trading-page__link:hover {
+  color: var(--brand-primary-deep);
+}
+
+.trading-page__button {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--brand-primary-deep);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  clip-path: var(--chamfer);
+}
+
+.trading-page__button:hover {
+  background: var(--brand-tint);
+}
+
+/* ---------- Zone 1: inventories ---------- */
+
+/* Mirrored panels: side by side when there's room, stacked on a narrow phone. */
+.trading-page__inventories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.trading-page__inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trading-page__inventory-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.trading-page__skills {
+  flex: 0 0 76px;
+  min-width: 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--border);
+}
+
+.trading-page__skills-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+}
+
+.trading-page__skill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trading-page__skill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.trading-page__skill-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.trading-page__skill-rating {
+  color: var(--brand-primary);
+}
+
+.trading-page__items {
+  flex: 1;
+  min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trading-page__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: var(--surface-alt);
+  clip-path: var(--chamfer);
+}
+
+/* SquareTile fills whatever box it's given, so the box is sized here. */
+.trading-page__item-tile {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+}
+
+.trading-page__item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.trading-page__item-name {
+  font-size: 13px;
+}
+
+.trading-page__item-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.trading-page__item-private {
+  font-size: 11px;
+  color: var(--brand-primary-deep);
+}
+
+.trading-page__detail {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trading-page__detail-row {
+  padding: 6px;
+  background: var(--surface-alt);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__detail-term {
+  font-size: 13px;
+}
+
+.trading-page__detail-value {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------- Zone 2: trading table ---------- */
+
+/* The two sides stay side by side as long as they fit — the mirroring is the whole point. */
+.trading-page__table {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.trading-page__side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--surface-alt);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__hours-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.trading-page__hours-label {
+  color: var(--text-muted);
+}
+
+.trading-page__hours-value {
+  font-weight: 600;
+}
+
+/* The partner's available hours are hidden from you (§6) — shown masked, not omitted. */
+.trading-page__hours-value.is-masked {
+  color: var(--brand-primary);
+  letter-spacing: 0.12em;
+}
+
+.trading-page__stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.trading-page__stepper-button {
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  color: var(--brand-primary-deep);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__stepper-button:hover:enabled {
+  background: var(--brand-tint);
+}
+
+.trading-page__stepper-button:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.trading-page__stepper-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Where the real drag-and-drop target will be — dashed, because it isn't wired up yet. */
+.trading-page__drop {
+  flex: 1;
+  min-height: 84px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__drop-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.trading-page__drop-items {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trading-page__drop-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px;
+  background: var(--brand-tint);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__drop-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trading-page__drop-remove {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--brand-primary-deep);
+}
+
+/* ---------- Zone 3: chat ---------- */
+
+.trading-page__chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+/* The expanded state genuinely covers the screen, header and nav bar included (§6). */
+.trading-page__chat.is-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 12px;
+  background: var(--bg);
+  border: none;
+  clip-path: none;
+}
+
+.trading-page__chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trading-page__chat-header .page-section__heading {
+  margin-bottom: 0;
+}
+
+.trading-page__messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.trading-page__chat.is-expanded .trading-page__messages {
+  flex: 1;
+  max-height: none;
+}
+
+.trading-page__message {
+  max-width: 85%;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: var(--surface-alt);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__message.is-yours {
+  align-self: flex-end;
+  background: var(--brand-tint);
+}
+
+.trading-page__message-author {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-primary-deep);
+}
+
+.trading-page__message-time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.trading-page__composer {
+  display: flex;
+  gap: 6px;
+}
+
+.trading-page__composer-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 8px;
+  clip-path: var(--chamfer);
+}

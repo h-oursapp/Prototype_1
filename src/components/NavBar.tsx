@@ -1,37 +1,36 @@
+import { useLocation, useNavigate } from 'react-router-dom'
+import { NAV_ITEMS, activeNavKey } from './navItems'
+import { useAutoCollapse } from './useAutoCollapse'
 import './NavBar.css'
 
-export type NavKey = 'wallet' | 'profile' | 'community' | 'trades' | 'inventory' | 'home' | 'settings'
-
-interface NavItem {
-  key: NavKey
-  label: string
-  icon: string
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { key: 'wallet', label: 'Hours', icon: '⏱️' },
-  { key: 'profile', label: 'Profile', icon: '👤' },
-  { key: 'community', label: 'Community', icon: '👥' },
-  { key: 'trades', label: 'Trades', icon: '🔄' },
-  { key: 'inventory', label: 'Inventory', icon: '📦' },
-  { key: 'home', label: 'Home', icon: '🏠' },
-  // Not in the original Appkarte nav (Settings was reached via Profile there) — added directly
-  // here per request, since Profile itself isn't built yet.
-  { key: 'settings', label: 'Settings', icon: '⚙️' },
-]
+export type { NavKey } from './navItems'
 
 interface NavBarProps {
   hoursBalance: number
-  activeKey: NavKey
-  onNavigate: (key: NavKey, label: string) => void
+  /** Appkarte §3: the bar never collapses on Home, and does everywhere else. */
+  collapsible: boolean
 }
 
-/** Nav bar present on (almost) all pages. Only Home exists in this prototype so far, where it's
- *  always fully visible — the collapse-into-a-corner-button behavior for other pages is deferred
- *  until those pages exist. */
-export function NavBar({ hoursBalance, activeKey, onNavigate }: NavBarProps) {
+/** The nav bar from Appkarte §3, present on (almost) every page.
+ *
+ *  It reads the current route itself rather than taking an `activeKey` prop, and navigates
+ *  itself rather than taking an `onNavigate` prop — so a page just renders it and is done. */
+export function NavBar({ hoursBalance, collapsible }: NavBarProps) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { isCollapsed, expand, keepOpen } = useAutoCollapse(collapsible)
+  const activeKey = activeNavKey(pathname)
+
+  if (isCollapsed) {
+    return (
+      <button type="button" className="nav-bar__reopen" onClick={expand} aria-label="Show navigation">
+        <span aria-hidden="true">☰</span>
+      </button>
+    )
+  }
+
   return (
-    <nav className="nav-bar" aria-label="Main navigation">
+    <nav className="nav-bar" aria-label="Main navigation" onPointerDown={keepOpen}>
       {NAV_ITEMS.map((item) => (
         <button
           key={item.key}
@@ -39,7 +38,7 @@ export function NavBar({ hoursBalance, activeKey, onNavigate }: NavBarProps) {
           className={`nav-bar__item ${activeKey === item.key ? 'is-active' : ''}`}
           aria-current={activeKey === item.key ? 'page' : undefined}
           aria-label={item.key === 'wallet' ? `Hours balance: ${hoursBalance}, open wallet` : item.label}
-          onClick={() => onNavigate(item.key, item.label)}
+          onClick={() => navigate(item.path)}
         >
           <span className="nav-bar__icon" aria-hidden="true">
             {item.icon}

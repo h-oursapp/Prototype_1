@@ -10,6 +10,11 @@ describe('SquareTile', () => {
     expect(screen.getByLabelText('Guitar lessons')).toBeInTheDocument()
   })
 
+  it('carries a role on the non-clickable branch, or its aria-label would be ignored', () => {
+    render(<SquareTile label="Guitar lessons" />)
+    expect(screen.getByRole('img', { name: 'Guitar lessons' })).toBeInTheDocument()
+  })
+
   it('renders as a clickable button and fires onClick when one is given', async () => {
     const user = userEvent.setup()
     const onClick = vi.fn()

@@ -1,0 +1,202 @@
+.community-page {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* §9's blocked-persons *button*: it lives in PageShell's headerAction slot rather than in the
+   page body, because the card names it as a control and not as a section of its own. Sized to
+   match the back button opposite it. */
+
+
+
+.community-page__label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.community-page__input,
+.community-page__textarea {
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.community-page__textarea {
+  resize: vertical;
+}
+
+.community-page__input:focus,
+.community-page__textarea:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
+}
+
+.community-page__count {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.community-page__friends,
+.community-page__blocked,
+.community-page__posts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+/* The card is only a frame here — the row inside it is the tap target, so it carries no padding
+   of its own. */
+.community-page__friend {
+  padding: 0;
+}
+
+.community-page__friend-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  color: var(--text);
+}
+
+.community-page__friend-open:hover {
+  background: var(--surface-alt);
+}
+
+.community-page__avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.community-page__friend-text,
+.community-page__blocked-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.community-page__friend-name {
+  font-weight: 600;
+}
+
+.community-page__friend-headline {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.community-page__friend-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Marks the friends you have actually traded with — the one flag the mock data carries. */
+.community-page__badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  clip-path: var(--chamfer);
+}
+
+.community-page__blocked-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.community-page__composer {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.community-page__primary {
+  justify-self: start;
+  padding: 10px 20px;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--brand-primary);
+  clip-path: var(--chamfer);
+}
+
+.community-page__primary:hover {
+  background: var(--brand-primary-deep);
+}
+
+.community-page__secondary {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.community-page__secondary:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.community-page__problem {
+  margin: 0;
+  padding: 10px;
+  font-size: 13px;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-primary);
+  clip-path: var(--chamfer);
+}
+
+.community-page__post-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.community-page__post-author {
+  font-weight: 600;
+}
+
+.community-page__post-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.community-page__post-text {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+
+.community-page__post-replies {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}

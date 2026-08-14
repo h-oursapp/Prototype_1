@@ -1,0 +1,179 @@
+.skills-page {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* §7: skills are displayed as icons. The name and rating sit under each icon so the list is still
+   readable before you have learned what the icons mean. */
+.skills-page__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.skills-page__skill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+/* Square frame for the reused SquareTile, which fills whatever box it is given. */
+.skills-page__skill-icon {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.skills-page__skill-name {
+  font-size: 13px;
+}
+
+
+.skills-page__proof {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.skills-page__label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.skills-page__input {
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__input:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
+}
+
+.skills-page__results {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.skills-page__result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__result:hover {
+  background: var(--surface-alt);
+}
+
+.skills-page__cap {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.skills-page__form {
+  display: grid;
+  gap: 12px;
+}
+
+.skills-page__field {
+  display: block;
+}
+
+.skills-page__icons {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.skills-page__icons legend {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.skills-page__icon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skills-page__icon {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__icon.is-active {
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+}
+
+.skills-page__problem {
+  margin: 0;
+  padding: 10px;
+  font-size: 13px;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-primary);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.skills-page__primary {
+  flex: 1;
+  padding: 12px;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--brand-primary);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__primary:hover {
+  background: var(--brand-primary-deep);
+}
+
+.skills-page__secondary {
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.skills-page__secondary:hover {
+  background: var(--surface-alt);
+}
