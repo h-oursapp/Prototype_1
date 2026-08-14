@@ -1,10 +1,18 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
-import type { Trade } from '../data/mockTrades'
+import type { Trade, TradeStatus } from '../data/mockTrades'
 import { MOCK_TRADES, TRADE_STATUS_LABEL, TRADE_STATUS_ORDER } from '../data/mockTrades'
-import { finalReview, trading } from '../routes'
+import { findSkill } from '../data/mockUser'
+import { ROUTES, finalReview, trading } from '../routes'
 import './TradesPage.css'
+
+/** 'closed' is what a trade becomes once Final Review closes it — Profile's and the Skill page's
+ *  "reviewed trades" buttons (TODO #5/#7) both reuse that instead of inventing a separate
+ *  "reviewed" flag. */
+function isReviewedStatus(value: string | null): value is TradeStatus {
+  return value === 'closed'
+}
 
 /** Appkarte §8 sorts trades "primarily by status ... secondarily by last interaction".
  *
@@ -94,6 +102,28 @@ function TradeCard({
   )
 }
 
+interface FilterBannerProps {
+  /** Resolved skill name, when the filter is narrowed to one — null means "reviewed trades,
+   *  any skill". */
+  skillName: string | null
+}
+
+/** Shown only when the page was reached via a filtered link (Profile's "Reviewed trades", or the
+ *  Skill page's "All reviewed trades"), so the mode is obvious the same way InventoryPage's own
+ *  TradeContextBanner makes its trading mode obvious. */
+function FilterBanner({ skillName }: FilterBannerProps) {
+  return (
+    <section className="page-card trades-page__filter-banner">
+      <p className="trades-page__filter-text">
+        Showing: reviewed trades{skillName !== null && <> for {skillName}</>}
+      </p>
+      <Link className="trades-page__filter-clear" to={ROUTES.trades}>
+        Clear filter
+      </Link>
+    </section>
+  )
+}
+
 /** Appkarte §8 — Trades: every trade, open and closed, in a grid-based layout, sorted by status
  *  and then by last interaction.
  *
@@ -106,12 +136,24 @@ function TradeCard({
  *    subject, a partner, a status and two controls, and does not stay readable at 4 per row.
  *  - GridSection/SquareTile are not reused here for the same reason: both are built for
  *    picture-only tiles locked into a square frame, and neither can hold the per-card controls.
- *  - Chat logs are local (§8), so deleting one is local state only and lasts until reload. */
+ *  - Chat logs are local (§8), so deleting one is local state only and lasts until reload.
+ *  - TODO #5/#7: `?status=closed` (optionally `&skill=<id>`) filters this same page down to
+ *    "already reviewed" trades rather than being a separate screen — no query params means the
+ *    page behaves exactly as it did before, so this is additive. */
 export function TradesPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [deletedChatLogIds, setDeletedChatLogIds] = useState<string[]>([])
 
-  const sortedTrades = [...MOCK_TRADES].sort(compareTradesByStatus)
+  const statusParam = searchParams.get('status')
+  const skillParam = searchParams.get('skill')
+  const isFiltered = isReviewedStatus(statusParam)
+  const filteredSkillName = skillParam !== null ? (findSkill(skillParam)?.name ?? skillParam) : null
+
+  const sortedTrades = [...MOCK_TRADES]
+    .filter((trade) => !isFiltered || trade.status === statusParam)
+    .filter((trade) => skillParam === null || trade.skillId === skillParam)
+    .sort(compareTradesByStatus)
 
   const deleteChatLog = (tradeId: string) => {
     setDeletedChatLogIds((deleted) => [...deleted, tradeId])
@@ -120,22 +162,28 @@ export function TradesPage() {
   return (
     <PageShell title="Trades">
       <div className="trades-page">
-        <section className="page-section">
-          <h2 className="page-section__heading">All trades</h2>
+        {isFiltered && <FilterBanner skillName={filteredSkillName} />}
 
-          <ul className="trades-page__grid">
-            {sortedTrades.map((trade) => (
-              <li key={trade.id}>
-                <TradeCard
-                  trade={trade}
-                  isChatLogDeleted={deletedChatLogIds.includes(trade.id)}
-                  onOpenTrading={() => navigate(trading(trade.id))}
-                  onOpenFinalReview={() => navigate(finalReview(trade.id))}
-                  onDeleteChatLog={() => deleteChatLog(trade.id)}
-                />
-              </li>
-            ))}
-          </ul>
+        <section className="page-section">
+          <h2 className="page-section__heading">{isFiltered ? 'Reviewed trades' : 'All trades'}</h2>
+
+          {sortedTrades.length === 0 ? (
+            <p className="page-note">No trades match this filter yet.</p>
+          ) : (
+            <ul className="trades-page__grid">
+              {sortedTrades.map((trade) => (
+                <li key={trade.id}>
+                  <TradeCard
+                    trade={trade}
+                    isChatLogDeleted={deletedChatLogIds.includes(trade.id)}
+                    onOpenTrading={() => navigate(trading(trade.id))}
+                    onOpenFinalReview={() => navigate(finalReview(trade.id))}
+                    onDeleteChatLog={() => deleteChatLog(trade.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <p className="page-note">

@@ -1,6 +1,7 @@
 # h_OURs Prototype — Handoff
 
-Written 2026-08-14, on branch `scaffolding_prototype`, uncommitted.
+Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branch
+`todo-5-6-7-profile-skills-skill` after building TODO #5–#7 (Profile, Skills, Skill).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -43,14 +44,19 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        30 files, 170 tests, all passing
+npm run test        31 files, 195 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-Working tree: `CLAUDE.md` modified, `TODO.md` untracked. **Nothing has been committed** — per
-`CLAUDE.md`, commits wait for Márk's explicit say-so.
+This session (branch `todo-5-6-7-profile-skills-skill`) built **TODO #5 (Profile), #6 (Skills)
+and #7 (Skill)** end to end — a new Skill page, both ratings everywhere a skill appears, the
+Skills grid rework, and the transfer box. §7 (below) has the details, §8 the judgement calls, §12
+the TODO items this closes out.
+
+Working tree on this branch is otherwise the same as `scaffolding_prototype`'s (`CLAUDE.md`
+modified, `TODO.md` untracked) plus this session's changes, ready to commit.
 
 ```bash
 npm install
@@ -100,7 +106,7 @@ src/
     navItems.ts            nav list + activeNavKey() — pure, unit-tested
     useAutoCollapse.ts     the §3 nav auto-collapse timer
     GridSection.tsx        a titled grid of tiles (used by Home)
-    SquareTile.tsx         one tile
+    SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
     StarRating.tsx         ★★★☆☆ display
     OptionGroup.tsx        segmented control (used by Settings)
 
@@ -242,7 +248,8 @@ and Appkarte §3 makes Home the one screen where the nav bar doesn't auto-collap
 
 ## 7. The screens
 
-All sixteen exist and are routed. "Depth" is the level agreed with Márk: **structural scaffold** —
+All eighteen exist and are routed (SkillPage adds two: `/skills/:skillId` and `/skills/new`).
+"Depth" is the level agreed with Márk: **structural scaffold** —
 real layout, real navigation, real filtering and local state; genuinely complex interactions
 (drag-and-drop, live maps) are visible, labelled placeholders rather than fake-working.
 
@@ -258,9 +265,11 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/trading/:tradeId` | TradingPage | §6 | Three zones — see §8 |
 | `/inventory` | InventoryPage | §6 | Out of prototype scope; mockup requested |
 | `/wallet` | WalletPage | §7 | Charity/Foundation are `[OFFEN]` |
-| `/profile` | ProfilePage | §7 | |
-| `/skills` | SkillsPage | §7 | 4★+ needs proof; custom skills capped at 5 |
-| `/trades` | TradesPage | §8 | Status: open / agreed / closed |
+| `/profile` | ProfilePage | §7 | Best skills show both ratings and open the Skill page; a button opens Trades pre-filtered to already-reviewed |
+| `/skills` | SkillsPage | §7 | Grid columns follow the Settings grid-size setting, rows uncapped; tiles open the Skill page; last tile is "+ Add skill"; transfer box at `?trade=<id>` |
+| `/skills/:skillId` | SkillPage | §7 | View/edit/create in one component (AdDetailPage's pattern). Holds the proof-gated add-a-skill flow moved off SkillsPage |
+| `/skills/new` | SkillPage `mode="create"` | §7 | Same component as above |
+| `/trades` | TradesPage | §8 | Status: open / agreed / closed. `?status=closed` (optionally `&skill=<id>`) filters to already-reviewed trades |
 | `/trades/:tradeId/review` | FinalReviewPage | §8 | Star **input**, not display |
 | `/community` | CommunityPage | §9 | Out of prototype scope |
 | `/settings` | SettingsPage | §9 | Theme + grid size, actually works |
@@ -307,6 +316,31 @@ after two call sites had character-identical code — the duplication proved the
 (Offers and Search share tile markup) was noticed and **deliberately left duplicated**, because the
 two are likely to diverge and the abstraction hasn't earned itself yet.
 
+**The Skill page never persists anything — matched to AdDetailPage on purpose.** Editing a skill or
+creating one behaves exactly like AdDetailPage's create mode: real validation (the proof gate, the
+duplicate-name check), but "Save"/"Create skill" only shows a note that nothing is wired up. This
+was a deliberate choice, confirmed with Márk, over lifting skills into a shared store — the
+alternative would make one page in the app "more real" than every other detail page for no reason
+tied to this TODO.
+
+**SkillsPage's old inline add-a-skill form is gone, not duplicated.** TODO #6 asked for a button
+that opens the Skill page instead; per Márk's call, the search/custom-skill flow (and its proof-gate
+and duplicate-name logic) *moved* into `SkillPage`'s create mode rather than existing in both
+places. `SkillPage.test.tsx` carries the tests that used to live on `SkillsPage.test.tsx`.
+
+**A trade's "reviewed" state is just its `closed` status, reused.** TODO #5/#7 both want a
+"reviewed trades" filter. Closing a trade already only happens via Final Review, so `?status=closed`
+on `/trades` *is* "already reviewed" — no new field was invented for it.
+
+**`Trade.skillId` is the minimum version of the §13 gap below, not the full fix.** It links a trade
+to one of *your* skills so "all reviewed trades for this skill" can be answered. It does not make
+Final Review skill-aware, and it is optional — most trades still carry no skill link.
+
+**SkillsPage's transfer box exists but nothing points at it yet.** `/skills?trade=<id>` mirrors
+`InventoryPage`'s `?trade=` convention exactly (same banner pattern, same "Add to offer" +
+drop-zone-summary shape) — wiring an ad's "choose a skill" step to it is TODO #8, out of this
+session's scope. It is fully built and tested against the query parameter directly.
+
 ---
 
 ## 9. Mock data
@@ -316,8 +350,8 @@ All of it lives in `src/data/`. No component invents its own.
 | File | Holds |
 | --- | --- |
 | `mockOffers.ts` | `Offer` (`kind: 'skill' \| 'item'`, `hours`, `distanceKm`), `MOCK_ADS`, `MOCK_YOUR_OFFERS`, `findOffer`, `isYourOffer` |
-| `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill`, `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS` |
-| `mockTrades.ts` | `TradeStatus`, `Trade` (incl. `partnerHours`), `ChatMessage`, `MOCK_TRADES` (5), `findTrade` |
+| `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill` (now incl. `description`, `reviewRating`), `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `findSkill`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS` |
+| `mockTrades.ts` | `TradeStatus`, `Trade` (incl. `partnerHours`, now `skillId?`), `ChatMessage`, `MOCK_TRADES` (6 — `trade-6` links to `skill-1`), `findTrade` |
 | `mockInventory.ts` | `InventoryItem` (`isPublic`, `shelf`), yours (8) + partner's (5), `MOCK_SHELVES`, `publicItems()` |
 | `mockCommunity.ts` | `Friend` (7), `BlockedPerson` (2), `BoardPost` (4) |
 
@@ -377,6 +411,7 @@ These are Márk's rules. They override default behaviour.
   rather than starting a new one, and correct anything in it that the session made untrue.
 - **`TODO.md` is Márk's list, written between sessions.** He specifies which points to tackle.
 - **Ask at the start of each session which TODO point you're working on.**
+- **Once committed, open a pull request.**
 
 ---
 
@@ -395,19 +430,25 @@ Known collisions, by TODO section:
 | 3 Home | Ads/your-offers centred; arrows repositioned and flipped; swipe left/right → offers/search; "create offer" button in the last grid cell | Corner arrows → search/offers; swipe **up** → wallet |
 | 4 Nav bar | Home in the middle; **Settings removed** (lives in Profile); hours as plain `10h15m`; nav bar **floating** so content gets the space; gridlines between items | Settings is on the bar (`navItems.ts` has a comment defending it — that comment is now overruled); home is 6th of 7; nav bar occupies layout space |
 | 4 Nav bar | Back button goes **home** from top-level pages, default behaviour elsewhere | `PageShell` always calls `navigate(-1)` |
-| 5–7 Skills | A **second rating** ("review rating") alongside the self-rating, everywhere | `Skill` has one `rating` |
-| 7 Skill | A **new page** per skill, with edit mode and per-skill reviews | Doesn't exist |
 | 8 Offers | Other people's ads are renamed **"offers"** | `/offers` currently means *your* offers, and `/ads/:adId` is theirs — this rename collides head-on with existing route names. **Agree the naming before starting.** |
 | 8 Offers | Items get a **condition rating** (1 = scrap, 5 = as-new), including during creation | `Offer` has no condition field |
 | 9 Inventory | "Start from almost the beginning": grid layout like Home, **non-scrollable but pageable**, name overlaid on the picture, **shelves out of prototype scope** | Scrolling layout, shelves implemented |
 | 10 Item | A **new page** per inventory item, with a public/private switch | Doesn't exist |
 | 11 Trading | Non-scrollable; items in grids, skills in a single row; time as an inherent skill in the trading row; chat shows only the last message and expands on scroll-up | Three scrolling zones; chat has an expand button |
 
-Two recurring new concepts appear across TODO 6, 8, 9 and 11 and don't exist yet:
+**TODO #5, #6, #7 are done** (this session): both ratings everywhere a skill appears, the Skills
+grid rework (grid-size columns, uncapped rows, data overlaid on the tile), the add-a-skill flow
+moved to the new Skill page, and the Skill page itself (view/edit/create, per-skill reviews, a link
+to that skill's reviewed trades). See §8 for the judgement calls and §13 for what's still minimal.
+
+One of the two recurring new concepts below is now half-built:
 
 - **Transfer box** — a drag-and-drop target on Skills and Inventory, shown only when the page was
-  opened from offer creation. This is the mechanism §8 uses to pick what an offer contains.
+  opened from offer creation. Inventory already had one; **Skills now has one too**
+  (`/skills?trade=<id>`, mirroring Inventory's shape exactly). Neither is wired to anything yet —
+  that's TODO #8's "choose a skill/item" step from ad creation.
 - **Item as a first-class page** — inventory items become navigable objects like skills, not rows.
+  Still doesn't exist (TODO #10).
 
 Both are structural. They're worth designing deliberately rather than growing by accident.
 
@@ -422,9 +463,10 @@ and the payment flow; charity and foundation mechanics; exact grid tuning; the t
 
 **Found while building, not recorded anywhere:**
 
-1. **`Trade` has no link to a skill.** So Final Review rates a free-text `subject` string rather than
-   an actual skill. Once TODO 7's Skill page exists this matters a lot — per-skill reviews need the
-   trade to know which skill it was about.
+1. ~~`Trade` has no link to a skill.~~ **Partially fixed this session:** `Trade.skillId?` now exists,
+   just enough for "all reviewed trades for this skill" (TODO #7) to work. Final Review still rates
+   a free-text `subject` rather than an actual skill, and most trades still carry no `skillId` — a
+   full fix would mean Final Review writing that link when a trade closes, which nothing does yet.
 2. **`lastInteraction` is prose, not a timestamp** (`"Yesterday"`). Appkarte §8 specifies a secondary
    sort by recency, which cannot be implemented against a string. Needs a real date.
 

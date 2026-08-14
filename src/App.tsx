@@ -11,6 +11,7 @@ import { OffersPage } from './pages/OffersPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SkillPage } from './pages/SkillPage'
 import { SkillsPage } from './pages/SkillsPage'
 import { TradesPage } from './pages/TradesPage'
 import { TradingPage } from './pages/TradingPage'
@@ -73,6 +74,9 @@ function AppRoutes() {
         <Route path={ROUTES.wallet} element={<WalletPage />} />
         <Route path={ROUTES.profile} element={<ProfilePage />} />
         <Route path={ROUTES.skills} element={<SkillsPage />} />
+        {/* 'new' before ':skillId', same reason /ads/new precedes /ads/:adId. */}
+        <Route path={ROUTES.skillCreate} element={<SkillPage mode="create" />} />
+        <Route path={ROUTES.skillDetail} element={<SkillPage />} />
         <Route path={ROUTES.trades} element={<TradesPage />} />
         <Route path={ROUTES.finalReview} element={<FinalReviewPage />} />
         <Route path={ROUTES.community} element={<CommunityPage />} />

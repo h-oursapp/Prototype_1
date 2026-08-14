@@ -1,140 +1,119 @@
 import { screen, within } from '@testing-library/react'
-import userEvent, { type UserEvent } from '@testing-library/user-event'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { CUSTOM_SKILL_CAP, MOCK_SKILLS } from '../../data/mockUser'
+import { MOCK_SKILLS } from '../../data/mockUser'
 import { SkillsPage } from '../../pages/SkillsPage'
-import { renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
+import { LocationProbe, renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
 
 beforeEach(() => {
   window.localStorage.clear()
   stubMatchMedia()
 })
 
+/** Puts the grid density somewhere other than the default before the page reads it — same helper
+ *  OffersPage.test.tsx uses for the same reason. */
+function storeGridSize(gridSize: number) {
+  window.localStorage.setItem('h-ours:settings', JSON.stringify({ colorTheme: 'light', gridSize }))
+}
+
+function renderSkillsPage(route = '/skills') {
+  renderWithRouter(
+    <>
+      <SkillsPage />
+      <LocationProbe />
+    </>,
+    { route },
+  )
+}
+
 const yourSkills = () => within(screen.getByRole('list', { name: 'Your skills' }))
-const searchResults = () => within(screen.getByRole('list', { name: 'Search results' }))
-
-/** Search for a catalogue skill and open its add form. */
-async function startAdding(user: UserEvent, name: string) {
-  await user.type(screen.getByLabelText('Search skills'), name)
-  await user.click(searchResults().getByRole('button', { name }))
-}
-
-async function createCustomSkill(user: UserEvent, name: string) {
-  await user.click(screen.getByRole('button', { name: 'Create a custom skill' }))
-  await user.type(screen.getByLabelText('Skill name'), name)
-  await user.click(screen.getByRole('button', { name: 'Add skill' }))
-}
 
 describe('SkillsPage', () => {
-  it('lists the skills you already have, with their ratings', () => {
-    renderWithRouter(<SkillsPage />)
+  it('shows one tile per skill, plus a tile to add one', () => {
+    renderSkillsPage()
 
-    expect(yourSkills().getAllByRole('listitem')).toHaveLength(MOCK_SKILLS.length)
-    expect(yourSkills().getByText('Web design')).toBeInTheDocument()
-    expect(yourSkills().getByRole('img', { name: 'Piano: rated 4 out of 5' })).toBeInTheDocument()
+    expect(yourSkills().getAllByRole('listitem')).toHaveLength(MOCK_SKILLS.length + 1)
+    expect(yourSkills().getByRole('button', { name: 'Web design' })).toBeInTheDocument()
+    expect(yourSkills().getByRole('button', { name: 'Add a skill' })).toBeInTheDocument()
   })
 
-  it('filters the predefined list by the search text', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+  it('shows both ratings for a skill (TODO #6: self-rating and review rating)', () => {
+    renderSkillsPage()
 
-    await user.type(screen.getByLabelText('Search skills'), 'gui')
-
-    const results = searchResults().getAllByRole('button')
-    expect(results).toHaveLength(1)
-    expect(results[0]).toHaveAccessibleName('Guitar')
+    expect(screen.getByRole('img', { name: "Web design's rating: rated 5 out of 5" })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: "Web design's review rating: rated 5 out of 5" })).toBeInTheDocument()
   })
 
-  it('leaves skills you already have out of the search results', async () => {
+  it('opens the Skill page when a tile is tapped', async () => {
     const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+    renderSkillsPage()
 
-    await user.type(screen.getByLabelText('Search skills'), 'piano')
-
-    expect(searchResults().queryAllByRole('button')).toHaveLength(0)
-    expect(screen.getByText(/nothing in the list matches/i)).toBeInTheDocument()
+    await user.click(yourSkills().getByRole('button', { name: 'Web design' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/skills/skill-1')
   })
 
-  it('adds a catalogue skill below 4 stars without asking for proof', async () => {
+  it('opens an empty Skill page from the add-skill tile', async () => {
     const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+    renderSkillsPage()
 
-    await startAdding(user, 'Yoga')
-    await user.click(screen.getByRole('button', { name: '2★' }))
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
-
-    expect(yourSkills().getByText('Yoga')).toBeInTheDocument()
-    expect(yourSkills().getByRole('img', { name: 'Yoga: rated 2 out of 5' })).toBeInTheDocument()
+    await user.click(yourSkills().getByRole('button', { name: 'Add a skill' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/skills/new')
   })
 
-  it('blocks a rating of 4 stars or more when no proof is given, and says why', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+  it("follows the Settings grid-size setting for the grid's column count, uncapped in rows", () => {
+    storeGridSize(2)
+    renderSkillsPage()
 
-    await startAdding(user, 'Guitar')
-    await user.click(screen.getByRole('button', { name: '5★' }))
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
-
-    expect(screen.getByRole('alert')).toHaveTextContent(/needs proof/i)
-    expect(yourSkills().queryByText('Guitar')).not.toBeInTheDocument()
+    const grid = screen.getByRole('list', { name: 'Your skills' })
+    expect(grid.style.gridTemplateColumns).toBe('repeat(2, 1fr)')
+    // Unlike Home's grids, nothing is sliced off: every skill still renders at a small column count.
+    expect(yourSkills().getAllByRole('listitem')).toHaveLength(MOCK_SKILLS.length + 1)
   })
 
-  it('allows the same rating once proof is given', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+  describe('transfer box (TODO #6)', () => {
+    it('is absent outside a trading context', () => {
+      renderSkillsPage()
+      expect(screen.queryByRole('heading', { name: 'Your offer' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /add .* to your offer/i })).not.toBeInTheDocument()
+    })
 
-    await startAdding(user, 'Guitar')
-    await user.click(screen.getByRole('button', { name: '4★' }))
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
-    expect(screen.getByRole('alert')).toBeInTheDocument()
+    it('appears at ?trade=<id>, naming the trade and showing an empty offer', () => {
+      renderSkillsPage('/skills?trade=trade-1')
 
-    await user.type(screen.getByLabelText('Proof'), 'Music school certificate, 2021')
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
+      expect(screen.getByText(/picking a skill for your trade with lena k\./i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Your offer' })).toBeInTheDocument()
+      expect(screen.getByText('Nothing in the offer yet.')).toBeInTheDocument()
+    })
 
-    expect(yourSkills().getByText('Guitar')).toBeInTheDocument()
-    expect(yourSkills().getByRole('img', { name: 'Guitar: rated 4 out of 5' })).toBeInTheDocument()
-    expect(yourSkills().getByText('Music school certificate, 2021')).toBeInTheDocument()
-  })
+    it('adds a skill to the offer, then removes it again', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage('/skills?trade=trade-1')
 
-  it('creates a custom skill with an icon from the predefined set', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+      await user.click(screen.getByRole('button', { name: 'Add Web design to your offer' }))
 
-    await user.click(screen.getByRole('button', { name: 'Create a custom skill' }))
-    await user.type(screen.getByLabelText('Skill name'), 'Beekeeping')
-    await user.click(screen.getByRole('button', { name: 'Books' }))
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
+      expect(screen.queryByText('Nothing in the offer yet.')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Web design is already in your offer' })).toBeDisabled()
 
-    expect(yourSkills().getByText('Beekeeping')).toBeInTheDocument()
-  })
+      await user.click(screen.getByRole('button', { name: 'Remove Web design from your offer' }))
+      expect(screen.getByText('Nothing in the offer yet.')).toBeInTheDocument()
+    })
 
-  it('counts down the custom skills left and stops at the cap', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
+    it('accepts the offer', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage('/skills?trade=trade-1')
 
-    const alreadyCustom = MOCK_SKILLS.filter((skill) => skill.isCustom).length
-    const left = CUSTOM_SKILL_CAP - alreadyCustom
-    expect(screen.getByText(`${left} of ${CUSTOM_SKILL_CAP} custom skills left`)).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Add Web design to your offer' }))
+      await user.click(screen.getByRole('button', { name: 'Accept' }))
 
-    for (let index = 0; index < left; index += 1) {
-      await createCustomSkill(user, `Custom skill ${index}`)
-    }
+      expect(screen.getByText(/offer accepted: 1 skill for the trade with lena k\./i)).toBeInTheDocument()
+    })
 
-    expect(screen.getByText(`0 of ${CUSTOM_SKILL_CAP} custom skills left`)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Create a custom skill' })).not.toBeInTheDocument()
-    expect(screen.getByText(new RegExp(`used all ${CUSTOM_SKILL_CAP} custom skills`, 'i'))).toBeInTheDocument()
-  })
+    it('goes back to trading', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage('/skills?trade=trade-1')
 
-  it('refuses a custom skill with no name, and one you already have', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<SkillsPage />)
-
-    await user.click(screen.getByRole('button', { name: 'Create a custom skill' }))
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
-    expect(screen.getByRole('alert')).toHaveTextContent(/name/i)
-
-    await user.type(screen.getByLabelText('Skill name'), 'Cooking')
-    await user.click(screen.getByRole('button', { name: 'Add skill' }))
-    expect(screen.getByRole('alert')).toHaveTextContent(/already have a skill called Cooking/i)
+      await user.click(screen.getByRole('button', { name: 'Back to trading' }))
+      expect(screen.getByTestId('location')).toHaveTextContent('/trading/trade-1')
+    })
   })
 })

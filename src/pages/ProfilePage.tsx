@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
 import { SquareTile } from '../components/SquareTile'
 import { MOCK_PROFILE, MOCK_REVIEWS, MOCK_SKILLS, type Skill } from '../data/mockUser'
-import { ROUTES } from '../routes'
+import { ROUTES, reviewedTrades, skillDetail } from '../routes'
 import './ProfilePage.css'
 import { StarRating } from '../components/StarRating'
 
@@ -27,7 +27,12 @@ function bestSkills(skills: Skill[]): Skill[] {
  *
  *  The intro is rendered as plain text. §7 has this [OFFEN]: Nessi wants an HTML field, Márk
  *  wants plain text. Plain text is the safe placeholder — it is the subset both options agree on,
- *  so switching to rich text later doesn't invalidate anything shown here. */
+ *  so switching to rich text later doesn't invalidate anything shown here.
+ *
+ *  TODO #5: each best skill now shows both ratings (self and review) and opens the Skill page
+ *  (§7) on click, and a "Reviewed trades" button after the reviews list opens Trades pre-filtered
+ *  to already-reviewed (closed) trades — both via routes.ts builders, so neither page has to know
+ *  the other's query-string shape. */
 export function ProfilePage() {
   const navigate = useNavigate()
 
@@ -74,15 +79,27 @@ export function ProfilePage() {
           <ul className="profile-page__skills" aria-label="Your best skills">
             {bestSkills(MOCK_SKILLS).map((skill) => (
               <li key={skill.id} className="page-card profile-page__skill">
-                <span className="profile-page__skill-icon">
-                  <SquareTile label={skill.name}>
-                    <span className="square-tile__icon" aria-hidden="true">
-                      {skill.icon}
-                    </span>
-                  </SquareTile>
-                </span>
-                <span className="profile-page__skill-name">{skill.name}</span>
-                <StarRating value={skill.rating} subject={skill.name} />
+                <button
+                  type="button"
+                  className="profile-page__skill-button"
+                  onClick={() => navigate(skillDetail(skill.id))}
+                  aria-label={`Open ${skill.name}`}
+                >
+                  <span className="profile-page__skill-icon">
+                    <SquareTile label={skill.name}>
+                      <span className="square-tile__icon" aria-hidden="true">
+                        {skill.icon}
+                      </span>
+                    </SquareTile>
+                  </span>
+                  <span className="profile-page__skill-name">{skill.name}</span>
+                  {/* Both ratings, always shown together (TODO #5-#7): the self-rating and what
+                      reviews of this skill average to, kept as two distinct StarRatings. */}
+                  <span className="profile-page__skill-ratings">
+                    <StarRating value={skill.rating} subject={`${skill.name}'s rating`} />
+                    <StarRating value={skill.reviewRating} subject={`${skill.name}'s review rating`} />
+                  </span>
+                </button>
               </li>
             ))}
           </ul>
@@ -117,6 +134,13 @@ export function ProfilePage() {
               </li>
             ))}
           </ul>
+          <button
+            type="button"
+            className="profile-page__link"
+            onClick={() => navigate(reviewedTrades())}
+          >
+            Reviewed trades
+          </button>
         </section>
       </div>
     </PageShell>

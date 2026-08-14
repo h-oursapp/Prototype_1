@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MOCK_PROFILE, MOCK_REVIEWS } from '../../data/mockUser'
 import { ProfilePage } from '../../pages/ProfilePage'
-import { ROUTES } from '../../routes'
+import { ROUTES, reviewedTrades, skillDetail } from '../../routes'
 import { renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
 
 /** The page navigates rather than calling props, so the spy replaces useNavigate. vi.hoisted is
@@ -38,15 +38,25 @@ describe('ProfilePage', () => {
     expect(screen.getByText(/nessi wants an html field/i)).toBeInTheDocument()
   })
 
-  it('shows the highest-rated skills with their ratings, and not the rest', () => {
+  it('shows the highest-rated skills with both ratings, and not the rest', () => {
     renderWithRouter(<ProfilePage />)
     const bestSkills = within(screen.getByRole('list', { name: 'Your best skills' }))
 
     expect(bestSkills.getByText('Web design')).toBeInTheDocument()
-    expect(bestSkills.getByRole('img', { name: 'Web design: rated 5 out of 5' })).toBeInTheDocument()
+    // Both ratings (TODO #5): the self-rating and the review rating, kept as two distinct stars.
+    expect(bestSkills.getByRole('img', { name: "Web design's rating: rated 5 out of 5" })).toBeInTheDocument()
+    expect(bestSkills.getByRole('img', { name: "Web design's review rating: rated 5 out of 5" })).toBeInTheDocument()
     expect(bestSkills.getByText('Piano')).toBeInTheDocument()
     // Photography is the lowest-rated skill, so it doesn't make the shortlist.
     expect(bestSkills.queryByText('Photography')).not.toBeInTheDocument()
+  })
+
+  it("opens a skill's own page when it's tapped", async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<ProfilePage />)
+
+    await user.click(within(screen.getByRole('list', { name: 'Your best skills' })).getByRole('button', { name: 'Open Web design' }))
+    expect(navigate).toHaveBeenCalledWith(skillDetail('skill-1'))
   })
 
   it('shows the reviews from recent trades with both ratings', () => {
@@ -60,6 +70,14 @@ describe('ProfilePage', () => {
       reviews.getByRole('img', { name: `Personal rating from ${first.author}: rated ${first.personalRating} out of 5` }),
     ).toBeInTheDocument()
     expect(reviews.getAllByRole('listitem')).toHaveLength(MOCK_REVIEWS.length)
+  })
+
+  it('opens Trades filtered to already-reviewed trades', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<ProfilePage />)
+
+    await user.click(screen.getByRole('button', { name: 'Reviewed trades' }))
+    expect(navigate).toHaveBeenCalledWith(reviewedTrades())
   })
 
   it('goes to Settings from the header button', async () => {

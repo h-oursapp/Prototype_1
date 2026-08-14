@@ -27,6 +27,11 @@ export interface Trade {
   subject: string
   icon: string
   status: TradeStatus
+  /** The personal skill (Skill.id, from mockUser.ts) this trade was about, when it was a skill
+   *  trade. Added for TODO #7 — "all trades of this skill, already reviewed" needs a trade to be
+   *  able to say which skill it used. Optional: item trades, and skill trades that predate this
+   *  field, carry no link. See HANDOFF.md §13 for the fuller gap this is a minimum fix for. */
+  skillId?: string
   /** Hours currently on your side of the trading table. */
   yourHours: number
   /** Hours the partner has put on their side. Their *balance* stays hidden from you (§6), but
@@ -105,6 +110,26 @@ export const MOCK_TRADES: Trade[] = [
     partnerHours: 2,
     lastInteraction: '2 weeks ago',
     messages: [{ id: 'm-8', from: 'partner', text: 'Thanks again, the bread was perfect.', time: '2 weeks ago' }],
+  },
+  {
+    // Appended, not inserted: TradesPage.test.tsx destructures the first five trades by position
+    // ([guitar, bike, spanish, garden, baking]), so a new trade only stays safe at the end.
+    // Linked to skill-1 (Web design) in mockUser.ts, so Profile → Skills → Skill → "reviewed
+    // trades for this skill" has one real example to click through instead of always landing on
+    // an empty list. A different client from review-1's Lena K. on purpose — every partner name
+    // elsewhere in this file is already unique, and two trades both "with Lena K." would make
+    // TradesPage's own per-partner controls (e.g. "Delete chat log with Lena K.") ambiguous.
+    id: 'trade-6',
+    partner: 'Nora P.',
+    partnerAvatar: '👩🏾',
+    subject: 'Web design',
+    icon: '💻',
+    status: 'closed',
+    skillId: 'skill-1',
+    yourHours: 3,
+    partnerHours: 3,
+    lastInteraction: '2 weeks ago',
+    messages: [{ id: 'm-9', from: 'partner', text: 'Site looks great, thank you!', time: '2 weeks ago' }],
   },
 ]
 

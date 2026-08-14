@@ -16,8 +16,14 @@ export interface Skill {
   id: string
   name: string
   icon: string
+  /** Shown on the Skill page (TODO #7). Empty until the user writes one. */
+  description?: string
   /** Self-rating, 0–5. Appkarte §7: 4★ and up needs proof. */
   rating: number
+  /** The average score left by others in reviews of this skill — separate from the self-rating
+   *  above (TODO #5–#7: "the upper one is your rating of the skill, the lower is the review
+   *  score"). Not optional: every skill carries one, 0 until a review exists to average. */
+  reviewRating: number
   /** What was submitted as proof, when the rating requires it. */
   proof?: string
   /** Custom skills are user-created and capped per user (§7). */
@@ -25,20 +31,87 @@ export interface Skill {
 }
 
 export const MOCK_SKILLS: Skill[] = [
-  { id: 'skill-1', name: 'Web design', icon: '💻', rating: 5, proof: 'Portfolio: 12 client sites' },
-  { id: 'skill-2', name: 'Piano', icon: '🎹', rating: 4, proof: 'Conservatory certificate, 2019' },
-  { id: 'skill-3', name: 'Cooking', icon: '🍳', rating: 3 },
-  { id: 'skill-4', name: 'Gardening', icon: '🌻', rating: 3 },
-  { id: 'skill-5', name: 'Photography', icon: '📷', rating: 2, isCustom: true },
+  {
+    id: 'skill-1',
+    name: 'Web design',
+    icon: '💻',
+    description: 'Responsive sites and shop pages, from a blank page to something you can launch.',
+    rating: 5,
+    reviewRating: 5, // matches review-1 (Lena K.)
+    proof: 'Portfolio: 12 client sites',
+  },
+  {
+    id: 'skill-2',
+    name: 'Piano',
+    icon: '🎹',
+    description: 'Lessons for beginners through intermediate, classical or pop.',
+    rating: 4,
+    reviewRating: 4, // matches review-2 (Tomas R.)
+    proof: 'Conservatory certificate, 2019',
+  },
+  {
+    id: 'skill-3',
+    name: 'Cooking',
+    icon: '🍳',
+    description: 'Home-style meals, mostly Central European.',
+    rating: 3,
+    reviewRating: 4, // matches review-3 (Aisha M.)
+  },
+  {
+    id: 'skill-4',
+    name: 'Gardening',
+    icon: '🌻',
+    description: 'Beds, pruning, and general upkeep.',
+    rating: 3,
+    reviewRating: 0, // no reviews yet
+  },
+  {
+    id: 'skill-5',
+    name: 'Photography',
+    icon: '📷',
+    description: 'Portraits and events, still building a portfolio.',
+    rating: 2,
+    reviewRating: 0, // no reviews yet
+    isCustom: true,
+  },
 ]
 
 /** §6 mirrors your skills sidebar onto the trading partner, so the partner needs skills of
  *  their own — reusing yours would read as real data that happens to be identical. */
 export const MOCK_PARTNER_SKILLS: Skill[] = [
-  { id: 'p-skill-1', name: 'Guitar', icon: '🎸', rating: 5, proof: 'Ten years teaching, references on file' },
-  { id: 'p-skill-2', name: 'Bike repair', icon: '🚲', rating: 4, proof: 'Worked at a bike shop, 2021–2024' },
-  { id: 'p-skill-3', name: 'Sewing', icon: '🧵', rating: 3 },
+  {
+    id: 'p-skill-1',
+    name: 'Guitar',
+    icon: '🎸',
+    description: 'Acoustic and electric, beginner-friendly.',
+    rating: 5,
+    reviewRating: 5,
+    proof: 'Ten years teaching, references on file',
+  },
+  {
+    id: 'p-skill-2',
+    name: 'Bike repair',
+    icon: '🚲',
+    description: 'Brakes, gears, punctures — most things short of a full overhaul.',
+    rating: 4,
+    reviewRating: 4,
+    proof: 'Worked at a bike shop, 2021–2024',
+  },
+  {
+    id: 'p-skill-3',
+    name: 'Sewing',
+    icon: '🧵',
+    description: 'Repairs and simple alterations.',
+    rating: 3,
+    reviewRating: 0,
+  },
 ]
+
+/** Looks up one of *your* skills by id, for the Skill page (§7). Partner skills aren't navigable
+ *  to a detail page yet, so this only searches MOCK_SKILLS — mirrors findOffer/findTrade. */
+export function findSkill(skillId: string | undefined): Skill | undefined {
+  return MOCK_SKILLS.find((skill) => skill.id === skillId)
+}
 
 /** Stands in for the searchable predefined list skills get added from (§7). */
 export const SKILL_CATALOG: { name: string; icon: string }[] = [

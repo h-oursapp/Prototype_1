@@ -34,6 +34,7 @@
     -add swiping from left to right, opens your offers
     -add swiping from right to left, opens search
     -after the last of your offers or in the last grid space make a button to create new offer.
+    -overlay the tiles with the name of the offer and the rating.
 
 4.Nav bar:
     -put home in the middle
@@ -44,7 +45,7 @@
     -put some grid lines between the nav bar items.
     -time part doesnt need to be a square if it fits better it can take up 2 positions.
 
-5.Profile:
+5.Profile: DONE (PR #5)
     -make the profile picture somewhat bigger
     -add a button after the recent reviews that open a the trades page with a filter for your offers and are already reviewed.
     - add to the skills a second rating called review rating.
@@ -52,7 +53,7 @@
     - review rating will be part of skills in general.
     -when clicked on a skill open a skill page #7
 
-6.Skills:
+6.Skills: DONE (PR #5)
     -add review rating to the skills.
     -show both
     -when clicked on a skill open a skill page #7
@@ -61,7 +62,7 @@
     -put the data inside the square. overlaying the picture.
     -add transferbox. only visible when the page is opened from offer creation.
 
-7.Skill: 
+7.Skill: DONE (PR #5)
     -show the skill logo the name the description both your rating and the review rating.
     -a button lets you edit your own skill.
     -when opened for skill creation it open empty data and in edit mode.
@@ -107,3 +108,25 @@
     -on the bottom have a chat window showing only the last message.
     -but its a scrollable area, on scrolling up extend the chat window to the full screen.
     -leave the extension button as is.
+    -we need an accept trade button represent it with a green checkmark. I am not sure on the exact potition. for now put it inbetween in the middle.
+
+12.Trades:
+    -add search bar and filters to the page. default filter open trades
+    -order by date
+    -when loading a closed trade show the ratings and the amount of reviews(if its a skill)
+    -show a new message icon on the trading crads when there is an unread message.
+
+13.Trading process:
+    -STATUS OF TRADE: not existing only as a page
+    -the user clicks on an offer (from another user)
+    -their they on either quick buy (name it to quick offer?) or trade
+    -with both the user ends up on a trade screen. the screen has on the transfer table the chosen item preloaded.
+    -with the quick offer it loads the time value and jumps to the chat (default offer pre typed?)
+    -when the initiator makes an offer buyclicking an accept offer button or sends a message STATUS OF TRADE -> OPEN 
+    -now the seller side need to either decline or accept the offer.
+    -when declined the other side can make a new offer.
+    -when accepted the trade is agreed on STATUS OF TRADE -> AGREED
+    -from here the actual execution is up to the user ( calendar event feature ->  make note as open new feature)
+    -after the trade went down the user should make a final review
+    -highlight trades waiting for finalreview with green
+    -when the final review is done STATUS OF TRADE -> CLOSED

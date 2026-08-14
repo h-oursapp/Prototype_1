@@ -1,336 +1,225 @@
-import { useState, type FormEvent } from 'react'
-import { OptionGroup } from '../components/OptionGroup'
+import { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
 import { SquareTile } from '../components/SquareTile'
-import { CUSTOM_SKILL_CAP, MOCK_SKILLS, SKILL_CATALOG, type Skill } from '../data/mockUser'
-import './SkillsPage.css'
 import { StarRating } from '../components/StarRating'
+import { MOCK_SKILLS, type Skill } from '../data/mockUser'
+import type { Trade } from '../data/mockTrades'
+import { findTrade } from '../data/mockTrades'
+import { ROUTES, skillDetail, trading } from '../routes'
+import { useSettings } from '../settings/useSettings'
+import './SkillsPage.css'
 
-/** Appkarte §7: from this self-rating upwards, a skill only counts with proof. */
-const PROOF_REQUIRED_FROM = 4
-
-/** Where a new skill's self-rating starts. Deliberately below PROOF_REQUIRED_FROM, so nobody is
- *  asked for paperwork before they have chosen anything. */
-const DEFAULT_RATING = 3
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5].map((rating) => ({ value: rating, label: `${rating}★` }))
-
-/** §7: custom skills pick their icon from a predefined set rather than uploading one. The names
- *  are what assistive tech reads out — an emoji on its own has no useful accessible name. */
-const CUSTOM_SKILL_ICONS = [
-  { icon: '🛠️', name: 'Tools' },
-  { icon: '🎯', name: 'Target' },
-  { icon: '🧵', name: 'Thread' },
-  { icon: '🎧', name: 'Headphones' },
-  { icon: '🚗', name: 'Car' },
-  { icon: '🧪', name: 'Flask' },
-  { icon: '📚', name: 'Books' },
-  { icon: '🌿', name: 'Plant' },
-]
-
-type CatalogEntry = (typeof SKILL_CATALOG)[number]
-
-/** The skill being added, before it is accepted onto the list. Catalogue skills and custom skills
- *  share this shape — only `isCustom` differs, and it is what decides whether the name and icon
- *  are editable and whether the skill counts against the cap. */
-interface SkillDraft {
-  isCustom: boolean
-  name: string
-  icon: string
-  rating: number
-  proof: string
+interface SkillTileProps {
+  skill: Skill
+  isOffered: boolean
+  /** Present only in a trading context — outside one there is no offer to add anything to. */
+  onAddToOffer?: (skillId: string) => void
 }
 
-function catalogDraft(entry: CatalogEntry): SkillDraft {
-  return { isCustom: false, name: entry.name, icon: entry.icon, rating: DEFAULT_RATING, proof: '' }
-}
+/** One cell of the grid. The tile itself always opens the Skill page (§7) — even while picking a
+ *  skill for an offer, seeing the full rating and description before choosing is useful — so
+ *  "Add to offer" is a separate control underneath, the same split InventoryPage uses for its
+ *  items. */
+function SkillTile({ skill, isOffered, onAddToOffer }: SkillTileProps) {
+  const navigate = useNavigate()
 
-function customDraft(): SkillDraft {
-  return { isCustom: true, name: '', icon: CUSTOM_SKILL_ICONS[0].icon, rating: DEFAULT_RATING, proof: '' }
-}
-
-function needsProof(rating: number): boolean {
-  return rating >= PROOF_REQUIRED_FROM
-}
-
-/** Why this draft can't be added yet, or null if it can. Kept as one pure function so the rules
- *  are readable in one place instead of scattered through the form's JSX. */
-function findProblem(draft: SkillDraft, skills: Skill[]): string | null {
-  const name = draft.name.trim()
-
-  if (name === '') return 'Give your custom skill a name.'
-  if (skills.some((skill) => skill.name.toLowerCase() === name.toLowerCase())) {
-    return `You already have a skill called ${name}.`
-  }
-  if (needsProof(draft.rating) && draft.proof.trim() === '') {
-    return `A self-rating of ${PROOF_REQUIRED_FROM}★ or higher needs proof: a reference work or an official qualification.`
-  }
-  return null
-}
-
-function toSkill(draft: SkillDraft): Skill {
-  const name = draft.name.trim()
-  return {
-    id: `skill-${name.toLowerCase().replace(/\s+/g, '-')}`,
-    name,
-    icon: draft.icon,
-    rating: draft.rating,
-    proof: draft.proof.trim() || undefined,
-    isCustom: draft.isCustom,
-  }
-}
-
-/** The searchable predefined list (§7), minus anything already on your list — re-adding a skill
- *  you have is never what you meant. */
-function matchingCatalogEntries(search: string, skills: Skill[]): CatalogEntry[] {
-  const query = search.trim().toLowerCase()
-  const taken = new Set(skills.map((skill) => skill.name.toLowerCase()))
-  return SKILL_CATALOG.filter(
-    (entry) => !taken.has(entry.name.toLowerCase()) && entry.name.toLowerCase().includes(query),
-  )
-}
-
-
-interface IconPickerProps {
-  selected: string
-  onSelect: (icon: string) => void
-}
-
-/** Not OptionGroup: each button shows a glyph and needs an accessible name of its own, and
- *  OptionGroup renders its label as the visible text — which would leave a screen reader with a
- *  bare emoji. */
-function IconPicker({ selected, onSelect }: IconPickerProps) {
   return (
-    <fieldset className="skills-page__icons">
-      <legend>Icon</legend>
-      <div className="skills-page__icon-row">
-        {CUSTOM_SKILL_ICONS.map(({ icon, name }) => (
-          <button
-            key={icon}
-            type="button"
-            className={`skills-page__icon ${selected === icon ? 'is-active' : ''}`}
-            aria-pressed={selected === icon}
-            aria-label={name}
-            onClick={() => onSelect(icon)}
-          >
-            <span aria-hidden="true">{icon}</span>
-          </button>
-        ))}
-      </div>
-    </fieldset>
+    <li className="skills-page__cell">
+      <span className="skills-page__tile">
+        <SquareTile
+          label={skill.name}
+          onClick={() => navigate(skillDetail(skill.id))}
+          overlay={
+            <>
+              <span className="skills-page__tile-name">{skill.name}</span>
+              <span className="skills-page__tile-ratings">
+                <StarRating value={skill.rating} subject={`${skill.name}'s rating`} />
+                <StarRating value={skill.reviewRating} subject={`${skill.name}'s review rating`} />
+              </span>
+            </>
+          }
+        >
+          <span className="square-tile__icon" aria-hidden="true">
+            {skill.icon}
+          </span>
+        </SquareTile>
+      </span>
+
+      {onAddToOffer && (
+        <button
+          type="button"
+          className="skills-page__add-to-offer"
+          aria-label={isOffered ? `${skill.name} is already in your offer` : `Add ${skill.name} to your offer`}
+          disabled={isOffered}
+          onClick={() => onAddToOffer(skill.id)}
+        >
+          {isOffered ? 'In the offer' : 'Add to offer'}
+        </button>
+      )}
+    </li>
   )
 }
 
-/** Skills (Appkarte §7): your skills as icons, adding from a searchable predefined list with a
- *  self-rating, proof required from 4★ up, and custom skills capped per user.
+/** Makes it obvious you are picking a skill *for a trade*, and says whose — the same job
+ *  InventoryPage's TradeContextBanner does, worded for a skill offer instead of items. */
+function TradeContextBanner({ trade }: { trade: Trade }) {
+  return (
+    <section className="page-card skills-page__trade-banner" aria-label="Trading context">
+      <h2 className="skills-page__banner-title">Picking a skill for your trade with {trade.partner}</h2>
+      <p className="skills-page__banner-subject">
+        <span aria-hidden="true">{trade.icon}</span> {trade.subject}
+      </p>
+    </section>
+  )
+}
+
+interface TransferBoxProps {
+  trade: Trade
+  offeredSkills: Skill[]
+  isAccepted: boolean
+  onRemove: (skillId: string) => void
+  onAccept: () => void
+}
+
+/** The transfer box (TODO #6): shown only in a trading context, exactly like InventoryPage's
+ *  OfferZone — a drop area (drag-and-drop is not wired up anywhere in the prototype, so "Add to
+ *  offer" on a tile is the real control), and Accept / Back-to-trading. Kept as its own
+ *  component here rather than shared with InventoryPage's version: the two pick different kinds
+ *  of thing and are likely to diverge, the same call HANDOFF.md already made for OfferTile. */
+function TransferBox({ trade, offeredSkills, isAccepted, onRemove, onAccept }: TransferBoxProps) {
+  const navigate = useNavigate()
+
+  return (
+    <section className="page-section">
+      <h2 className="page-section__heading">Your offer</h2>
+
+      <div className="page-card skills-page__offer">
+        <div className="skills-page__drop" role="group" aria-label="Your offer for this trade">
+          {offeredSkills.length === 0 ? (
+            <p className="skills-page__drop-empty">Nothing in the offer yet.</p>
+          ) : (
+            <ul className="skills-page__drop-items">
+              {offeredSkills.map((skill) => (
+                <li className="skills-page__drop-item" key={skill.id}>
+                  <span aria-hidden="true">{skill.icon}</span>
+                  <span className="skills-page__drop-name">{skill.name}</span>
+                  <button
+                    type="button"
+                    className="skills-page__drop-remove"
+                    aria-label={`Remove ${skill.name} from your offer`}
+                    onClick={() => onRemove(skill.id)}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="page-note">
+            Drag-and-drop is not wired up in the prototype — use &quot;Add to offer&quot; on a
+            skill above.
+          </p>
+        </div>
+
+        <div className="skills-page__actions">
+          <button type="button" className="skills-page__secondary" onClick={() => navigate(trading(trade.id))}>
+            Back to trading
+          </button>
+          <button type="button" className="skills-page__primary" onClick={onAccept}>
+            Accept
+          </button>
+        </div>
+
+        {isAccepted && (
+          <p className="skills-page__accepted" role="status">
+            Offer accepted: {offeredSkills.length} {offeredSkills.length === 1 ? 'skill' : 'skills'} for
+            the trade with {trade.partner}.
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+/** Skills (Appkarte §7, reworked by TODO #6): every skill as a square tile in a grid that follows
+ *  the Settings grid-size setting for its column count but is never capped in row count — unlike
+ *  Home's fixed grids, there is no "rest of your skills are hidden" here, the page just grows and
+ *  scrolls.
  *
- *  The add flow really works, in local state: the list, the search, the rating, the proof gate and
- *  the cap all respond. Nothing is persisted — reloading brings back the starting five, which is
- *  the agreed prototype scope.
- *
- *  Only one draft is open at a time (either a catalogue skill or a custom one), which is why the
- *  search and the "create a custom skill" button give way to the form. On a phone-sized screen
- *  that is the honest layout, and it keeps the page down to one thing to answer at a time.
- *
- *  §2 makes this page the template for onboarding's "add skills" step, so the whole flow is
- *  self-contained here — a later onboarding step can render it without dragging state along.
- *  The whiteboard's "minimum 3 skills" is recorded as unconfirmed in §2, so no minimum is
- *  enforced and you can leave with as few skills as you like. */
+ *  Judgement calls:
+ *  - Adding a skill used to be an inline form on this page. TODO #6 replaces it with a button
+ *    that opens the new Skill page (§7) in create mode — see SkillPage.tsx for where that flow
+ *    (and its validation) now lives.
+ *  - The transfer box only appears at `/skills?trade=<id>`, the same query-parameter convention
+ *    InventoryPage already uses for its own trade-context mode. Nothing links here yet — wiring
+ *    an ad's "choose a skill" step to it is TODO #8 — so it is inert but independently testable. */
 export function SkillsPage() {
-  const [skills, setSkills] = useState<Skill[]>(MOCK_SKILLS)
-  const [search, setSearch] = useState('')
-  const [draft, setDraft] = useState<SkillDraft | null>(null)
-  const [problem, setProblem] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const { gridSize } = useSettings()
+  const [searchParams] = useSearchParams()
+  const trade = findTrade(searchParams.get('trade') ?? undefined)
 
-  const customSkillsLeft = CUSTOM_SKILL_CAP - skills.filter((skill) => skill.isCustom).length
-  const catalogMatches = matchingCatalogEntries(search, skills)
+  const [offeredIds, setOfferedIds] = useState<string[]>([])
+  const [isAccepted, setIsAccepted] = useState(false)
 
-  const openDraft = (next: SkillDraft) => {
-    setDraft(next)
-    setProblem(null)
+  const offeredSkills = MOCK_SKILLS.filter((skill) => offeredIds.includes(skill.id))
+
+  const addToOffer = (skillId: string) => {
+    setOfferedIds((current) => (current.includes(skillId) ? current : [...current, skillId]))
+    setIsAccepted(false)
   }
 
-  /** Any edit clears the message, so a fixed problem stops being complained about. */
-  const editDraft = (patch: Partial<SkillDraft>) => {
-    setDraft((current) => (current === null ? null : { ...current, ...patch }))
-    setProblem(null)
-  }
-
-  const closeDraft = () => {
-    setDraft(null)
-    setProblem(null)
-  }
-
-  const submitDraft = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (draft === null) return
-
-    const found = findProblem(draft, skills)
-    if (found !== null) {
-      setProblem(found)
-      return
-    }
-
-    setSkills((current) => [...current, toSkill(draft)])
-    setSearch('')
-    closeDraft()
+  const removeFromOffer = (skillId: string) => {
+    setOfferedIds((current) => current.filter((id) => id !== skillId))
+    setIsAccepted(false)
   }
 
   return (
     <PageShell title="Skills">
       <div className="skills-page">
+        {trade && <TradeContextBanner trade={trade} />}
+
         <section className="page-section">
           <h2 className="page-section__heading">Your skills</h2>
-          <ul className="skills-page__grid" aria-label="Your skills">
-            {skills.map((skill) => (
-              <li key={skill.id} className="skills-page__skill">
-                <span className="skills-page__skill-icon">
-                  <SquareTile label={skill.name}>
-                    <span className="square-tile__icon" aria-hidden="true">
-                      {skill.icon}
-                    </span>
-                  </SquareTile>
-                </span>
-                <span className="skills-page__skill-name">{skill.name}</span>
-                <StarRating value={skill.rating} subject={skill.name} />
-                {skill.proof !== undefined && <span className="skills-page__proof">{skill.proof}</span>}
-              </li>
+          <ul
+            className="skills-page__grid"
+            style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
+            aria-label="Your skills"
+          >
+            {MOCK_SKILLS.map((skill) => (
+              <SkillTile
+                key={skill.id}
+                skill={skill}
+                isOffered={offeredIds.includes(skill.id)}
+                onAddToOffer={trade ? addToOffer : undefined}
+              />
             ))}
+            <li className="skills-page__cell">
+              <span className="skills-page__tile">
+                <SquareTile label="Add a skill" onClick={() => navigate(ROUTES.skillCreate)}>
+                  <span className="square-tile__icon" aria-hidden="true">
+                    +
+                  </span>
+                </SquareTile>
+              </span>
+            </li>
           </ul>
         </section>
 
-        {draft === null ? (
-          <section className="page-section">
-            <h2 className="page-section__heading">Add a skill</h2>
-
-            <label className="skills-page__label" htmlFor="skill-search">
-              Search skills
-            </label>
-            <input
-              id="skill-search"
-              className="skills-page__input"
-              type="search"
-              value={search}
-              placeholder="e.g. guitar"
-              onChange={(event) => setSearch(event.target.value)}
-            />
-
-            <ul className="skills-page__results" aria-label="Search results">
-              {catalogMatches.map((entry) => (
-                <li key={entry.name}>
-                  <button
-                    type="button"
-                    className="skills-page__result"
-                    onClick={() => openDraft(catalogDraft(entry))}
-                  >
-                    <span aria-hidden="true">{entry.icon}</span>
-                    <span>{entry.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            {catalogMatches.length === 0 && (
-              <p className="page-note">Nothing in the list matches. You can create it as a custom skill.</p>
-            )}
-
-            <p className="skills-page__cap">
-              {customSkillsLeft} of {CUSTOM_SKILL_CAP} custom skills left
-            </p>
-            {customSkillsLeft > 0 ? (
-              <button
-                type="button"
-                className="skills-page__secondary"
-                onClick={() => openDraft(customDraft())}
-              >
-                Create a custom skill
-              </button>
-            ) : (
-              <p className="page-note">
-                You have used all {CUSTOM_SKILL_CAP} custom skills. Remove one to make room for
-                another.
-              </p>
-            )}
-          </section>
-        ) : (
-          <section className="page-section">
-            <h2 className="page-section__heading">
-              {draft.isCustom ? 'Create a custom skill' : `Add ${draft.name}`}
-            </h2>
-
-            <form className="skills-page__form" onSubmit={submitDraft}>
-              {draft.isCustom && (
-                <>
-                  <div className="skills-page__field">
-                    <label className="skills-page__label" htmlFor="custom-skill-name">
-                      Skill name
-                    </label>
-                    <input
-                      id="custom-skill-name"
-                      className="skills-page__input"
-                      type="text"
-                      value={draft.name}
-                      onChange={(event) => editDraft({ name: event.target.value })}
-                    />
-                  </div>
-                  <IconPicker selected={draft.icon} onSelect={(icon) => editDraft({ icon })} />
-                </>
-              )}
-
-              <OptionGroup
-                legend="Your rating"
-                options={RATING_OPTIONS}
-                selected={draft.rating}
-                onSelect={(rating) => editDraft({ rating })}
-              />
-
-              <div className="skills-page__field">
-                <label className="skills-page__label" htmlFor="skill-proof">
-                  Proof
-                </label>
-                <input
-                  id="skill-proof"
-                  className="skills-page__input"
-                  type="text"
-                  value={draft.proof}
-                  placeholder="Reference work or official qualification"
-                  onChange={(event) => editDraft({ proof: event.target.value })}
-                />
-                {needsProof(draft.rating) ? (
-                  <p className="page-note">
-                    Required from {PROOF_REQUIRED_FROM}★: a reference work or an official
-                    qualification.
-                  </p>
-                ) : (
-                  <p className="page-note">
-                    Optional below {PROOF_REQUIRED_FROM}★.
-                  </p>
-                )}
-              </div>
-
-              {/* The gate reports on submit rather than disabling the button: a disabled control
-                  can't say why it is disabled, and this rule needs explaining. */}
-              {problem !== null && (
-                <p className="skills-page__problem" role="alert">
-                  {problem}
-                </p>
-              )}
-
-              <div className="skills-page__actions">
-                <button type="button" className="skills-page__secondary" onClick={closeDraft}>
-                  Cancel
-                </button>
-                <button type="submit" className="skills-page__primary">
-                  Add skill
-                </button>
-              </div>
-            </form>
-          </section>
+        {trade && (
+          <TransferBox
+            trade={trade}
+            offeredSkills={offeredSkills}
+            isAccepted={isAccepted}
+            onRemove={removeFromOffer}
+            onAccept={() => setIsAccepted(true)}
+          />
         )}
 
         <p className="page-note">
-          Prototype scope: skills live in this screen's memory only, so a reload brings back the
-          starting list.
+          Prototype scope: skills live in the mock data only, so a reload brings back the starting
+          list, and nothing added or edited on the Skill page carries back here.
         </p>
       </div>
     </PageShell>
