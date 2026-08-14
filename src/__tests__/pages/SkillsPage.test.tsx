@@ -112,7 +112,7 @@ describe('SkillsPage', () => {
       const user = userEvent.setup()
       renderSkillsPage('/skills?trade=trade-1')
 
-      await user.click(screen.getByRole('button', { name: 'Back to trading' }))
+      await user.click(screen.getByRole('link', { name: 'Back to trading' }))
       expect(screen.getByTestId('location')).toHaveTextContent('/trading/trade-1')
     })
   })

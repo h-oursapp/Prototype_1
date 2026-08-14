@@ -1,31 +1,52 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent, type UIEvent } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
+import { PagedGrid } from '../components/PagedGrid'
 import { SquareTile } from '../components/SquareTile'
+import { StarRating } from '../components/StarRating'
 import type { InventoryItem } from '../data/mockInventory'
-import { MOCK_PARTNER_INVENTORY, MOCK_YOUR_INVENTORY, publicItems } from '../data/mockInventory'
+import { MOCK_YOUR_INVENTORY } from '../data/mockInventory'
 import type { ChatMessage, Trade } from '../data/mockTrades'
-import { TRADE_STATUS_LABEL, findTrade } from '../data/mockTrades'
+import { TRADE_STATUS_LABEL, canRespondToOffer, findTrade, statusAfterAccept } from '../data/mockTrades'
 import type { Skill } from '../data/mockUser'
 import { MOCK_HOURS_BALANCE, MOCK_PARTNER_SKILLS, MOCK_SKILLS } from '../data/mockUser'
-import { ROUTES, finalReview, inventoryForTrade } from '../routes'
+import { finalReview, inventoryForTrade, partnerInventoryForTrade, skillsForTrade, ROUTES } from '../routes'
+import { useTradeDraft } from '../trading/useTradeDraft'
 import './TradingPage.css'
 
-/** Trading (Appkarte §6) — one trade, three stacked zones: both inventories on top, the trading
- *  table in the middle, the chat at the bottom.
+/** Trading (Appkarte §6, reworked by TODO #11, then reshaped again on direct feedback about the
+ *  first cut) — a non-scrollable page: a skills row, the trading table, another skills row, and
+ *  the chat all have to fit at once, so overflow within a row is paged through (PagedGrid) rather
+ *  than scrolled past.
  *
  *  Judgement calls worth knowing about:
- *  - The partner's inventory always goes through publicItems(). Their private entries are never
- *    put in the document at all (not hidden with CSS), so nothing private can leak.
- *  - §6 hides the partner's *available* hours from you. The row is still rendered, masked with
- *    "???", because that asymmetry is the point of this screen — dropping the row would hide the
- *    rule rather than show it.
- *  - Drag-and-drop is out of scope by agreement. The drop area sits exactly where the real one
- *    will, labelled as not wired up, and every item of yours carries an "Add to table" button so
- *    the flow is still demonstrable with a click or the keyboard.
- *  - The partner's offered hours come from the trade record and are shown plainly: §6 hides their
- *    balance, not what they've already put on the table. Which *items* sit on either side isn't
- *    modelled yet, so both trays start empty.
+ *  - The first cut of this rework gave both sides a live, always-visible item grid right on this
+ *    page. Direct feedback asked for that to go away entirely: items are picked on Inventory's own
+ *    page (reached via the "Add items" button below), and the partner's items are browsed on their
+ *    own read-only page (`PartnerInventoryPage`, via "Open her inventory") — this page only ever
+ *    shows the *result* of picking, on the trading table in the middle.
+ *  - Picking items elsewhere and expecting them to show up here on return is exactly the "cross-
+ *    page store" this prototype had deliberately avoided until now (see git history / HANDOFF.md)
+ *    — `TradeDraftContext` (src/trading/) is the small, session-only piece that makes the round
+ *    trip work: it holds offered item ids per trade id, and both this page and Inventory's own
+ *    read and write the same one. Skills and hours don't need this — nothing but this page ever
+ *    changes them, so they stay in this component's own local state, same as before.
+ *  - Skills stay directly on this page, one row per side, because there are few enough of them to
+ *    browse in place — items don't get the same treatment because there can be many more of them,
+ *    and Inventory already exists as the place to browse/manage them properly. "A row of your/her
+ *    best skills" is taken literally: `bestSkills()` ranks by rating and caps the row to exactly
+ *    one page's worth, rather than paginating through every skill — a page this height-constrained
+ *    can't spare the extra room a pager needs on top of tiles small enough to stay legible; the
+ *    "open full skills" tile is already the way to reach the rest.
+ *  - Time is drawn as the first tile of your row on the trading table — "an inherent skill offer"
+ *    per TODO #11 — but is never added to the Skills row above: the parenthetical is explicit that
+ *    it must stay invisible among your actual skills.
+ *  - The Accept button uses the real (session-local) status pipeline from mockTrades.ts
+ *    (`canRespondToOffer`/`statusAfterAccept`) rather than a placeholder note — TODO #13's
+ *    Accept/Decline loop and this button are the same piece of UI.
+ *  - The partner's own offer on the table stays just their Time tile — which items or skills they
+ *    put up isn't modelled yet (their side of the table always started empty before this rework
+ *    too; nothing here changes that).
  *
  *  The page reads its own :tradeId, so it takes no props. An id that isn't in the mock data
  *  renders a "trade not found" card rather than crashing. */
@@ -59,250 +80,353 @@ function TradeNotFound() {
   )
 }
 
+/* ---------- Grid entry types: an ordinary skill/item, or the last-cell link tile ---------- */
+
+type SkillEntry = { kind: 'skill'; skill: Skill } | { kind: 'open-full' }
+type TableEntry =
+  | { kind: 'time'; hours: number; editable: boolean }
+  | { kind: 'item'; item: InventoryItem }
+  | { kind: 'skill'; skill: Skill }
+
+function entryKey(entry: SkillEntry | TableEntry): string {
+  if (entry.kind === 'open-full') return 'open-full'
+  if (entry.kind === 'time') return 'time'
+  if (entry.kind === 'item') return entry.item.id
+  return entry.skill.id
+}
+
+/** How many tiles fit across a skills row — used both for PagedGrid's own `columns` and to size
+ *  the "best skills" preview below it, so the two can never drift apart. */
+const SKILLS_ROW_COLUMNS = 4
+
+/** The highest-rated `count` skills, highest first — see the "best skills" comment where this is
+ *  called. A plain sort-and-slice rather than assuming the mock data already happens to be in
+ *  rating order. */
+function bestSkills(skills: Skill[], count: number): Skill[] {
+  return [...skills].sort((a, b) => b.rating - a.rating).slice(0, count)
+}
+
 /** Everything below the id lookup. Split out so the hooks only ever run for a trade that exists —
  *  a component can't call useState after an early return. */
 function TradeScreen({ trade }: { trade: Trade }) {
+  const navigate = useNavigate()
+  const { getOfferedItemIds, clearItems } = useTradeDraft()
+  const [status, setStatus] = useState(trade.status)
   const [offeredHours, setOfferedHours] = useState(trade.yourHours)
-  const [offeredItems, setOfferedItems] = useState<InventoryItem[]>([])
+  const [isAdjustingHours, setIsAdjustingHours] = useState(false)
+  const [offeredSkillIds, setOfferedSkillIds] = useState<string[]>([])
+  const [isDeclined, setIsDeclined] = useState(false)
+  const [searchParams] = useSearchParams()
+  // TODO #13: AdDetailPage's Quick Buy sends you here with ?quick=1 instead of the plain trading
+  // route — the one thing that actually differs is the chat starting expanded (see ChatZone).
+  const isQuickOffer = searchParams.get('quick') === '1'
 
-  const addToTable = (item: InventoryItem) =>
-    setOfferedItems((items) => (items.some((onTable) => onTable.id === item.id) ? items : [...items, item]))
+  const offeredItemIds = getOfferedItemIds(trade.id)
 
-  const removeFromTable = (itemId: string) =>
-    setOfferedItems((items) => items.filter((item) => item.id !== itemId))
+  const toggleSkill = (skillId: string) => {
+    setOfferedSkillIds((ids) => (ids.includes(skillId) ? ids.filter((id) => id !== skillId) : [...ids, skillId]))
+    setIsDeclined(false)
+  }
+
+  const changeOfferedHours = (hours: number) => {
+    setOfferedHours(hours)
+    setIsDeclined(false)
+  }
+
+  /** TODO #13: "when declined the other side can make a new offer." This prototype has one user
+   *  acting as both sides of the negotiation, so the modelled effect is the practical one — the
+   *  table clears so a new offer can be built — rather than a second status value. The trade
+   *  itself stays 'open': it was never agreed, so there's nothing to revert. */
+  const decline = () => {
+    clearItems(trade.id)
+    setOfferedSkillIds([])
+    setOfferedHours(trade.yourHours)
+    setIsDeclined(true)
+  }
+
+  const offeredItems = MOCK_YOUR_INVENTORY.filter((item) => offeredItemIds.includes(item.id))
+  const offeredSkills = MOCK_SKILLS.filter((skill) => offeredSkillIds.includes(skill.id))
+
+  // "A row of your/her best skills" (see file banner comment) — a curated preview, not a paged
+  // browse of every skill: capped to fit one row with no pager, ranked so "best" is literal rather
+  // than "however many happen to fit on page 1". Seeing the rest is what the "open full skills"
+  // tile (yours only — there's no such link for the partner's) is for.
+  const yourSkillEntries: SkillEntry[] = [
+    ...bestSkills(MOCK_SKILLS, SKILLS_ROW_COLUMNS - 1).map((skill): SkillEntry => ({ kind: 'skill', skill })),
+    { kind: 'open-full' },
+  ]
+  const partnerSkillEntries: SkillEntry[] = bestSkills(MOCK_PARTNER_SKILLS, SKILLS_ROW_COLUMNS).map((skill) => ({
+    kind: 'skill',
+    skill,
+  }))
 
   return (
-    <PageShell title={`Trading with ${trade.partner}`}>
+    <PageShell title={`Trading with ${trade.partner}`} compactTitle>
       <div className="trading-page">
-        <p className="trading-page__summary">
-          <span aria-hidden="true">{trade.icon}</span> {trade.subject} · {TRADE_STATUS_LABEL[trade.status]}
-        </p>
+        <SkillsRow
+          ariaLabel="Your skills"
+          entries={yourSkillEntries}
+          offeredSkillIds={offeredSkillIds}
+          onToggleSkill={toggleSkill}
+          onOpenFull={() => navigate(skillsForTrade(trade.id))}
+        />
 
-        <InventoriesZone tradeId={trade.id} partnerName={trade.partner} onAddToTable={addToTable} />
+        <ActionButtonRow label="Add items" onClick={() => navigate(inventoryForTrade(trade.id))} />
 
         <TradingTableZone
           trade={trade}
+          status={status}
           offeredHours={offeredHours}
           offeredItems={offeredItems}
-          onChangeOfferedHours={setOfferedHours}
-          onRemoveFromTable={removeFromTable}
+          offeredSkills={offeredSkills}
+          isAdjustingHours={isAdjustingHours}
+          isDeclined={isDeclined}
+          onToggleAdjustingHours={() => setIsAdjustingHours((open) => !open)}
+          onChangeOfferedHours={changeOfferedHours}
+          onAccept={() => setStatus((current) => statusAfterAccept(current))}
+          onDecline={decline}
         />
 
-        <ChatZone partnerName={trade.partner} initialMessages={trade.messages} />
+        <ActionButtonRow
+          label={`Open ${trade.partner}'s inventory`}
+          onClick={() => navigate(partnerInventoryForTrade(trade.id))}
+        />
+
+        <SkillsRow ariaLabel={`${trade.partner}'s skills`} entries={partnerSkillEntries} />
+
+        <ChatZone partnerName={trade.partner} initialMessages={trade.messages} startExpanded={isQuickOffer} />
       </div>
     </PageShell>
   )
 }
 
-/* ---------- Zone 1: the two inventories ---------- */
+/* ---------- A single, prominent action button in its own row ---------- */
 
-interface InventoriesZoneProps {
-  /** Passed through so the Inventory link can open in trading context (§6). */
-  tradeId: string
-  partnerName: string
-  onAddToTable: (item: InventoryItem) => void
+/** "Add items" and "Open her inventory" (see the file banner comment) — plain buttons in place of
+ *  the live item grids the first cut of this page had, each its own fixed-height row rather than
+ *  a full zone, since a button needs far less room than a grid did. */
+function ActionButtonRow({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div className="trading-page__action-row">
+      <button type="button" className="trading-page__action-button" onClick={onClick}>
+        {label}
+      </button>
+    </div>
+  )
 }
 
-function InventoriesZone({ tradeId, partnerName, onAddToTable }: InventoriesZoneProps) {
+/* ---------- A single row of skill tiles (one per side) ---------- */
+
+interface SkillsRowProps {
+  ariaLabel: string
+  entries: SkillEntry[]
+  /** Present only for your own row — the partner's tiles are read-only browsing, same rule §6
+   *  already applies everywhere else on this page. */
+  offeredSkillIds?: string[]
+  onToggleSkill?: (skillId: string) => void
+  /** Only your row's `entries` end with an `{ kind: 'open-full' }` tile — there's no "their full
+   *  skills" page to link the partner's row to, so it's simply omitted there instead of rendered
+   *  disabled or hidden. */
+  onOpenFull?: () => void
+}
+
+/** No visible "You"/partner-name heading (direct feedback: decluttering pass) — the row's own
+ *  `aria-label` still names whose skills these are for assistive tech, and sighted users get the
+ *  same information for free from the row's fixed position on the page (top = yours, bottom =
+ *  hers), so a repeated visible label wasn't adding anything worth its line of height. */
+function SkillsRow({ ariaLabel, entries, offeredSkillIds, onToggleSkill, onOpenFull }: SkillsRowProps) {
   return (
-    <section className="page-section">
-      <h2 className="page-section__heading">Inventories</h2>
-      <div className="trading-page__inventories">
-        <YourInventoryPanel tradeId={tradeId} partnerName={partnerName} onAddToTable={onAddToTable} />
-        <PartnerInventoryPanel partnerName={partnerName} />
-      </div>
+    <section className="trading-page__row" role="group" aria-label={ariaLabel}>
+      <PagedGrid
+        items={entries}
+        getKey={entryKey}
+        columns={SKILLS_ROW_COLUMNS}
+        rows={1}
+        gridLabel={ariaLabel}
+        renderTile={(entry) =>
+          entry.kind === 'open-full' ? (
+            <OpenFullTile label="Open your full skills" onOpen={onOpenFull ?? (() => {})} />
+          ) : (
+            <SkillTile
+              skill={entry.skill}
+              isOffered={offeredSkillIds?.includes(entry.skill.id)}
+              onToggle={onToggleSkill ? () => onToggleSkill(entry.skill.id) : undefined}
+            />
+          )
+        }
+      />
     </section>
   )
 }
 
-function YourInventoryPanel({ tradeId, partnerName, onAddToTable }: InventoriesZoneProps) {
+interface OpenFullTileProps {
+  label: string
+  onOpen: () => void
+}
+
+/** TODO #11's "last gridcell is a button for their respective pages" — a tile like any other,
+ *  navigating like SkillsPage's own "+ Add a skill" tile already does. */
+function OpenFullTile({ label, onOpen }: OpenFullTileProps) {
   return (
-    <div className="page-card trading-page__inventory">
-      <h3 className="trading-page__panel-title">Your inventory</h3>
-
-      <div className="trading-page__inventory-body">
-        <SkillSidebar title="Your skills" skills={MOCK_SKILLS} />
-        <ul className="trading-page__items">
-          {MOCK_YOUR_INVENTORY.map((item) => (
-            <InventoryItemRow
-              key={item.id}
-              item={item}
-              privateNote={`Private — not visible to ${partnerName}`}
-              onAddToTable={onAddToTable}
-            />
-          ))}
-        </ul>
-      </div>
-
-      <Link className="trading-page__link" to={inventoryForTrade(tradeId)}>
-        Open your full inventory
-      </Link>
-      <p className="page-note">
-        You see everything, including your private entries. {partnerName} only ever sees the items
-        you marked public.
-      </p>
-    </div>
+    <SquareTile label={label} onClick={onOpen} overlay={<span className="trading-page__tile-name">More…</span>}>
+      <span className="square-tile__icon" aria-hidden="true">
+        ➜
+      </span>
+    </SquareTile>
   )
 }
 
-function PartnerInventoryPanel({ partnerName }: { partnerName: string }) {
-  const [isFullInventoryOpen, setIsFullInventoryOpen] = useState(false)
-  // §6: a trading partner only ever sees the public entries — so the private ones are filtered out
-  // here, before anything is rendered, rather than being hidden afterwards.
-  const visibleItems = publicItems(MOCK_PARTNER_INVENTORY)
-
+/** A read-only tile — every item shown on this page (the trading table) is already offered by
+ *  virtue of being there, so unlike a browsing grid there's nothing left to toggle. */
+function ItemTile({ item }: { item: InventoryItem }) {
   return (
-    <div className="page-card trading-page__inventory">
-      <h3 className="trading-page__panel-title">{partnerName}&apos;s inventory</h3>
-
-      <div className="trading-page__inventory-body">
-        <PartnerSkillSidebar partnerName={partnerName} />
-        <ul className="trading-page__items">
-          {visibleItems.map((item) => (
-            <InventoryItemRow key={item.id} item={item} />
-          ))}
-        </ul>
-      </div>
-
-      <button
-        type="button"
-        className="trading-page__button"
-        aria-expanded={isFullInventoryOpen}
-        onClick={() => setIsFullInventoryOpen((isOpen) => !isOpen)}
-      >
-        {isFullInventoryOpen ? 'Close' : 'Open'} {partnerName}&apos;s full inventory
-      </button>
-
-      {/* §6 asks for full detail inspection of the partner's public entries. Their own Inventory
-       *  page isn't ours to link to, so the detail lives in this panel. */}
-      {isFullInventoryOpen && (
-        <dl className="trading-page__detail">
-          {visibleItems.map((item) => (
-            <div className="trading-page__detail-row" key={item.id}>
-              <dt className="trading-page__detail-term">
-                <span aria-hidden="true">{item.icon}</span> {item.name}
-              </dt>
-              <dd className="trading-page__detail-value">
-                Shelf: {item.shelf ?? 'none'} · Public entry
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-
-      <p className="page-note">
-        Public entries only. Anything {partnerName} keeps private is never sent to your side of the
-        trade.
-      </p>
-    </div>
+    <SquareTile label={item.name} overlay={<span className="trading-page__tile-name">{item.name}</span>}>
+      <span className="square-tile__icon" aria-hidden="true">
+        {item.icon}
+      </span>
+    </SquareTile>
   )
 }
 
-function SkillSidebar({ title, skills }: { title: string; skills: Skill[] }) {
+interface SkillTileProps {
+  skill: Skill
+  isOffered?: boolean
+  onToggle?: () => void
+}
+
+function SkillTile({ skill, isOffered, onToggle }: SkillTileProps) {
+  const label = onToggle
+    ? isOffered
+      ? `Remove ${skill.name} from the table`
+      : `Add ${skill.name} to the table`
+    : skill.name
+
   return (
-    <div className="trading-page__skills">
-      <h4 className="trading-page__skills-title">{title}</h4>
-      <ul className="trading-page__skill-list">
-        {skills.map((skill) => (
-          <li className="trading-page__skill" key={skill.id}>
-            <span className="trading-page__skill-icon" aria-hidden="true">
-              {skill.icon}
-            </span>
-            <span className="trading-page__skill-name">{skill.name}</span>
-            <span className="trading-page__skill-rating">{skill.rating}★</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <SquareTile
+      label={label}
+      onClick={onToggle}
+      overlay={
+        <>
+          <span className="trading-page__tile-name">{skill.name}</span>
+          <StarRating value={skill.rating} subject={`${skill.name}'s rating`} />
+          {isOffered && <span className="trading-page__tile-flag">On table</span>}
+        </>
+      }
+    >
+      <span className="square-tile__icon" aria-hidden="true">
+        {skill.icon}
+      </span>
+    </SquareTile>
   )
 }
 
-/** §6 mirrors the skills sidebar onto the partner's side. */
-function PartnerSkillSidebar({ partnerName }: { partnerName: string }) {
-  return <SkillSidebar title={`${partnerName}'s skills`} skills={MOCK_PARTNER_SKILLS} />
-}
-
-interface InventoryItemRowProps {
-  item: InventoryItem
-  /** Shown when the item isn't public. Only your own side passes it — the partner's list is
-   *  filtered to public items, so it can never need one. */
-  privateNote?: string
-  /** Only your own items can go on the table: §6's drop area builds *your* offer. */
-  onAddToTable?: (item: InventoryItem) => void
-}
-
-function InventoryItemRow({ item, privateNote, onAddToTable }: InventoryItemRowProps) {
-  return (
-    <li className="trading-page__item">
-      <div className="trading-page__item-tile">
-        <SquareTile label={item.name}>
-          <span className="square-tile__icon" aria-hidden="true">
-            {item.icon}
-          </span>
-        </SquareTile>
-      </div>
-
-      <div className="trading-page__item-text">
-        <span className="trading-page__item-name">{item.name}</span>
-        <span className="trading-page__item-meta">{item.shelf ?? 'No shelf'}</span>
-        {!item.isPublic && privateNote !== undefined && (
-          <span className="trading-page__item-private">{privateNote}</span>
-        )}
-      </div>
-
-      {onAddToTable && (
-        <button
-          type="button"
-          className="trading-page__button"
-          aria-label={`Add ${item.name} to the table`}
-          onClick={() => onAddToTable(item)}
-        >
-          Add to table
-        </button>
-      )}
-    </li>
-  )
-}
-
-/* ---------- Zone 2: the trading table ---------- */
+/* ---------- The trading table ---------- */
 
 interface TradingTableZoneProps {
   trade: Trade
+  status: Trade['status']
   offeredHours: number
   offeredItems: InventoryItem[]
+  offeredSkills: Skill[]
+  isAdjustingHours: boolean
+  /** Whether Decline's "the other side can make a new offer" note should still be showing —
+   *  cleared the moment the offer changes again (TODO #13). */
+  isDeclined: boolean
+  onToggleAdjustingHours: () => void
   onChangeOfferedHours: (hours: number) => void
-  onRemoveFromTable: (itemId: string) => void
+  onAccept: () => void
+  onDecline: () => void
 }
 
+/** No "Trading table" heading (direct feedback: decluttering pass) — a darker/lighter panel
+ *  background (`--surface-alt`, light in dark mode and darker in light mode — see index.css) marks
+ *  out the table's extent instead, the same "no label, a surface change carries it" idea the "You"/
+ *  partner-name skills rows above and below already use for their own row-vs-row distinction. */
 function TradingTableZone({
   trade,
+  status,
   offeredHours,
   offeredItems,
+  offeredSkills,
+  isAdjustingHours,
+  isDeclined,
+  onToggleAdjustingHours,
   onChangeOfferedHours,
-  onRemoveFromTable,
+  onAccept,
+  onDecline,
 }: TradingTableZoneProps) {
+  const [isNoteOpen, setIsNoteOpen] = useState(false)
+
+  const yourEntries: TableEntry[] = [
+    { kind: 'time', hours: offeredHours, editable: true },
+    ...offeredItems.map((item): TableEntry => ({ kind: 'item', item })),
+    ...offeredSkills.map((skill): TableEntry => ({ kind: 'skill', skill })),
+  ]
+  // §6: which items/skills the partner puts up isn't modelled — their tray has only their Time
+  // tile, same as their drop area always started empty before this rework too.
+  const partnerEntries: TableEntry[] = [{ kind: 'time', hours: trade.partnerHours, editable: false }]
+
   return (
-    <section className="page-section">
-      <h2 className="page-section__heading">Trading table</h2>
-
-      <div className="page-card trading-page__table">
+    <section className="trading-page__zone">
+      <div className="trading-page__table-stack">
         <div className="trading-page__side" role="group" aria-label="Your side of the trading table">
-          <h3 className="trading-page__panel-title">You</h3>
-
-          <HoursRow label="Available hours" value={`${MOCK_HOURS_BALANCE} h`} />
-
-          <p className="trading-page__hours-row">
-            <span className="trading-page__hours-label">Offered hours</span>
-          </p>
-          <HoursStepper hours={offeredHours} max={MOCK_HOURS_BALANCE} onChange={onChangeOfferedHours} />
-
-          <DropArea
-            label="Your offer on the table"
-            items={offeredItems}
-            emptyText="Nothing on the table yet."
-            note='Drag-and-drop is not wired up in the prototype — use "Add to table" on an item above.'
-            onRemoveFromTable={onRemoveFromTable}
+          <PagedGrid
+            items={yourEntries}
+            getKey={entryKey}
+            columns={4}
+            rows={1}
+            gridLabel="Your offer on the table"
+            renderTile={(entry) => (
+              <TableTileView entry={entry} onOpenTime={onToggleAdjustingHours} />
+            )}
           />
+          {isAdjustingHours && (
+            <HoursStepper hours={offeredHours} max={MOCK_HOURS_BALANCE} onChange={onChangeOfferedHours} />
+          )}
+        </div>
+
+        {/* "You" sits between your table row and the respond row (direct feedback) — no longer
+         *  nested inside the "Your side" group above, but it's still exactly the same information,
+         *  just relocated; the group's own aria-label already names the region for anyone not
+         *  reading it visually. */}
+        <h3 className="trading-page__panel-title trading-page__you-label">You</h3>
+
+        {/* Accept/Decline (when there's an open offer to respond to) and the final-review link
+         *  (always) share one row — direct feedback asked for final review to sit "next to the
+         *  reject button" rather than in its own row below the whole table, which also reclaims
+         *  that row's height for the table itself. Final review has to stay reachable even when
+         *  there's nothing left to accept/decline (an agreed trade is exactly when you'd use it),
+         *  so it's not gated behind the same canRespondToOffer check the two buttons are. */}
+        <div className="trading-page__respond" role="group" aria-label="Respond to this offer">
+          {canRespondToOffer(status) && (
+            <>
+              <button
+                type="button"
+                className="trading-page__accept"
+                aria-label="Accept trade"
+                onClick={onAccept}
+              >
+                <span aria-hidden="true">✅</span>
+              </button>
+              <button type="button" className="trading-page__decline" aria-label="Decline offer" onClick={onDecline}>
+                <span aria-hidden="true">✕</span>
+              </button>
+            </>
+          )}
+          {/* Appkarte §6 [OFFEN]: the icon language for the trading table beyond the Time tile is
+           *  not defined yet. */}
+          <Link className="trading-page__link" to={finalReview(trade.id)}>
+            Final review
+          </Link>
+          <button
+            type="button"
+            className="trading-page__button"
+            aria-label="About final review"
+            aria-expanded={isNoteOpen}
+            onClick={() => setIsNoteOpen((isOpen) => !isOpen)}
+          >
+            <span aria-hidden="true">ⓘ</span>
+          </button>
         </div>
 
         <div
@@ -311,54 +435,67 @@ function TradingTableZone({
           aria-label={`${trade.partner}'s side of the trading table`}
         >
           <h3 className="trading-page__panel-title">{trade.partner}</h3>
-
-          {/* §6: the partner's available hours stay hidden from you. Masked rather than removed, so
-           *  the asymmetry with your own side is visible in the layout. */}
-          <p className="trading-page__hours-row">
-            <span className="trading-page__hours-label">Available hours</span>
-            <span
-              className="trading-page__hours-value is-masked"
-              aria-label={`${trade.partner}'s available hours are hidden from you`}
-            >
-              ???
-            </span>
-          </p>
-
-          {/* Their *balance* is hidden above, but what they've actually put on the table is
-            * public — that asymmetry is the point of §6's middle zone. */}
-          <HoursRow label="Offered hours" value={`${trade.partnerHours} h`} />
-
-          <DropArea
-            label={`${trade.partner}'s offer on the table`}
-            items={[]}
-            emptyText="Nothing on the table yet."
-            note={`Only ${trade.partner} can fill this side.`}
+          <PagedGrid
+            items={partnerEntries}
+            getKey={entryKey}
+            columns={4}
+            rows={1}
+            gridLabel={`${trade.partner}'s offer on the table`}
+            renderTile={(entry) => <TableTileView entry={entry} />}
           />
         </div>
       </div>
 
-      {/* Appkarte §6 [OFFEN]: the icon language for the trading table is not defined yet. The rows
-       *  stay worded — picking icons here would quietly settle a decision the card leaves open. */}
-      <p className="page-note">
-        [OFFEN] §6 leaves the trading table&apos;s icons undefined, so every row is labelled in words
-        only for now.
-      </p>
+      {/* Positioned out of the normal flow on purpose — see the comment on
+       *  .trading-page__info-popover in TradingPage.css for why. */}
+      {isNoteOpen && (
+        <div className="trading-page__info-popover">
+          <p className="page-note">§8: once a trade is agreed, final review is what officially closes it.</p>
+          <p className="page-note">
+            TODO #13: a trade that doesn't exist yet isn't modelled — opening Trading (plain or Quick
+            Buy) always resolves to one of the mock trades above. Real trade creation is a bigger
+            step than this page covers.
+          </p>
+        </div>
+      )}
 
-      <Link className="trading-page__link" to={finalReview(trade.id)}>
-        Open final review
-      </Link>
-      <p className="page-note">§8: once a trade is agreed, final review is what officially closes it.</p>
+      {!canRespondToOffer(status) && (
+        <p className="page-note">
+          This trade is {TRADE_STATUS_LABEL[status].toLowerCase()} — there is no open offer left to
+          accept.
+        </p>
+      )}
+
+      {isDeclined && (
+        <p className="trading-page__declined" role="status">
+          Offer declined — build a new one above.
+        </p>
+      )}
     </section>
   )
 }
 
-function HoursRow({ label, value }: { label: string; value: string }) {
-  return (
-    <p className="trading-page__hours-row">
-      <span className="trading-page__hours-label">{label}</span>
-      <span className="trading-page__hours-value">{value}</span>
-    </p>
-  )
+/** Time is drawn "as an inherent skill offer" (TODO #11) — same tile shape as an item or skill,
+ *  just never added to the Skills row itself (see the parenthetical in TODO #11). Tapping your
+ *  own Time tile opens the hour stepper; the partner's is a plain read-out, same as their other
+ *  tiles everywhere else on this page. */
+function TableTileView({ entry, onOpenTime }: { entry: TableEntry; onOpenTime?: () => void }) {
+  if (entry.kind === 'time') {
+    const label = entry.editable
+      ? `Your offered hours: ${entry.hours}. Tap to adjust.`
+      : `Offered hours: ${entry.hours}`
+    return (
+      <SquareTile label={label} onClick={entry.editable ? onOpenTime : undefined} overlay={<span>{entry.hours} h</span>}>
+        <span className="square-tile__icon" aria-hidden="true">
+          ⏱️
+        </span>
+      </SquareTile>
+    )
+  }
+  if (entry.kind === 'item') {
+    return <ItemTile item={entry.item} />
+  }
+  return <SkillTile skill={entry.skill} />
 }
 
 interface HoursStepperProps {
@@ -368,7 +505,8 @@ interface HoursStepperProps {
 }
 
 /** Adjusting your own offer is in scope — a stepper rather than a free-text field, so the offer
- *  can never exceed the hours you actually have. */
+ *  can never exceed the hours you actually have. Revealed by tapping the Time tile above it
+ *  (TODO #11), rather than always visible the way it was before this rework. */
 function HoursStepper({ hours, max, onChange }: HoursStepperProps) {
   return (
     <div className="trading-page__stepper" role="group" aria-label="Your offered hours">
@@ -397,57 +535,45 @@ function HoursStepper({ hours, max, onChange }: HoursStepperProps) {
   )
 }
 
-interface DropAreaProps {
-  label: string
-  items: InventoryItem[]
-  emptyText: string
-  note: string
-  onRemoveFromTable?: (itemId: string) => void
-}
-
-/** The drag-and-drop area from §6, laid out where the real one will sit but deliberately inert:
- *  items arrive through the "Add to table" buttons instead. */
-function DropArea({ label, items, emptyText, note, onRemoveFromTable }: DropAreaProps) {
-  return (
-    <div className="trading-page__drop" role="group" aria-label={label}>
-      {items.length === 0 ? (
-        <p className="trading-page__drop-empty">{emptyText}</p>
-      ) : (
-        <ul className="trading-page__drop-items">
-          {items.map((item) => (
-            <li className="trading-page__drop-item" key={item.id}>
-              <span aria-hidden="true">{item.icon}</span>
-              <span className="trading-page__drop-name">{item.name}</span>
-              {onRemoveFromTable && (
-                <button
-                  type="button"
-                  className="trading-page__drop-remove"
-                  aria-label={`Remove ${item.name} from the table`}
-                  onClick={() => onRemoveFromTable(item.id)}
-                >
-                  <span aria-hidden="true">×</span>
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="page-note">{note}</p>
-    </div>
-  )
-}
-
-/* ---------- Zone 3: the chat ---------- */
+/* ---------- The chat ---------- */
 
 interface ChatZoneProps {
   partnerName: string
   initialMessages: ChatMessage[]
+  /** TODO #13: Quick Buy "jumps to the chat" — the one behavioural difference from opening
+   *  Trading normally. Whether the composer should also come pre-typed is left open (the TODO
+   *  itself asks it as a question); this only starts the chat expanded. */
+  startExpanded?: boolean
 }
 
-function ChatZone({ partnerName, initialMessages }: ChatZoneProps) {
+/** How far the collapsed peek has to be scrolled away from its pinned-to-bottom rest position
+ *  before it counts as "scrolling up" (TODO #11) rather than layout noise. */
+const SCROLL_EXPAND_THRESHOLD_PX = 4
+
+function ChatZone({ partnerName, initialMessages, startExpanded = false }: ChatZoneProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [draft, setDraft] = useState('')
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(startExpanded)
+  const messagesRef = useRef<HTMLUListElement>(null)
+
+  // Collapsed, the peek is meant to show only the last message (TODO #11) — pinning scrollTop to
+  // the bottom on every render is what makes that true regardless of how many messages exist.
+  useEffect(() => {
+    if (!isExpanded && messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+    }
+  }, [isExpanded, messages])
+
+  /** TODO #11: "on scrolling up, extend the chat window to the full screen" — the manual expand
+   *  button (kept "as is") is the deliberate control; this is the same result reached by
+   *  scrolling the collapsed peek away from its pinned bottom instead. */
+  const handleScroll = (event: UIEvent<HTMLUListElement>) => {
+    if (isExpanded) return
+    const el = event.currentTarget
+    if (el.scrollHeight - el.scrollTop - el.clientHeight > SCROLL_EXPAND_THRESHOLD_PX) {
+      setIsExpanded(true)
+    }
+  }
 
   const sendMessage = (event: FormEvent) => {
     event.preventDefault()
@@ -463,11 +589,11 @@ function ChatZone({ partnerName, initialMessages }: ChatZoneProps) {
 
   return (
     <section
-      className={`page-section trading-page__chat ${isExpanded ? 'is-expanded' : ''}`}
+      className={`trading-page__chat ${isExpanded ? 'is-expanded' : ''}`}
       aria-label={`Chat with ${partnerName}`}
     >
       <header className="trading-page__chat-header">
-        <h2 className="page-section__heading">Chat</h2>
+        <h2 className="trading-page__chat-heading">Chat</h2>
         <button
           type="button"
           className="trading-page__button"
@@ -479,7 +605,12 @@ function ChatZone({ partnerName, initialMessages }: ChatZoneProps) {
         </button>
       </header>
 
-      <ul className="trading-page__messages">
+      <ul
+        className="trading-page__messages"
+        ref={messagesRef}
+        onScroll={handleScroll}
+        aria-label={isExpanded ? 'Full chat history' : 'Latest message'}
+      >
         {messages.map((message) => (
           <li
             className={`trading-page__message ${message.from === 'you' ? 'is-yours' : ''}`}
@@ -508,10 +639,15 @@ function ChatZone({ partnerName, initialMessages }: ChatZoneProps) {
         </button>
       </form>
 
-      <p className="page-note">
-        §8 stores the chat log locally and lets you delete it — the prototype keeps messages in page
-        state only, so they reset on reload.
-      </p>
+      {/* Only shown expanded — collapsed, this page is already tight on vertical room (see
+       *  TradingTableFooter's comment on the same trade-off), and this note matters far less when
+       *  the peek is showing just one line anyway. */}
+      {isExpanded && (
+        <p className="page-note">
+          §8 stores the chat log locally and lets you delete it — the prototype keeps messages in
+          page state only, so they reset on reload.
+        </p>
+      )}
     </section>
   )
 }

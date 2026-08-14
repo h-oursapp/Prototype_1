@@ -330,10 +330,13 @@ export function AdDetailPage({ mode }: { mode?: 'create' }) {
     setActionNote(null)
   }
 
+  /** TODO #13: Quick Buy now actually opens the trading window, the same as "Open trading
+   *  window" below, but flagged `quick` — TradingPage reads that to jump straight to an expanded
+   *  chat rather than landing on the browsing zones first. Whether the button itself should be
+   *  renamed "Quick offer" is a question TODO #13 raises but doesn't answer, so the established
+   *  name stays until that's settled. */
   const handleQuickBuy = () => {
-    setActionNote(
-      `Quick Buy would charge ${draft.hours === '' ? '0' : draft.hours} hours immediately. Purchases are not wired up.`,
-    )
+    if (offer) navigate(trading(mockTradeIdFor(offer), { quick: true }))
   }
 
   const handleOpenTrading = () => {

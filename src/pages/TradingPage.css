@@ -1,23 +1,32 @@
-/* Trading (§6). Three stacked zones inside PageShell's scrolling content area: the two
- * inventories, the trading table, then the chat. Colours come only from the theme tokens in
- * index.css, and corners are cut with clip-path — never border-radius. */
+/* Trading (§6, reworked by TODO #11, reshaped again on direct feedback): a non-scrollable page —
+ * a skills row, the trading table, another skills row and the chat all fit inside PageShell's
+ * content area at once. Colours come only from the theme tokens in index.css, and corners are cut
+ * with clip-path — never border-radius.
+ *
+ * `.trading-page` gets a *definite* height (100%, not min-height — see index.css's #root comment
+ * and InventoryPage.css's own version of this same note) so the table zone's PagedGrid has
+ * something real to size its square cells against. Unlike the first cut of this page (three equal
+ * thirds), only the trading table now flexes (`flex: 1`) — the skills rows and action-button rows
+ * are fixed, content-sized rows, since a single tile row or a button needs far less height than a
+ * grid-sized zone did. The chat keeps its own natural (small, collapsed) height too, so collapsing
+ * it gives the table more room rather than leaving the chat oversized. */
 
 .trading-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.trading-page__summary {
-  margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--text-muted);
+  overflow: hidden;
+  gap: 4px;
 }
 
 .trading-page__panel-title {
-  font-size: 15px;
+  flex-shrink: 0;
+  font-size: 13px;
+  margin: 0 0 2px;
 }
 
 .trading-page__link {
+  flex-shrink: 0;
   align-self: flex-start;
   font-size: 13px;
   color: var(--brand-primary);
@@ -33,7 +42,7 @@
   color: var(--brand-primary-deep);
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 6px 8px;
+  padding: 4px 8px;
   clip-path: var(--chamfer);
 }
 
@@ -41,189 +50,138 @@
   background: var(--brand-tint);
 }
 
-/* ---------- Zone 1: inventories ---------- */
+/* ---------- Skills rows ---------- */
 
-/* Mirrored panels: side by side when there's room, stacked on a narrow phone. */
-.trading-page__inventories {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 8px;
-}
-
-.trading-page__inventory {
+/* One fixed-height row per side (TODO feedback) — no longer paired side-by-side the way the first
+ * cut's "Skills" zone had them. `--pg-aspect` needs a real height to size a single row of square
+ * cells against, so this stays a definite height rather than min-height, same rule the page's own
+ * height:100% follows. */
+.trading-page__row {
+  flex-shrink: 0;
+  height: 92px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
 }
 
-.trading-page__inventory-body {
+/* ---------- Action-button rows (Add items / Open her inventory) ---------- */
+
+/* Replaces the first cut's live item grids — see TradingPage.tsx's file banner comment. A plain
+ * centered button — compact rather than the near-full-width, larger button this started as, to
+ * match the scale of everything else on this height-constrained page. */
+.trading-page__action-row {
+  flex-shrink: 0;
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  justify-content: center;
+  padding: 2px 0;
 }
 
-.trading-page__skills {
-  flex: 0 0 76px;
-  min-width: 0;
-  padding-right: 8px;
-  border-right: 1px solid var(--border);
-}
-
-.trading-page__skills-title {
-  font-size: 11px;
+.trading-page__action-button {
+  max-width: 220px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin: 0 0 6px;
-}
-
-.trading-page__skill-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.trading-page__skill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  font-size: 10px;
-  line-height: 1.2;
-  text-align: center;
-  color: var(--text-muted);
-}
-
-.trading-page__skill-icon {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.trading-page__skill-rating {
-  color: var(--brand-primary);
-}
-
-.trading-page__items {
-  flex: 1;
-  min-width: 0;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.trading-page__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px;
-  background: var(--surface-alt);
-  clip-path: var(--chamfer);
-}
-
-/* SquareTile fills whatever box it's given, so the box is sized here. */
-.trading-page__item-tile {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-}
-
-.trading-page__item-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.trading-page__item-name {
-  font-size: 13px;
-}
-
-.trading-page__item-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.trading-page__item-private {
-  font-size: 11px;
   color: var(--brand-primary-deep);
-}
-
-.trading-page__detail {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.trading-page__detail-row {
-  padding: 6px;
-  background: var(--surface-alt);
+  background: var(--surface);
+  border: 1px solid var(--brand-primary);
   clip-path: var(--chamfer);
 }
 
-.trading-page__detail-term {
-  font-size: 13px;
+.trading-page__action-button:hover {
+  background: var(--brand-tint);
 }
 
-.trading-page__detail-value {
-  margin: 0;
-  font-size: 11px;
-  color: var(--text-muted);
+/* ---------- Shared zone/panel shape (the trading table) ---------- */
+
+/* The table is the page's one growing zone now — see the file banner comment. No heading labels
+ * it any more (direct feedback: decluttering pass) — --surface-alt marks out its extent instead:
+ * a background that reads as *darker* than the page in light mode and *lighter* than the page in
+ * dark mode (see index.css's token values), so it stands out as its own surface in both themes
+ * without needing a theme-specific override here. */
+.trading-page__zone {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-alt);
+  padding: 6px 8px;
+  clip-path: var(--chamfer);
 }
 
-/* ---------- Zone 2: trading table ---------- */
+/* The two standing prototype-notes behind the "ⓘ" toggle (TradingPage.tsx) — an overlay rather
+ * than a normal-flow sibling of .trading-page__table-stack. Both are flex:1 children competing
+ * for the same shrinkable space in this zone; a sibling with real text content is exactly what
+ * squeezed the interactive table down to nothing the first time this bug showed up, so the notes
+ * are pulled out of that flow entirely instead of just being made smaller. */
+.trading-page__info-popover {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  clip-path: var(--chamfer);
+}
 
-/* The two sides stay side by side as long as they fit — the mirroring is the whole point. */
-.trading-page__table {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
+/* Your table row above Lena K.'s, with Accept/Decline in between — a column stack rather than the
+ * side-by-side layout this used to be. Not just a visual choice: each `.trading-page__side` still
+ * needs a real (not auto/content) height for PagedGrid's square-cell math to work at all (see
+ * index.css's #root comment on this same container-query chain) — `flex: 1` along this stack's
+ * vertical main axis is what gives it one, the column-layout equivalent of what align-items:
+ * stretch did for the old row layout. */
+.trading-page__table-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .trading-page__side {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  background: var(--surface-alt);
-  clip-path: var(--chamfer);
 }
 
-.trading-page__hours-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-}
+/* ---------- Tile overlays (items, skills, the Time tile) ---------- */
 
-.trading-page__hours-label {
-  color: var(--text-muted);
-}
-
-.trading-page__hours-value {
+.trading-page__tile-name {
+  display: block;
+  font-size: 11px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* The partner's available hours are hidden from you (§6) — shown masked, not omitted. */
-.trading-page__hours-value.is-masked {
-  color: var(--brand-primary);
-  letter-spacing: 0.12em;
+.trading-page__tile-flag {
+  display: block;
+  font-size: 9px;
+  color: var(--brand-primary-deep);
 }
+
+/* Two star rows would not fit at this tile size, unlike SkillsPage's larger grid — one rating
+ * only, sized down to match. */
+.trading-page__row .star-rating {
+  font-size: 9px;
+}
+
+/* ---------- Trading table extras ---------- */
 
 .trading-page__stepper {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  margin-top: 4px;
 }
 
 .trading-page__stepper-button {
@@ -250,63 +208,73 @@
   font-weight: 600;
 }
 
-/* Where the real drag-and-drop target will be — dashed, because it isn't wired up yet. */
-.trading-page__drop {
-  flex: 1;
-  min-height: 84px;
-  padding: 6px;
+/* TODO #11/#13: Accept (a green checkmark) and Decline, side by side, in the row between the two
+ * stacked tables. flex-shrink: 0 keeps it at its own compact content height, rather than sharing
+ * in the table-stack's flex:1 split the way the two .trading-page__side rows do. */
+.trading-page__respond {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.trading-page__accept,
+.trading-page__decline {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--surface);
-  border: 1px dashed var(--border);
   clip-path: var(--chamfer);
 }
 
-.trading-page__drop-empty {
-  margin: 0;
-  font-size: 12px;
+.trading-page__accept {
+  border: 2px solid var(--status-success);
+}
+
+.trading-page__accept:hover {
+  background: var(--status-success-tint);
+}
+
+.trading-page__decline {
+  border: 2px solid var(--border);
   color: var(--text-muted);
 }
 
-.trading-page__drop-items {
-  list-style: none;
-  margin: 0 0 4px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.trading-page__decline:hover {
+  background: var(--surface-alt);
 }
 
-.trading-page__drop-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 4px;
-  background: var(--brand-tint);
+.trading-page__declined {
+  margin: 0;
+  padding: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--surface-alt);
   clip-path: var(--chamfer);
 }
 
-.trading-page__drop-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.trading-page__drop-remove {
+/* The two standing prototype-notes behind the "ⓘ" toggle next to Accept/Decline — compact, since
+ * they render inside the already tight .trading-page__zone panel when open. */
+.trading-page__zone .page-note {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  color: var(--brand-primary-deep);
+  margin: 4px 0 0;
+  font-size: 11px;
 }
 
-/* ---------- Zone 3: chat ---------- */
+/* ---------- Chat ---------- */
 
 .trading-page__chat {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: 4px;
+  padding: 4px 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   clip-path: var(--chamfer);
@@ -331,10 +299,26 @@
   gap: 8px;
 }
 
-.trading-page__chat-header .page-section__heading {
-  margin-bottom: 0;
+/* Explicitly smaller than the app's usual page-section__heading (TODO feedback: "make the chat
+ * window header much smaller") — this is a slim bar labelling a collapsed peek, not a section of
+ * the page in its own right. */
+.trading-page__chat-heading {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
 }
 
+.trading-page__chat-header .trading-page__button {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+/* Collapsed, this is a peek pinned to the bottom (TODO #11's "showing only the last message") —
+ * short enough that only the latest message is visible, but still a real scrollable area so
+ * scrolling it away from that pinned position can expand the chat (see TradingPage.tsx). */
 .trading-page__messages {
   list-style: none;
   margin: 0;
@@ -342,7 +326,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 180px;
+  max-height: 52px;
   overflow-y: auto;
 }
 
@@ -378,6 +362,7 @@
 }
 
 .trading-page__composer {
+  flex-shrink: 0;
   display: flex;
   gap: 6px;
 }

@@ -38,8 +38,19 @@ export interface Trade {
    *  what they've actually offered is on the table in plain sight — that's the whole point of
    *  the table. */
   partnerHours: number
-  /** Sort key within a status group — "last interaction" in §8. */
+  /** Human-readable "last interaction", shown as-is on the trade card (§8). */
   lastInteraction: string
+  /** The same moment as `lastInteraction`, as a real ISO date — TODO #12 asks Trades to order by
+   *  date, which prose like "2 weeks ago" can't be sorted by (flagged as a known gap in
+   *  HANDOFF.md §13). Kept alongside the prose field rather than replacing it, the same way
+   *  Skill.rating and Skill.reviewRating already coexist: display text stays exactly as authored,
+   *  and sorting gets something real to compare. */
+  lastInteractionAt: string
+  /** TODO #12: shows an unread-message icon on the trade's card. A flag on the mock data rather
+   *  than a computed "last message is from partner and I haven't opened it" rule — there's no
+   *  per-user read state anywhere else in this prototype either, so this matches how every other
+   *  per-trade fact here is just declared rather than derived. */
+  hasUnreadMessage?: boolean
   messages: ChatMessage[]
 }
 
@@ -54,6 +65,8 @@ export const MOCK_TRADES: Trade[] = [
     yourHours: 2,
     partnerHours: 3,
     lastInteraction: '10 minutes ago',
+    lastInteractionAt: '2026-08-14T09:24:00Z',
+    hasUnreadMessage: true,
     messages: [
       { id: 'm-1', from: 'partner', text: 'Hi! Would two hours a week work for you?', time: '09:12' },
       { id: 'm-2', from: 'you', text: 'Two works. Could we start next Tuesday?', time: '09:20' },
@@ -70,6 +83,7 @@ export const MOCK_TRADES: Trade[] = [
     yourHours: 1,
     partnerHours: 1,
     lastInteraction: '2 hours ago',
+    lastInteractionAt: '2026-08-14T07:30:00Z',
     messages: [
       { id: 'm-4', from: 'you', text: 'The rear brake is rubbing — one hour should cover it?', time: 'Yesterday' },
       { id: 'm-5', from: 'partner', text: 'Should be. Bring it round any evening this week.', time: 'Yesterday' },
@@ -85,6 +99,8 @@ export const MOCK_TRADES: Trade[] = [
     yourHours: 4,
     partnerHours: 4,
     lastInteraction: 'Yesterday',
+    lastInteractionAt: '2026-08-13T18:00:00Z',
+    hasUnreadMessage: true,
     messages: [{ id: 'm-6', from: 'partner', text: 'Agreed — see you Thursday!', time: 'Yesterday' }],
   },
   {
@@ -97,6 +113,7 @@ export const MOCK_TRADES: Trade[] = [
     yourHours: 3,
     partnerHours: 2,
     lastInteraction: '3 days ago',
+    lastInteractionAt: '2026-08-11T10:00:00Z',
     messages: [{ id: 'm-7', from: 'you', text: 'Deal. Saturday morning then.', time: '3 days ago' }],
   },
   {
@@ -109,6 +126,7 @@ export const MOCK_TRADES: Trade[] = [
     yourHours: 2,
     partnerHours: 2,
     lastInteraction: '2 weeks ago',
+    lastInteractionAt: '2026-07-31T12:00:00Z',
     messages: [{ id: 'm-8', from: 'partner', text: 'Thanks again, the bread was perfect.', time: '2 weeks ago' }],
   },
   {
@@ -129,10 +147,34 @@ export const MOCK_TRADES: Trade[] = [
     yourHours: 3,
     partnerHours: 3,
     lastInteraction: '2 weeks ago',
+    lastInteractionAt: '2026-07-31T09:00:00Z',
     messages: [{ id: 'm-9', from: 'partner', text: 'Site looks great, thank you!', time: '2 weeks ago' }],
   },
 ]
 
 export function findTrade(tradeId: string | undefined): Trade | undefined {
   return MOCK_TRADES.find((trade) => trade.id === tradeId)
+}
+
+/** TODO #13's status pipeline is "not existing → open → agreed → closed", each step triggered by
+ *  one particular action and never skipped or reversed past `open`. These two pure functions are
+ *  that pipeline's rules, kept separate from any one page so TradingPage's Accept/Decline buttons
+ *  and their tests both read off the same source of truth rather than each re-stating it.
+ *
+ *  Only 'open' is covered: 'agreed' has already been responded to, and 'closed' is Final Review's
+ *  job (§8, already built) rather than something Accept/Decline on the Trading page ever touches. */
+
+/** Whether this trade currently has a live offer to respond to — i.e. whether Accept/Decline
+ *  should be shown at all. */
+export function canRespondToOffer(status: TradeStatus): boolean {
+  return status === 'open'
+}
+
+/** The status after accepting an open offer. Every other status has nothing to accept — callers
+ *  are expected to gate the button on canRespondToOffer first, so this only has to state the one
+ *  real transition rather than guard against the others. Declining has no status transition of
+ *  its own: TODO #13 says a decline lets "the other side make a new offer", i.e. the trade simply
+ *  stays open while the offer itself changes back on TradingPage. */
+export function statusAfterAccept(status: TradeStatus): TradeStatus {
+  return status === 'open' ? 'agreed' : status
 }

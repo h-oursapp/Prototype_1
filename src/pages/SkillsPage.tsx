@@ -3,10 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
 import { SquareTile } from '../components/SquareTile'
 import { StarRating } from '../components/StarRating'
+import { TransferBox } from '../components/TransferBox'
 import { MOCK_SKILLS, type Skill } from '../data/mockUser'
 import type { Trade } from '../data/mockTrades'
 import { findTrade } from '../data/mockTrades'
-import { ROUTES, skillDetail, trading } from '../routes'
+import { ROUTES, skillDetail } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import './SkillsPage.css'
 
@@ -70,74 +71,6 @@ function TradeContextBanner({ trade }: { trade: Trade }) {
       <p className="skills-page__banner-subject">
         <span aria-hidden="true">{trade.icon}</span> {trade.subject}
       </p>
-    </section>
-  )
-}
-
-interface TransferBoxProps {
-  trade: Trade
-  offeredSkills: Skill[]
-  isAccepted: boolean
-  onRemove: (skillId: string) => void
-  onAccept: () => void
-}
-
-/** The transfer box (TODO #6): shown only in a trading context, exactly like InventoryPage's
- *  OfferZone — a drop area (drag-and-drop is not wired up anywhere in the prototype, so "Add to
- *  offer" on a tile is the real control), and Accept / Back-to-trading. Kept as its own
- *  component here rather than shared with InventoryPage's version: the two pick different kinds
- *  of thing and are likely to diverge, the same call HANDOFF.md already made for OfferTile. */
-function TransferBox({ trade, offeredSkills, isAccepted, onRemove, onAccept }: TransferBoxProps) {
-  const navigate = useNavigate()
-
-  return (
-    <section className="page-section">
-      <h2 className="page-section__heading">Your offer</h2>
-
-      <div className="page-card skills-page__offer">
-        <div className="skills-page__drop" role="group" aria-label="Your offer for this trade">
-          {offeredSkills.length === 0 ? (
-            <p className="skills-page__drop-empty">Nothing in the offer yet.</p>
-          ) : (
-            <ul className="skills-page__drop-items">
-              {offeredSkills.map((skill) => (
-                <li className="skills-page__drop-item" key={skill.id}>
-                  <span aria-hidden="true">{skill.icon}</span>
-                  <span className="skills-page__drop-name">{skill.name}</span>
-                  <button
-                    type="button"
-                    className="skills-page__drop-remove"
-                    aria-label={`Remove ${skill.name} from your offer`}
-                    onClick={() => onRemove(skill.id)}
-                  >
-                    <span aria-hidden="true">×</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="page-note">
-            Drag-and-drop is not wired up in the prototype — use &quot;Add to offer&quot; on a
-            skill above.
-          </p>
-        </div>
-
-        <div className="skills-page__actions">
-          <button type="button" className="skills-page__secondary" onClick={() => navigate(trading(trade.id))}>
-            Back to trading
-          </button>
-          <button type="button" className="skills-page__primary" onClick={onAccept}>
-            Accept
-          </button>
-        </div>
-
-        {isAccepted && (
-          <p className="skills-page__accepted" role="status">
-            Offer accepted: {offeredSkills.length} {offeredSkills.length === 1 ? 'skill' : 'skills'} for
-            the trade with {trade.partner}.
-          </p>
-        )}
-      </div>
     </section>
   )
 }
@@ -209,8 +142,11 @@ export function SkillsPage() {
 
         {trade && (
           <TransferBox
-            trade={trade}
-            offeredSkills={offeredSkills}
+            items={offeredSkills.map((skill) => ({ id: skill.id, name: skill.name, icon: skill.icon }))}
+            noun="skill"
+            pluralNoun="skills"
+            tradeId={trade.id}
+            partnerName={trade.partner}
             isAccepted={isAccepted}
             onRemove={removeFromOffer}
             onAccept={() => setIsAccepted(true)}

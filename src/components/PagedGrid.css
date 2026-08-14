@@ -1,0 +1,94 @@
+.paged-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Same centering trick as GridSection's own frame: a container-query box the grid sizes itself
+ * against via cqw/cqh, so the grid always fills the largest space available without scrolling. */
+.paged-grid__frame {
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paged-grid__grid {
+  /* --pg-cell is the largest square cell size where `columns` of them (plus the gaps between
+   * them) fit the frame's width *and* `rows` of them (plus their gaps) fit its height — solving
+   * for cell size directly, gaps included, rather than fitting an aspect-ratio'd box and hoping
+   * the gaps don't throw off individual cells (they did: at a handful of columns squeezed into a
+   * short frame, the fixed gap was a large enough fraction of the total that cells came out
+   * visibly non-square). See PagedGrid.tsx's comment on --pg-columns/--pg-rows for the rest of
+   * this reasoning. The grid's own width/height are left to size intrinsically from its tracks —
+   * exactly `columns`/`rows` cells of --pg-cell plus the gaps between them, no separate formula
+   * needed for the outer box. */
+  --pg-gap: clamp(2px, 2cqw, 12px);
+  --pg-cell: min(
+    calc((100cqw - (var(--pg-columns) - 1) * var(--pg-gap)) / var(--pg-columns)),
+    calc((100cqh - (var(--pg-rows) - 1) * var(--pg-gap)) / var(--pg-rows))
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--pg-columns), var(--pg-cell));
+  grid-template-rows: repeat(var(--pg-rows), var(--pg-cell));
+  gap: var(--pg-gap);
+  /* <ul> carries browser-default padding/margin (for its bullet, which list-style: none doesn't
+   * remove on its own) — left unreset, that padding was silently eating into the width available
+   * for the calc() above, the real cause of both the crushed trading-table tiles and the
+   * non-square skill tiles. */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paged-grid__cell {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* A page short of real items pads out to a full columns x rows grid with these instead of
+ * leaving a gap-shaped hole in the last row (PagedGrid.tsx) — same tile footprint, visibly
+ * inert: no border style a real tile uses, so it never reads as a broken or clickable one. */
+.paged-grid__empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-alt);
+  border: 1px dashed var(--gridline);
+  clip-path: var(--chamfer);
+  opacity: 0.5;
+}
+
+.paged-grid__pager {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 0 2px;
+}
+
+.paged-grid__pager-button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+  background: var(--surface);
+  color: var(--brand-primary);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paged-grid__pager-button:disabled {
+  opacity: 0.4;
+}
+
+.paged-grid__pager-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}

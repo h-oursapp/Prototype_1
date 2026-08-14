@@ -34,6 +34,18 @@ describe('PageShell', () => {
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
   })
 
+  it('shrinks the title only when compactTitle is set', () => {
+    renderWithRouter(
+      <PageShell title="Trading with Lena K." compactTitle>
+        <p>content</p>
+      </PageShell>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Trading with Lena K.' })).toHaveClass(
+      'page-shell__title--compact',
+    )
+  })
+
   it('renders a header action beside the title', async () => {
     const user = userEvent.setup()
     let pressed = false

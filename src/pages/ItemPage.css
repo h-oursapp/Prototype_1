@@ -1,0 +1,198 @@
+.item-page {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Pictures on top (§10, mirroring AdDetailPage's §5 gallery): one large frame standing in for a
+ * photo, plus an icon picker in edit mode since there's no upload. */
+.item-page__gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-page__frame {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.item-page__icon {
+  font-size: clamp(48px, 22vw, 96px);
+  line-height: 1;
+}
+
+.item-page__icons {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item-page__icons legend {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.item-page__icon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-page__icon-option {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.item-page__icon-option.is-active {
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+}
+
+.item-page__facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-page__fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.item-page__fact-label {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.item-page__fact-value {
+  margin: 0;
+  text-align: right;
+}
+
+.item-page__description {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+}
+
+.item-page__field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.item-page__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.item-page__input {
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.item-page__input:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
+.item-page__input--multiline {
+  resize: vertical;
+}
+
+/* ---------- Trading context ---------- */
+
+.item-page__trade-note {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.item-page__link {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--brand-primary-deep);
+}
+
+/* ---------- Actions ---------- */
+
+/* Same sticky-bottom trick as AdDetailPage: the details scroll, so the row is stuck to the
+ * bottom of the scrolling area, keeping it above the nav bar. */
+.item-page__actions {
+  position: sticky;
+  bottom: 0;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.item-page__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.item-page__action {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.item-page__action:hover {
+  background: var(--brand-tint);
+}
+
+.item-page__action--primary {
+  color: var(--brand-tint);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.item-page__action--primary:hover {
+  background: var(--brand-primary-deep);
+}
+
+.item-page__action:disabled {
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+/* What a placeholder button reports back when it is pressed. */
+.item-page__feedback {
+  margin: 0 0 8px;
+  padding: 8px;
+  font-size: 13px;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  clip-path: var(--chamfer);
+}
