@@ -1,47 +1,68 @@
+/** Appkarte §4: the Offers page splits into skill offers and item offers, so every offer
+ *  declares which it is. */
+export type OfferKind = 'skill' | 'item'
+
 export interface Offer {
   id: string
   title: string
   icon: string
+  kind: OfferKind
+  /** The listed price in hours — what §5's Quick Buy would charge. */
+  hours: number
   /** Short mocked blurb, shown next to the picture at grid size 1. */
   description?: string
+  /** Roughly how far away, for the Search page's nearby list (§4). */
+  distanceKm?: number
 }
 
-// Placeholder data for the prototype — real offers come from the Ads/Offers pages (out of scope
-// here). 16 entries each so grid size 4 (a 4x4 grid) always has enough to show.
+// Placeholder data for the prototype. 16 entries each so grid size 4 (a 4x4 grid) always has
+// enough to show.
 export const MOCK_ADS: Offer[] = [
-  { id: 'ad-1', title: 'Guitar lessons', icon: '🎸', description: 'Learn the basics of guitar from a friendly neighbor.' },
-  { id: 'ad-2', title: 'Bike repair', icon: '🚲', description: 'Get your bike tuned up and rolling again.' },
-  { id: 'ad-3', title: 'Spanish tutoring', icon: '🗣️', description: 'Practice conversational Spanish over coffee.' },
-  { id: 'ad-4', title: 'Garden help', icon: '🌱', description: 'An extra pair of hands for planting and weeding.' },
-  { id: 'ad-5', title: 'Furniture', icon: '🪑', description: 'A solid wooden chair, gently used.' },
-  { id: 'ad-6', title: 'Baking', icon: '🍞', description: 'Fresh sourdough, baked to order.' },
-  { id: 'ad-7', title: 'Yoga session', icon: '🧘', description: 'A relaxing hour of guided yoga.' },
-  { id: 'ad-8', title: 'Math tutoring', icon: '➗', description: 'Homework help for algebra and geometry.' },
-  { id: 'ad-9', title: 'Dog grooming', icon: '🐩', description: 'Bath, brush, and trim for your pup.' },
-  { id: 'ad-10', title: 'Photography', icon: '📸', description: 'A portrait session in natural light.' },
-  { id: 'ad-11', title: 'Car wash', icon: '🚗', description: 'Hand wash and interior clean-up.' },
-  { id: 'ad-12', title: 'Painting', icon: '🎨', description: 'A custom piece for your living room.' },
-  { id: 'ad-13', title: 'Language exchange', icon: '🌍', description: 'Swap English for French, an hour a week.' },
-  { id: 'ad-14', title: 'Knitting', icon: '🧶', description: 'Hand-knit scarves in any color.' },
-  { id: 'ad-15', title: 'Piano tuning', icon: '🎹', description: 'Get your piano back in tune.' },
-  { id: 'ad-16', title: 'Home repairs', icon: '🔧', description: 'Small fixes around the house.' },
+  { id: 'ad-1', title: 'Guitar lessons', icon: '🎸', kind: 'skill', hours: 2, distanceKm: 0.4, description: 'Learn the basics of guitar from a friendly neighbor.' },
+  { id: 'ad-2', title: 'Bike repair', icon: '🚲', kind: 'skill', hours: 1, distanceKm: 0.8, description: 'Get your bike tuned up and rolling again.' },
+  { id: 'ad-3', title: 'Spanish tutoring', icon: '🗣️', kind: 'skill', hours: 2, distanceKm: 1.2, description: 'Practice conversational Spanish over coffee.' },
+  { id: 'ad-4', title: 'Garden help', icon: '🌱', kind: 'skill', hours: 3, distanceKm: 1.5, description: 'An extra pair of hands for planting and weeding.' },
+  { id: 'ad-5', title: 'Wooden chair', icon: '🪑', kind: 'item', hours: 4, distanceKm: 2.1, description: 'A solid wooden chair, gently used.' },
+  { id: 'ad-6', title: 'Sourdough bread', icon: '🍞', kind: 'item', hours: 1, distanceKm: 0.6, description: 'Fresh sourdough, baked to order.' },
+  { id: 'ad-7', title: 'Yoga session', icon: '🧘', kind: 'skill', hours: 1, distanceKm: 2.4, description: 'A relaxing hour of guided yoga.' },
+  { id: 'ad-8', title: 'Maths tutoring', icon: '➗', kind: 'skill', hours: 2, distanceKm: 3.0, description: 'Homework help for algebra and geometry.' },
+  { id: 'ad-9', title: 'Dog grooming', icon: '🐩', kind: 'skill', hours: 2, distanceKm: 1.1, description: 'Bath, brush, and trim for your pup.' },
+  { id: 'ad-10', title: 'Photography', icon: '📸', kind: 'skill', hours: 3, distanceKm: 4.2, description: 'A portrait session in natural light.' },
+  { id: 'ad-11', title: 'Car wash', icon: '🚗', kind: 'skill', hours: 1, distanceKm: 0.9, description: 'Hand wash and interior clean-up.' },
+  { id: 'ad-12', title: 'Canvas painting', icon: '🎨', kind: 'item', hours: 6, distanceKm: 5.0, description: 'A custom piece for your living room.' },
+  { id: 'ad-13', title: 'Language exchange', icon: '🌍', kind: 'skill', hours: 1, distanceKm: 1.8, description: 'Swap English for French, an hour a week.' },
+  { id: 'ad-14', title: 'Knitted scarf', icon: '🧶', kind: 'item', hours: 3, distanceKm: 2.7, description: 'Hand-knit scarves in any color.' },
+  { id: 'ad-15', title: 'Piano tuning', icon: '🎹', kind: 'skill', hours: 2, distanceKm: 3.6, description: 'Get your piano back in tune.' },
+  { id: 'ad-16', title: 'Home repairs', icon: '🔧', kind: 'skill', hours: 2, distanceKm: 1.4, description: 'Small fixes around the house.' },
 ]
 
+// Deliberately a mix of both kinds, so the Offers page's skill and item sections are both
+// populated in the prototype.
 export const MOCK_YOUR_OFFERS: Offer[] = [
-  { id: 'mine-1', title: 'Web design', icon: '💻', description: "I'll design a simple website for your project." },
-  { id: 'mine-2', title: 'Dog walking', icon: '🐕', description: 'Daily walks around the neighborhood.' },
-  { id: 'mine-3', title: 'Piano lessons', icon: '🎹', description: 'Beginner-friendly piano lessons.' },
-  { id: 'mine-4', title: 'Moving help', icon: '📦', description: 'An extra set of hands for moving day.' },
-  { id: 'mine-5', title: 'Photography', icon: '📷', description: 'Event photography, a few hours.' },
-  { id: 'mine-6', title: 'Cooking', icon: '🍳', description: 'A home-cooked meal, your choice of cuisine.' },
-  { id: 'mine-7', title: 'Resume review', icon: '📝', description: 'Feedback and edits on your resume.' },
-  { id: 'mine-8', title: 'Bike tuning', icon: '🔧', description: 'Basic tune-up and brake check.' },
-  { id: 'mine-9', title: 'Language tutoring', icon: '🗣️', description: 'Conversational German lessons.' },
-  { id: 'mine-10', title: 'Furniture assembly', icon: '🪛', description: 'Flat-pack furniture, assembled.' },
-  { id: 'mine-11', title: 'Pet sitting', icon: '🐈', description: "Drop-in visits while you're away." },
-  { id: 'mine-12', title: 'Guitar lessons', icon: '🎸', description: 'Beginner guitar, one hour a week.' },
-  { id: 'mine-13', title: 'Gardening', icon: '🌻', description: 'Help with planting and yard cleanup.' },
-  { id: 'mine-14', title: 'Tech support', icon: '🖥️', description: 'Help setting up your new laptop.' },
-  { id: 'mine-15', title: 'Baking', icon: '🧁', description: 'Custom cupcakes for small events.' },
-  { id: 'mine-16', title: 'Math tutoring', icon: '📐', description: 'Algebra and geometry, one-on-one.' },
+  { id: 'mine-1', title: 'Web design', icon: '💻', kind: 'skill', hours: 4, description: "I'll design a simple website for your project." },
+  { id: 'mine-2', title: 'Dog walking', icon: '🐕', kind: 'skill', hours: 1, description: 'Daily walks around the neighborhood.' },
+  { id: 'mine-3', title: 'Piano lessons', icon: '🎹', kind: 'skill', hours: 1, description: 'Beginner-friendly piano lessons.' },
+  { id: 'mine-4', title: 'Moving help', icon: '📦', kind: 'skill', hours: 3, description: 'An extra set of hands for moving day.' },
+  { id: 'mine-5', title: 'Event photography', icon: '📷', kind: 'skill', hours: 3, description: 'Event photography, a few hours.' },
+  { id: 'mine-6', title: 'Home cooking', icon: '🍳', kind: 'skill', hours: 2, description: 'A home-cooked meal, your choice of cuisine.' },
+  { id: 'mine-7', title: 'Resume review', icon: '📝', kind: 'skill', hours: 1, description: 'Feedback and edits on your resume.' },
+  { id: 'mine-8', title: 'Bike tuning', icon: '🔧', kind: 'skill', hours: 1, description: 'Basic tune-up and brake check.' },
+  { id: 'mine-9', title: 'Desk lamp', icon: '💡', kind: 'item', hours: 2, description: 'Adjustable desk lamp, barely used.' },
+  { id: 'mine-10', title: 'Bookshelf', icon: '🗄️', kind: 'item', hours: 5, description: 'Pine bookshelf, some scuffs on the back.' },
+  { id: 'mine-11', title: 'Board games', icon: '🎲', kind: 'item', hours: 2, description: 'A bundle of three, all complete.' },
+  { id: 'mine-12', title: 'Acoustic guitar', icon: '🎸', kind: 'item', hours: 8, description: 'Starter acoustic, new strings fitted.' },
+  { id: 'mine-13', title: 'Plant cuttings', icon: '🌻', kind: 'item', hours: 1, description: 'Monstera and pothos cuttings, rooted.' },
+  { id: 'mine-14', title: 'Monitor stand', icon: '🖥️', kind: 'item', hours: 1, description: 'Simple wooden riser for a monitor.' },
+  { id: 'mine-15', title: 'Cupcake tin', icon: '🧁', kind: 'item', hours: 1, description: 'Twelve-cup tin, non-stick.' },
+  { id: 'mine-16', title: 'Drawing set', icon: '📐', kind: 'item', hours: 2, description: 'Compass, rulers and pencils in a case.' },
 ]
+
+/** Your own listings are the ones the Appkarte lets you edit; everything else is someone
+ *  else's ad (§5). */
+export function findOffer(offerId: string | undefined): Offer | undefined {
+  return [...MOCK_ADS, ...MOCK_YOUR_OFFERS].find((offer) => offer.id === offerId)
+}
+
+export function isYourOffer(offer: Offer): boolean {
+  return MOCK_YOUR_OFFERS.some((yours) => yours.id === offer.id)
+}

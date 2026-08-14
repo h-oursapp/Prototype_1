@@ -48,3 +48,27 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The floating corner button the bar collapses into away from Home (Appkarte §3). It replaces
+ * the bar rather than sitting on top of it, so it takes the bar's place in the page's flex
+ * column and the content above keeps the same amount of room either way. */
+.nav-bar__reopen {
+  flex-shrink: 0;
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 8px;
+  font-size: 18px;
+  color: var(--brand-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow);
+  clip-path: var(--chamfer);
+}
+
+.nav-bar__reopen:hover {
+  background: var(--surface-alt);
+}

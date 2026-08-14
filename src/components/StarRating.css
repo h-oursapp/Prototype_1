@@ -1,0 +1,5 @@
+.star-rating {
+  color: var(--brand-primary);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}

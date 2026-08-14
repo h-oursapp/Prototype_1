@@ -4,4 +4,8 @@
 - Use TypeScript strict mode
 - Prefer composition over inheritance
 - This is a prototype project, but if we manage to create something good, it will be the basis for the real app
-- I (the developer) am new to app development and React.
+- I (the developer) am new to app development and React so teach me.
+- Create a new git branch every new session.
+- Dont commit to git until I say so.
+- Befor commiting get rid of commented out sections.
+- before commiting run /compact and write in this file the compacted context

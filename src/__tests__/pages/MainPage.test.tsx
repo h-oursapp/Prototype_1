@@ -1,26 +1,27 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { SettingsProvider } from '../../settings/SettingsContext'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MainPage } from '../../pages/MainPage'
+import { LocationProbe, renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
 
 beforeEach(() => {
   window.localStorage.clear()
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  })) as unknown as typeof window.matchMedia
+  stubMatchMedia()
 })
 
-function renderMainPage(onOpenSettings = vi.fn()) {
-  render(
-    <SettingsProvider>
-      <MainPage onOpenSettings={onOpenSettings} />
-    </SettingsProvider>,
+function renderMainPage() {
+  renderWithRouter(
+    <>
+      <MainPage />
+      <LocationProbe />
+    </>,
   )
-  return onOpenSettings
+}
+
+function swipe(fromY: number, toY: number) {
+  const page = document.querySelector('.main-page') as HTMLElement
+  fireEvent.pointerDown(page, { clientY: fromY })
+  fireEvent.pointerUp(page, { clientY: toY })
 }
 
 describe('MainPage', () => {
@@ -32,57 +33,52 @@ describe('MainPage', () => {
     expect(screen.getByRole('button', { name: 'Guitar lessons' })).toBeInTheDocument()
   })
 
-  it('shows a coming-soon status when an offer or corner arrow is tapped', async () => {
+  it('opens an ad when its tile is tapped', async () => {
     const user = userEvent.setup()
     renderMainPage()
 
     await user.click(screen.getByRole('button', { name: 'Guitar lessons' }))
-    expect(screen.getByRole('status')).toHaveTextContent('Guitar lessons — coming soon')
-
-    await user.click(screen.getByRole('button', { name: 'Open search' }))
-    expect(screen.getByRole('status')).toHaveTextContent('Search — coming soon')
+    expect(screen.getByTestId('location')).toHaveTextContent('/ads/ad-1')
   })
 
-  it('opens and closes the dummy Wallet sheet from the nav bar', async () => {
+  it('opens Search and Offers from the two corner arrows', async () => {
     const user = userEvent.setup()
     renderMainPage()
 
-    expect(screen.queryByRole('dialog', { name: 'Wallet' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open search' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/search')
 
-    await user.click(screen.getByRole('button', { name: 'Hours balance: 12, open wallet' }))
-    expect(screen.getByRole('dialog', { name: 'Wallet' })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Close' }))
-    expect(screen.queryByRole('dialog', { name: 'Wallet' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open your offers' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/offers')
   })
 
-  it('opens the Wallet sheet on an upward swipe anywhere on the page, with no on-page hint', () => {
+  it('opens the Wallet on an upward swipe anywhere on the page, with no on-page hint', () => {
     renderMainPage()
 
     expect(screen.queryByText(/swipe up/i)).not.toBeInTheDocument()
 
-    const page = document.querySelector('.main-page') as HTMLElement
-    fireEvent.pointerDown(page, { clientY: 400 })
-    fireEvent.pointerUp(page, { clientY: 340 })
-
-    expect(screen.getByRole('dialog', { name: 'Wallet' })).toBeInTheDocument()
+    swipe(400, 340)
+    expect(screen.getByTestId('location')).toHaveTextContent('/wallet')
   })
 
-  it('does not open the Wallet sheet on a small drag or a plain tap', () => {
+  it('does not open the Wallet on a small drag or a plain tap', () => {
     renderMainPage()
 
-    const page = document.querySelector('.main-page') as HTMLElement
-    fireEvent.pointerDown(page, { clientY: 400 })
-    fireEvent.pointerUp(page, { clientY: 390 })
-
-    expect(screen.queryByRole('dialog', { name: 'Wallet' })).not.toBeInTheDocument()
+    swipe(400, 390)
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+    expect(screen.getByTestId('location')).not.toHaveTextContent('/wallet')
   })
 
-  it('calls onOpenSettings when the settings button is pressed', async () => {
-    const user = userEvent.setup()
-    const onOpenSettings = renderMainPage()
-
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    expect(onOpenSettings).toHaveBeenCalledTimes(1)
+  it('keeps the nav bar permanently open, since Home never collapses it (§3)', () => {
+    vi.useFakeTimers()
+    try {
+      renderMainPage()
+      act(() => void vi.advanceTimersByTime(30_000))
+      expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
+
+afterEach(() => vi.useRealTimers())

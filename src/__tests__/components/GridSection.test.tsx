@@ -5,7 +5,13 @@ import type { Offer } from '../../data/mockOffers'
 import { GridSection } from '../../components/GridSection'
 
 function makeOffers(count: number): Offer[] {
-  return Array.from({ length: count }, (_, i) => ({ id: `${i}`, title: `Offer ${i}`, icon: '🎸' }))
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${i}`,
+    title: `Offer ${i}`,
+    icon: '🎸',
+    kind: 'skill',
+    hours: 1,
+  }))
 }
 
 describe('GridSection', () => {

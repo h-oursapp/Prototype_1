@@ -20,4 +20,10 @@ export default defineConfig([
       globals: { ...globals.browser, ...globals.node },
     },
   },
+  {
+    // react-refresh guards Vite's hot reload, which never runs over the test suite — a test
+    // helper is free to export both a component and a plain function from one file.
+    files: ['src/__tests__/**/*.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

@@ -1,20 +1,38 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import App from '../App'
+import { stubMatchMedia } from './helpers/renderWithRouter'
 
 beforeEach(() => {
   window.localStorage.clear()
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  })) as unknown as typeof window.matchMedia
+  stubMatchMedia()
+  // App uses a BrowserRouter, so the jsdom URL is shared between tests — reset it or a test
+  // starts wherever the previous one navigated to. replaceState rather than pushState, so the
+  // history stack doesn't grow test on test and change what navigate(-1) means.
+  window.history.replaceState({}, '', '/')
 })
 
+/** Login → skip the three skippable onboarding steps → Finish → Home. */
+async function signInAndFinishOnboarding(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Log in' }))
+  await user.click(screen.getByText('Skip'))
+  await user.click(screen.getByText('Skip'))
+  await user.click(screen.getByText('Skip'))
+  await user.click(screen.getByText('Next'))
+  await user.click(screen.getByText('Finish'))
+}
+
 describe('App', () => {
-  it('walks from login through onboarding to the main page', async () => {
+  it('opens on the login screen even when the URL points elsewhere (§2)', () => {
+    window.history.pushState({}, '', '/wallet')
+    render(<App />)
+
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/login')
+  })
+
+  it('walks from login through onboarding to Home, keeping the chosen settings', async () => {
     const user = userEvent.setup()
     render(<App />)
 
@@ -41,15 +59,10 @@ describe('App', () => {
     })
   })
 
-  it('opens Settings from Home, lets you tweak settings, and returns to Home', async () => {
+  it('reaches Settings from the nav bar and comes back with the back button', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'Log in' }))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Next'))
-    await user.click(screen.getByText('Finish'))
+    await signInAndFinishOnboarding(user)
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
@@ -57,7 +70,40 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: '2 per row' }))
     expect(JSON.parse(window.localStorage.getItem('h-ours:settings') ?? '{}')).toMatchObject({ gridSize: 2 })
 
+    // findBy, not getBy: the back button calls navigate(-1), and the browser dispatches popstate
+    // asynchronously — getBy would race it and pass only when the suite happens to run fast.
     await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(await screen.findByText('Ads')).toBeInTheDocument()
+  })
+
+  it('routes every nav bar button to a real page', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await signInAndFinishOnboarding(user)
+
+    for (const [button, heading] of [
+      ['Profile', 'Profile'],
+      ['Community', 'Community'],
+      ['Trades', 'Trades'],
+      ['Inventory', 'Inventory'],
+    ] as const) {
+      await user.click(screen.getByRole('button', { name: button }))
+      expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Home' }))
+    }
+
+    await user.click(screen.getByRole('button', { name: /open wallet/ }))
+    expect(screen.getByRole('heading', { name: 'Wallet' })).toBeInTheDocument()
+  })
+
+  it('sends an unknown URL back to Home rather than showing nothing', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await signInAndFinishOnboarding(user)
+
+    window.history.pushState({}, '', '/nope')
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+
     expect(screen.getByText('Ads')).toBeInTheDocument()
   })
 })

@@ -15,34 +15,5 @@
   flex-direction: column;
 }
 
-.main-page__status {
-  flex-shrink: 0;
-  min-height: 20px;
-  margin: 0;
-  padding: 0 16px;
-  font-size: 13px;
-  text-align: center;
-  color: var(--brand-primary-deep);
-}
-
-.main-page__wallet-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 64px;
-  margin: 0 16px;
-  padding: 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-  box-shadow: 0 -4px 16px var(--shadow);
-  text-align: center;
-}
-
-.main-page__wallet-sheet button {
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-  background: var(--surface);
-  padding: 8px 16px;
-}
+/* The status line and the stand-in wallet sheet that used to live here are gone — every target
+ * they announced as "coming soon" (Search, Offers, ad detail, Wallet) is a real page now. */

@@ -1,0 +1,118 @@
+.trades-page {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Appkarte §8 asks for a grid-based layout. Columns are filled by available width rather than by
+ * the grid-size setting — see the page's JSDoc. */
+.trades-page__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+/* Lets each card fill its cell, so cards in the same row line up and their action rows sit on a
+ * common baseline. */
+.trades-page__grid > li {
+  display: flex;
+}
+
+.trades-page__card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The card body: one big tap target that opens the Trading page. */
+.trades-page__open {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  text-align: left;
+  width: 100%;
+  padding: 8px;
+  color: var(--text);
+  background: var(--surface-alt);
+  clip-path: var(--chamfer);
+}
+
+.trades-page__open:hover {
+  background: var(--brand-tint);
+}
+
+.trades-page__icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.trades-page__subject {
+  font-weight: 600;
+}
+
+.trades-page__partner,
+.trades-page__meta,
+.trades-page__chat {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.trades-page__chat {
+  margin: 0;
+}
+
+.trades-page__status {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+/* Agreed trades are the ones waiting on the user — they carry the Final Review button. */
+.trades-page__status.is-active {
+  color: var(--brand-primary-deep);
+  border-color: var(--brand-primary);
+}
+
+.trades-page__actions {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trades-page__review,
+.trades-page__delete {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.trades-page__review {
+  color: var(--surface);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary-deep);
+}
+
+.trades-page__review:hover {
+  background: var(--brand-primary-deep);
+}
+
+.trades-page__delete {
+  color: var(--text-muted);
+  background: var(--surface);
+}
+
+.trades-page__delete:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}

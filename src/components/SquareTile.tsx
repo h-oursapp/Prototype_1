@@ -12,8 +12,10 @@ interface SquareTileProps {
  *  the same small straight corner cut as the rest of the app's chamfered look. */
 export function SquareTile({ label, children, onClick }: SquareTileProps) {
   if (!onClick) {
+    // role="img" is load-bearing: aria-label on a plain <div> has no role to attach to, so
+    // assistive tech drops it and the tile becomes an unlabelled blank.
     return (
-      <div className="square-tile" aria-label={label}>
+      <div className="square-tile" role="img" aria-label={label}>
         {children}
       </div>
     )
