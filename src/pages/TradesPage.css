@@ -28,6 +28,34 @@
   font-weight: 600;
 }
 
+/* ---------- TODO #12: search + status filter ---------- */
+
+.trades-page__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trades-page__search-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.trades-page__search {
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.trades-page__search:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
 /* Appkarte §8 asks for a grid-based layout. Columns are filled by available width rather than by
  * the grid-size setting — see the page's JSDoc. */
 .trades-page__grid {
@@ -75,7 +103,27 @@
 }
 
 .trades-page__subject {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
+}
+
+/* TODO #12: a small dot rather than a full badge — it only has to say "something's new here",
+ * not how much. */
+.trades-page__unread {
+  font-size: 8px;
+  line-height: 1;
+}
+
+/* TODO #12: a closed, skill-linked trade's ratings and review count. */
+.trades-page__skill-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .trades-page__partner,

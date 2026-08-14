@@ -11,6 +11,11 @@ interface PageShellProps {
   navCollapsible?: boolean
   /** Rendered in the header opposite the title — e.g. Profile's Settings button. */
   headerAction?: ReactNode
+  /** Shrinks the title text — for a page whose own content is already tight on vertical room and
+   *  doesn't need a full-size heading to announce itself (Trading, TODO feedback). Every other
+   *  page leaves this off and keeps the normal size, so this can't drift the header's usual look
+   *  app-wide. */
+  compactTitle?: boolean
   children: ReactNode
 }
 
@@ -19,7 +24,7 @@ interface PageShellProps {
  *
  *  Pages don't render the nav bar themselves — putting it here is what keeps its behavior
  *  identical everywhere, so it can't drift page by page as more screens get built. */
-export function PageShell({ title, navCollapsible = true, headerAction, children }: PageShellProps) {
+export function PageShell({ title, navCollapsible = true, headerAction, compactTitle = false, children }: PageShellProps) {
   const navigate = useNavigate()
 
   return (
@@ -34,7 +39,7 @@ export function PageShell({ title, navCollapsible = true, headerAction, children
           >
             <span aria-hidden="true">←</span>
           </button>
-          <h1 className="page-shell__title">{title}</h1>
+          <h1 className={`page-shell__title ${compactTitle ? 'page-shell__title--compact' : ''}`}>{title}</h1>
           {headerAction}
         </header>
       )}

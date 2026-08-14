@@ -1,18 +1,28 @@
-/* Inventory (§6). A grid of items inside PageShell's scrolling content area, one section per
- * shelf, with the trading-context offer zone added at the bottom. Colours come only from the theme
- * tokens in index.css, and corners are cut with clip-path — never border-radius. */
+/* Inventory (§6, reworked by TODO #9): a non-scrollable, paged grid of items, plus the transfer
+ * box added at the bottom in a trading context. Colours come only from the theme tokens in
+ * index.css, and corners are cut with clip-path — never border-radius.
+ *
+ * `.inventory-page` is given a *definite* height (100% of PageShell's content area, not
+ * min-height — see index.css's #root comment on why the distinction matters) so PagedGrid's own
+ * container-query sizing has something real to measure against, the same chain MainPage/
+ * GridSection already rely on. Everything except `.inventory-page__grid-area` keeps its natural
+ * height by default (flex's automatic minimum size protects it); the grid area opts out with
+ * `min-height`/`overflow: hidden`, so it's the one thing that yields if a trade's transfer box
+ * needs the room — the grid shrinks before the page ever scrolls. */
 
 .inventory-page {
+  height: 100%;
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* Sits in PageShell's header via headerAction, so it matches the back button's size and look. */
-
-
 .inventory-page__summary {
-  margin: 0 0 12px;
+  flex-shrink: 0;
+  margin: 0 0 8px;
   font-size: 13px;
   color: var(--text-muted);
 }
@@ -21,7 +31,8 @@
 
 /* Tinted rather than plain, so it is obvious at a glance that the page is in its trading mode. */
 .inventory-page__trade-banner {
-  margin-bottom: 12px;
+  flex-shrink: 0;
+  margin-bottom: 8px;
   background: var(--brand-tint);
   border-color: var(--brand-primary);
 }
@@ -36,259 +47,65 @@
   color: var(--text-muted);
 }
 
-/* ---------- Shelves ---------- */
+/* ---------- Header actions ---------- */
 
-.inventory-page__shelf-count {
-  margin: -4px 0 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.inventory-page__empty {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-/* As many columns as fit rather than the Settings grid density: every box carries a picture plus
- * two or three controls, and a fixed density would squash them off a phone-width screen. */
-.inventory-page__grid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
-  gap: 8px;
-}
-
-.inventory-page__item {
+/* Three icon buttons side by side in PageShell's headerAction slot: "New shelf" (fully inert, see
+ * InventoryPage.tsx), "About this page" (opens .inventory-page__info-panel below), and "New item"
+ * — TODO #9's "next to the shelf button". */
+.inventory-page__header-actions {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  padding: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-/* Square frame for the reused SquareTile, which fills whatever box it is given. */
-.inventory-page__item-tile {
-  width: 100%;
-  aspect-ratio: 1;
-}
-
-.inventory-page__item-name {
-  font-size: 13px;
-  line-height: 1.25;
-}
-
-.inventory-page__badge {
-  align-self: flex-start;
-  font-size: 11px;
-  padding: 2px 6px;
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__badge.is-public {
-  color: var(--brand-primary-deep);
-  background: var(--brand-tint);
-}
-
-.inventory-page__badge.is-private {
-  color: var(--text-muted);
-  background: var(--surface-alt);
-}
-
-.inventory-page__button {
-  font-size: 12px;
-  color: var(--brand-primary-deep);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 6px;
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__button:hover:enabled {
-  background: var(--brand-tint);
-}
-
-.inventory-page__button:disabled {
-  color: var(--text-muted);
-  background: var(--surface-alt);
-  cursor: not-allowed;
-}
-
-.inventory-page__select {
-  width: 100%;
-  font: inherit;
-  font-size: 12px;
-  color: var(--text);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  padding: 5px;
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__select:focus {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 1px;
-}
-
-/* ---------- Trading context: the offer zone ---------- */
-
-.inventory-page__offer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Where the real drag-and-drop target will be — dashed, because it isn't wired up yet. */
-.inventory-page__drop {
-  min-height: 84px;
-  padding: 6px;
-  background: var(--surface-alt);
-  border: 1px dashed var(--border);
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__drop-empty {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.inventory-page__drop-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.inventory-page__drop-item {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  font-size: 12px;
-  padding: 4px 6px;
-  background: var(--surface);
+}
+
+/* ---------- Info panel ---------- */
+
+/* Every explanatory/prototype-scope note on this page, consolidated behind the header's "ⓘ"
+ * toggle (direct feedback) rather than scattered as standing paragraphs and separate toggles —
+ * see InventoryPage.tsx's file banner comment. Sits at the very top of the page, closed by
+ * default, so it costs nothing when nobody's asking for it. */
+.inventory-page__info-panel {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
   clip-path: var(--chamfer);
 }
 
-.inventory-page__drop-name {
+.inventory-page__info-panel .page-note {
+  margin: 4px 0 0;
+}
+
+.inventory-page__info-panel .page-note:first-child {
+  margin-top: 0;
+}
+
+/* ---------- The grid ---------- */
+
+/* The one part of the page allowed to shrink away — see the file banner comment above. */
+.inventory-page__grid-area {
   flex: 1;
-  min-width: 0;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* TODO #9: only the item's name overlaid on the picture — no badge, no shelf picker, nothing
+ * below the tile. Editing what those used to show moved to the Item page (TODO #10). */
+.inventory-page__tile-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* §6: a private item never reaches the partner, so it is called out where the offer is built. */
-.inventory-page__drop-flag {
-  flex-shrink: 0;
+.inventory-page__tile-offered {
+  display: block;
+  margin-top: 2px;
   font-size: 10px;
-  color: var(--text-muted);
-  background: var(--surface-alt);
-  padding: 2px 4px;
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__drop-remove {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
   color: var(--brand-primary-deep);
-}
-
-.inventory-page__accepted {
-  margin: 0;
-  padding: 8px;
-  font-size: 13px;
-  color: var(--brand-primary-deep);
-  background: var(--brand-tint);
-  border: 1px solid var(--brand-accent);
-  clip-path: var(--chamfer);
-}
-
-/* ---------- Forms and actions ---------- */
-
-.inventory-page__form {
-  display: grid;
-  gap: 12px;
-}
-
-.inventory-page__field {
-  display: block;
-}
-
-.inventory-page__label {
-  display: block;
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.inventory-page__input {
-  width: 100%;
-  padding: 10px;
-  font: inherit;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__input:focus {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 1px;
-}
-
-.inventory-page__problem {
-  margin: 0;
-  padding: 10px;
-  font-size: 13px;
-  color: var(--brand-primary-deep);
-  background: var(--brand-tint);
-  border: 1px solid var(--brand-primary);
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__actions {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.inventory-page__primary {
-  flex: 1;
-  padding: 12px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--surface);
-  background: var(--brand-primary);
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__primary:hover {
-  background: var(--brand-primary-deep);
-}
-
-/* Shared by a button and by the "Back to trading" link, which stays a link because it navigates. */
-.inventory-page__secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 16px;
-  font-size: 16px;
-  color: var(--text);
-  text-decoration: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.inventory-page__secondary:hover {
-  background: var(--surface-alt);
 }

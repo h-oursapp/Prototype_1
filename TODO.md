@@ -83,7 +83,7 @@
     -creating a new item/skill also should be possible from those pages already.
     -quick buy also opens the trade window but pre fills the time and scrolls put the focus on chat.
 
-9.Inventory:
+9.Inventory: DONE (PR #7)
     -we start from the almost the begining here.
     -make the items in a grid structure similar to main. make the page non scrollable. but make it page able.
     -only show the item name overlayed the picture.
@@ -92,12 +92,12 @@
     -For the prototype shelfs are not in scope.
     -on the bottom add a box for the drag a drop area call it transfer box
 
-10.Item:
+10.Item: DONE (PR #7)
     -new page Item
     -item represents an item in your inventory.
     -looks similar to the ad, plus public/private swich
 
-11.Trading:
+11.Trading: DONE (PR #7)
     -put both your and the partners items in grids.
     -make the page non scrollable.
     -puts skills in a sigle row in a geparate grid
@@ -110,13 +110,13 @@
     -leave the extension button as is.
     -we need an accept trade button represent it with a green checkmark. I am not sure on the exact potition. for now put it inbetween in the middle.
 
-12.Trades:
+12.Trades: DONE (PR #7)
     -add search bar and filters to the page. default filter open trades
     -order by date
     -when loading a closed trade show the ratings and the amount of reviews(if its a skill)
     -show a new message icon on the trading crads when there is an unread message.
 
-13.Trading process:
+13.Trading process: DONE (PR #7)
     -STATUS OF TRADE: not existing only as a page
     -the user clicks on an offer (from another user)
     -their they on either quick buy (name it to quick offer?) or trade

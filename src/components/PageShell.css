@@ -39,6 +39,11 @@
   white-space: nowrap;
 }
 
+/* See PageShell.tsx's `compactTitle` prop doc. */
+.page-shell__title--compact {
+  font-size: 14px;
+}
+
 /* The header's `headerAction` slot. Pages kept inventing their own button here, in two recurring
  * shapes, so both live here instead: an icon button that pairs with the back button opposite it,
  * and a labelled toggle. Add `is-active` to either to show it's switched on. */

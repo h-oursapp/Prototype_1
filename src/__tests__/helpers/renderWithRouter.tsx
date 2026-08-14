@@ -2,12 +2,20 @@ import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { SettingsProvider } from '../../settings/SettingsContext'
+import { TradeDraftProvider } from '../../trading/TradeDraftContext'
 
 /** Render alongside a component to assert where a navigation actually landed. Kept opt-in
- *  rather than always-on, so it can't interfere with a page's own text queries. */
+ *  rather than always-on, so it can't interfere with a page's own text queries. Includes the
+ *  query string as well as the path — e.g. TODO #13's `?quick=1` on the trading route — so a
+ *  test can assert on either half without needing its own probe. */
 export function LocationProbe() {
-  const { pathname } = useLocation()
-  return <div data-testid="location">{pathname}</div>
+  const { pathname, search } = useLocation()
+  return (
+    <div data-testid="location">
+      {pathname}
+      {search}
+    </div>
+  )
 }
 
 interface Options {
@@ -19,21 +27,24 @@ interface Options {
 }
 
 /** Renders a page the way the app does: inside a router (so useNavigate/useParams/useLocation
- *  work) and inside SettingsProvider (so useSettings works).
+ *  work), inside SettingsProvider (so useSettings works), and inside TradeDraftProvider (so
+ *  useTradeDraft works).
  *
  *  Not named *.test.tsx, so vitest treats it as a helper rather than collecting it as a suite. */
 export function renderWithRouter(ui: ReactElement, { route = '/', path }: Options = {}) {
   return render(
     <SettingsProvider>
-      <MemoryRouter initialEntries={[route]}>
-        {path ? (
-          <Routes>
-            <Route path={path} element={ui} />
-          </Routes>
-        ) : (
-          ui
-        )}
-      </MemoryRouter>
+      <TradeDraftProvider>
+        <MemoryRouter initialEntries={[route]}>
+          {path ? (
+            <Routes>
+              <Route path={path} element={ui} />
+            </Routes>
+          ) : (
+            ui
+          )}
+        </MemoryRouter>
+      </TradeDraftProvider>
     </SettingsProvider>,
   )
 }

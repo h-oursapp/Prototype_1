@@ -14,6 +14,11 @@
   --border: #e4defa;
   --gridline: rgba(134, 59, 255, 0.28);
   --shadow: rgba(124, 58, 237, 0.12);
+  /* Not part of the brand palette on purpose — a status colour (TradesPage's "awaiting review"
+   * highlight, TradingPage's Accept checkmark) needs to read as its own signal, not as more brand
+   * purple. */
+  --status-success: #2f9e44;
+  --status-success-tint: #e6f6ea;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --corner-cut: 8px;
@@ -63,6 +68,8 @@
   --border: #362d52;
   --gridline: rgba(168, 102, 255, 0.35);
   --shadow: rgba(0, 0, 0, 0.4);
+  --status-success: #51cf66;
+  --status-success-tint: #1c3324;
 }
 
 * {

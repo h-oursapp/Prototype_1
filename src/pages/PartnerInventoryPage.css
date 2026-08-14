@@ -1,0 +1,54 @@
+/* Partner inventory (§6): a read-only, non-scrollable paged grid of one trading partner's public
+ * items. Same layout shape as InventoryPage.css — a definite height (100%, not min-height) so
+ * PagedGrid's container-query sizing has something real to measure against. Colours come only
+ * from the theme tokens in index.css, and corners are cut with clip-path — never border-radius. */
+
+.partner-inventory-page {
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.partner-inventory-page__summary {
+  flex-shrink: 0;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.partner-inventory-page__grid-area {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.partner-inventory-page__tile-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partner-inventory-page__link {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--brand-primary);
+}
+
+.partner-inventory-page__link:hover {
+  color: var(--brand-primary-deep);
+}
+
+.partner-inventory-page__not-found-title {
+  font-size: 15px;
+}

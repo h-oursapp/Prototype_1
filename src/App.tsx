@@ -4,10 +4,12 @@ import { AdDetailPage } from './pages/AdDetailPage'
 import { CommunityPage } from './pages/CommunityPage'
 import { FinalReviewPage } from './pages/FinalReviewPage'
 import { InventoryPage } from './pages/InventoryPage'
+import { ItemPage } from './pages/ItemPage'
 import { LegalPage } from './pages/LegalPage'
 import { LoginPage } from './pages/LoginPage'
 import { MainPage } from './pages/MainPage'
 import { OffersPage } from './pages/OffersPage'
+import { PartnerInventoryPage } from './pages/PartnerInventoryPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -19,6 +21,7 @@ import { WalletPage } from './pages/WalletPage'
 import { OnboardingPage } from './pages/onboarding/OnboardingPage'
 import { ROUTES } from './routes'
 import { SettingsProvider } from './settings/SettingsContext'
+import { TradeDraftProvider } from './trading/TradeDraftContext'
 
 /** Appkarte §2: the app opens on login. Real auth is [OFFEN], so "signed in" is just a flag that
  *  lives until the tab is closed. */
@@ -71,6 +74,10 @@ function AppRoutes() {
         <Route path={ROUTES.adDetail} element={<AdDetailPage />} />
         <Route path={ROUTES.trading} element={<TradingPage />} />
         <Route path={ROUTES.inventory} element={<InventoryPage />} />
+        <Route path={ROUTES.partnerInventory} element={<PartnerInventoryPage />} />
+        {/* 'new' before ':itemId', same reason /ads/new precedes /ads/:adId. */}
+        <Route path={ROUTES.itemCreate} element={<ItemPage mode="create" />} />
+        <Route path={ROUTES.itemDetail} element={<ItemPage />} />
         <Route path={ROUTES.wallet} element={<WalletPage />} />
         <Route path={ROUTES.profile} element={<ProfilePage />} />
         <Route path={ROUTES.skills} element={<SkillsPage />} />
@@ -93,9 +100,11 @@ function AppRoutes() {
 function App() {
   return (
     <SettingsProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <TradeDraftProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TradeDraftProvider>
     </SettingsProvider>
   )
 }

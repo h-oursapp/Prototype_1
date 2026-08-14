@@ -190,3 +190,13 @@ export const MOCK_REVIEWS: Review[] = [
     date: '2 months ago',
   },
 ]
+
+/** Reviews left against one specific skill of yours — TODO #12: a closed, skill-linked trade's
+ *  card on the Trades page shows that skill's review count alongside its ratings. Matched by name
+ *  rather than id because Review.skill is free text, not a link — the same limitation
+ *  FinalReviewPage already documents for the skill/trade relationship in general. */
+export function reviewsForSkill(skillId: string): Review[] {
+  const skill = findSkill(skillId)
+  if (!skill) return []
+  return MOCK_REVIEWS.filter((review) => review.skill === skill.name)
+}

@@ -1,8 +1,10 @@
-import { screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { AdDetailPage } from '../../pages/AdDetailPage'
-import { renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
+import { SettingsProvider } from '../../settings/SettingsContext'
+import { LocationProbe, renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
 
 beforeEach(() => {
   window.localStorage.clear()
@@ -16,6 +18,23 @@ function renderAd(adId: string) {
 
 function renderCreatePage() {
   renderWithRouter(<AdDetailPage mode="create" />, { route: '/ads/new', path: '/ads/new' })
+}
+
+/** For tests that navigate *away* from AdDetailPage (Quick Buy, Open trading window): the plain
+ *  single-route wrapping renderWithRouter uses would unmount everything once the URL stops
+ *  matching '/ads/:adId'. A wildcard fallback route that renders LocationProbe — the same shape
+ *  App.tsx's own catch-all uses — keeps it mounted wherever the navigation actually lands. */
+function renderAdAndTrackNavigation(adId: string) {
+  render(
+    <SettingsProvider>
+      <MemoryRouter initialEntries={[`/ads/${adId}`]}>
+        <Routes>
+          <Route path="/ads/:adId" element={<AdDetailPage />} />
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>
+    </SettingsProvider>,
+  )
 }
 
 describe('AdDetailPage', () => {
@@ -37,12 +56,23 @@ describe('AdDetailPage', () => {
       expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
     })
 
-    it('says Quick Buy is not wired up when it is pressed', async () => {
+    it('opens Trading in quick-offer mode when Quick Buy is pressed (TODO #13)', async () => {
       const user = userEvent.setup()
-      renderAd('ad-1')
+      renderAdAndTrackNavigation('ad-1')
 
       await user.click(screen.getByRole('button', { name: /Quick Buy/ }))
-      expect(screen.getByRole('status')).toHaveTextContent(/not wired up/i)
+      // 'Guitar lessons' matches trade-1's subject exactly (see mockTradeIdFor).
+      expect(screen.getByTestId('location')).toHaveTextContent('/trading/trade-1')
+      expect(screen.getByTestId('location')).toHaveTextContent('quick=1')
+    })
+
+    it('opens Trading plainly (no quick flag) from "Open trading window"', async () => {
+      const user = userEvent.setup()
+      renderAdAndTrackNavigation('ad-1')
+
+      await user.click(screen.getByRole('button', { name: 'Open trading window' }))
+      expect(screen.getByTestId('location')).toHaveTextContent('/trading/trade-1')
+      expect(screen.getByTestId('location')).not.toHaveTextContent('quick=1')
     })
   })
 
