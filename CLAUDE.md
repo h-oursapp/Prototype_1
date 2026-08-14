@@ -11,4 +11,5 @@
 - before commiting run /compact and create save it in the HANDOFF.md
 - TODO.md is a list I am writing while waiting for my session to reset. I will specify which parts we tackle at the beging of the session.
 - At the begining of the session ask me wich todo point are we working on.
+-when commited mark done TODO items.
 - When commited create a push requiest.
