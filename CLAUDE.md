@@ -5,7 +5,9 @@
 - Prefer composition over inheritance
 - This is a prototype project, but if we manage to create something good, it will be the basis for the real app
 - I (the developer) am new to app development and React so teach me.
-- Create a new git branch every new session.
+- Create a new git branch every new session where you make any modification.
 - Dont commit to git until I say so.
 - Befor commiting get rid of commented out sections.
-- before commiting run /compact and write in this file the compacted context
+- before commiting run /compact and create save it in the HANDOFF.md
+- TODO.md is a list I am writing while waiting for my session to reset. I will specify which parts we tackle at the beging of the session.
+- At the begining of the session ask me wich todo point are we working on.
