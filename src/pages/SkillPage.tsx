@@ -4,108 +4,23 @@ import { OptionGroup } from '../components/OptionGroup'
 import { PageShell } from '../components/PageShell'
 import { SquareTile } from '../components/SquareTile'
 import { StarRating } from '../components/StarRating'
-import {
-  CUSTOM_SKILL_CAP,
-  MOCK_REVIEWS,
-  MOCK_SKILLS,
-  SKILL_CATALOG,
-  findSkill,
-  type Review,
-  type Skill,
-} from '../data/mockUser'
+import { CUSTOM_SKILL_CAP, MOCK_REVIEWS, MOCK_SKILLS, findSkill, type Review } from '../data/mockUser'
 import { ROUTES, reviewedTrades } from '../routes'
+import {
+  CUSTOM_SKILL_ICONS,
+  PROOF_REQUIRED_FROM,
+  RATING_OPTIONS,
+  catalogDraft,
+  customDraft,
+  customSkillsLeft,
+  draftFromSkill,
+  findProblem,
+  matchingCatalogEntries,
+  needsProof,
+  type CatalogEntry,
+  type SkillDraft,
+} from './skillDraft'
 import './SkillPage.css'
-
-/** Appkarte §7: from this self-rating upwards, a skill only counts with proof. Relocated here
- *  from SkillsPage — TODO #6 moves the whole "add a skill" flow onto this page, behind the new
- *  "+ Add skill" tile, so the rule and its tests move with it rather than being reinvented. */
-const PROOF_REQUIRED_FROM = 4
-
-/** Where a new skill's self-rating starts. Deliberately below PROOF_REQUIRED_FROM, so nobody is
- *  asked for paperwork before they have chosen anything. */
-const DEFAULT_RATING = 3
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5].map((rating) => ({ value: rating, label: `${rating}★` }))
-
-/** §7: custom skills pick their icon from a predefined set rather than uploading one. The names
- *  are what assistive tech reads out — an emoji on its own has no useful accessible name. */
-const CUSTOM_SKILL_ICONS = [
-  { icon: '🛠️', name: 'Tools' },
-  { icon: '🎯', name: 'Target' },
-  { icon: '🧵', name: 'Thread' },
-  { icon: '🎧', name: 'Headphones' },
-  { icon: '🚗', name: 'Car' },
-  { icon: '🧪', name: 'Flask' },
-  { icon: '📚', name: 'Books' },
-  { icon: '🌿', name: 'Plant' },
-]
-
-type CatalogEntry = (typeof SKILL_CATALOG)[number]
-
-/** The skill being created or edited. Catalogue and custom skills share this shape — only
- *  `isCustom` differs, and it is what decides whether the name and icon are editable. */
-interface SkillDraft {
-  isCustom: boolean
-  name: string
-  icon: string
-  description: string
-  rating: number
-  proof: string
-}
-
-function catalogDraft(entry: CatalogEntry): SkillDraft {
-  return { isCustom: false, name: entry.name, icon: entry.icon, description: '', rating: DEFAULT_RATING, proof: '' }
-}
-
-function customDraft(): SkillDraft {
-  return {
-    isCustom: true,
-    name: '',
-    icon: CUSTOM_SKILL_ICONS[0].icon,
-    description: '',
-    rating: DEFAULT_RATING,
-    proof: '',
-  }
-}
-
-function draftFromSkill(skill: Skill): SkillDraft {
-  return {
-    isCustom: skill.isCustom ?? false,
-    name: skill.name,
-    icon: skill.icon,
-    description: skill.description ?? '',
-    rating: skill.rating,
-    proof: skill.proof ?? '',
-  }
-}
-
-function needsProof(rating: number): boolean {
-  return rating >= PROOF_REQUIRED_FROM
-}
-
-/** Why this draft can't be saved yet, or null if it can. `ownId` is left out of the duplicate
- *  check so editing a skill without renaming it doesn't collide with itself. */
-function findProblem(draft: SkillDraft, skills: Skill[], ownId?: string): string | null {
-  const name = draft.name.trim()
-
-  if (name === '') return 'Give the skill a name.'
-  if (skills.some((skill) => skill.id !== ownId && skill.name.toLowerCase() === name.toLowerCase())) {
-    return `You already have a skill called ${name}.`
-  }
-  if (needsProof(draft.rating) && draft.proof.trim() === '') {
-    return `A self-rating of ${PROOF_REQUIRED_FROM}★ or higher needs proof: a reference work or an official qualification.`
-  }
-  return null
-}
-
-/** The searchable predefined list (§7), minus anything already on your list. */
-function matchingCatalogEntries(search: string, skills: Skill[]): CatalogEntry[] {
-  const query = search.trim().toLowerCase()
-  const taken = new Set(skills.map((skill) => skill.name.toLowerCase()))
-  return SKILL_CATALOG.filter(
-    (entry) => !taken.has(entry.name.toLowerCase()) && entry.name.toLowerCase().includes(query),
-  )
-}
 
 /** Reviews are recorded against a skill's name at the time they were left (mockUser.ts's Review
  *  has no skill id to match against), so this takes the skill's stable, original name — not
@@ -154,8 +69,9 @@ interface SkillChooserProps {
 }
 
 /** Create mode's first step: search the predefined list, or create a custom skill. Ported
- *  unchanged from the old SkillsPage inline form (TODO #6). */
-function SkillChooser({
+ *  unchanged from the old SkillsPage inline form (TODO #6). Exported so the onboarding "Add your
+ *  skills" step (TODO #2.1) can reuse the exact same picker rather than a second one. */
+export function SkillChooser({
   search,
   onSearchChange,
   matches,
@@ -220,8 +136,9 @@ interface SkillFormProps {
 
 /** The editable half, shared by "editing an existing skill" and "create mode, once a catalogue
  *  entry or custom skill has been chosen". Name and icon are only editable for custom skills —
- *  a catalogue skill's identity comes from the catalogue. */
-function SkillForm({ draft, onChange, problem, submitLabel, onCancel }: SkillFormProps) {
+ *  a catalogue skill's identity comes from the catalogue. Exported alongside SkillChooser for the
+ *  same reason (TODO #2.1). */
+export function SkillForm({ draft, onChange, problem, submitLabel, onCancel }: SkillFormProps) {
   return (
     <section className="page-section">
       <h2 className="page-section__heading">
@@ -465,7 +382,7 @@ export function SkillPage({ mode }: { mode?: 'create' }) {
     return <SkillNotFound skillId={skillId} />
   }
 
-  const customSkillsLeft = CUSTOM_SKILL_CAP - MOCK_SKILLS.filter((existing) => existing.isCustom).length
+  const skillsLeft = customSkillsLeft(MOCK_SKILLS)
   const catalogMatches = matchingCatalogEntries(search, MOCK_SKILLS)
 
   const openDraft = (next: SkillDraft) => {
@@ -513,7 +430,7 @@ export function SkillPage({ mode }: { mode?: 'create' }) {
               search={search}
               onSearchChange={setSearch}
               matches={catalogMatches}
-              customSkillsLeft={customSkillsLeft}
+              customSkillsLeft={skillsLeft}
               onPickCatalog={(entry) => openDraft(catalogDraft(entry))}
               onCreateCustom={() => openDraft(customDraft())}
             />

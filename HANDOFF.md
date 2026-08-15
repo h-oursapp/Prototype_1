@@ -4,13 +4,11 @@ Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branc
 `todo-5-6-7-profile-skills-skill` after building TODO #5–#7 (Profile, Skills, Skill); updated
 again on branch `todo-9-13-inventory-trading` after building TODO #9–#13 (Inventory, Item,
 Trading, Trades, the trading-process status pipeline) and then reworking Inventory and Trading
-again across several rounds of direct feedback once they were actually clicked through; updated
-again 2026-08-15 on branch `todo-3-4-home-navbar` after building TODO #3–#4 (Home's grids and
-swipe gestures, the nav bar's rework into a floating bar).
-again 2026-08-15, first on branch `todo-3-4-home-navbar` after building TODO #3–#4 (Home's grids
-and swipe gestures, the nav bar's rework into a floating bar — that PR is open as #8, not yet
-merged when this branch split off), then on branch `todo-1-login` after building TODO #1 (Login's
-email/password fields).
+again across several rounds of direct feedback once they were actually clicked through. Updated
+three more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
+check in after each" call this session: `todo-3-4-home-navbar` (TODO #3–#4: Home's grids and swipe
+gestures, the nav bar's rework into a floating bar), `todo-1-login` (TODO #1: Login's email/password
+fields), and `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -53,21 +51,34 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        40 files, 278 tests, all passing
-npm run test        38 files, 254 tests, all passing
+npm run test        42 files, 303 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-This session (branch `todo-3-4-home-navbar`) built **TODO #3–#4** end to end — Home's two grids
-centred with side-matched corner arrows and left/right swipe gestures, a "create new offer" tile,
-name+rating overlays on every tile; and the nav bar reworked into a floating, edge-to-edge bar with
-gridlines, Home recentred, Settings removed (already reachable from Profile), Hours rendered as a
-plain `10h15m`-style number, and the back button's new "top-level pages always go Home" rule. New
-small pure-logic modules: `formatHours.ts` (the `10h15m` formatter), `topLevelRoutes.ts` (the
-back-button rule's page list), and `isSwipeLeft`/`isSwipeRight` added alongside the existing
-`isSwipeUp` in `swipe.ts` — all unit-tested on their own, same convention as `navItems.ts`.
+This calendar session (2026-08-15) shipped three small, independently-branched-and-PR'd TODO
+points in sequence, per Márk's "one at a time, check in after each" call — each is its own PR
+rather than one large diff:
+
+- **TODO #3–#4** (branch `todo-3-4-home-navbar`): Home's two grids centred with side-matched
+  corner arrows and left/right swipe gestures, a "create new offer" tile, name+rating overlays on
+  every tile; and the nav bar reworked into a floating, edge-to-edge bar with gridlines, Home
+  recentred, Settings removed (already reachable from Profile), Hours rendered as a plain
+  `10h15m`-style number, and the back button's new "top-level pages always go Home" rule. New small
+  pure-logic modules: `formatHours.ts` (the `10h15m` formatter), `topLevelRoutes.ts` (the
+  back-button rule's page list), and `isSwipeLeft`/`isSwipeRight` added alongside the existing
+  `isSwipeUp` in `swipe.ts`.
+- **TODO #1** (branch `todo-1-login`): `LoginPage` gained Email and Password fields above the Log
+  in button. Plain, *uncontrolled* inputs — no `useState` — because nothing reads their values yet
+  (there's no account system to check them against); adding state that does nothing would be the
+  exact "premature abstraction" CLAUDE.md warns against. The Log in button's behaviour didn't
+  change: it still calls `onLogin()` unconditionally.
+- **TODO #2.1** (branch `todo-2-1-onboarding-skills`): onboarding's "Add your skills" step is now
+  real, not a placeholder — it reuses `SkillPage`'s own catalogue-search/custom-skill-creation flow
+  (`SkillChooser`/`SkillForm`, now exported from there) rather than a second picker. Continue is
+  disabled until at least one skill has been added; Skip stays available regardless. See §8 for why
+  this needed the app's first-ever generated id (`crypto.randomUUID()`, in the new `skillDraft.ts`).
 
 **Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end —
 Inventory reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see
@@ -75,22 +86,6 @@ below), Trades gaining search/filter/sort, and a real session-local trade-status
 (Accept/Decline, Quick Buy). New shared pieces: `PagedGrid` (the paged, always-square grid both
 Inventory and Trading's rows now use), `TransferBox` (the "build an offer" box Inventory and Skills
 share), and `TradeDraftContext` (see §8 — the one piece of cross-page state this prototype now has).
-This branch (`todo-1-login`, split from `main` — **not** stacked on the still-open TODO #3–#4 PR)
-built **TODO #1**: `LoginPage` gained Email and Password fields above the Log in button. They're
-plain, *uncontrolled* inputs — no `useState` — because nothing reads their values yet (there's no
-account system to check them against); adding state that does nothing would be the exact
-"premature abstraction" CLAUDE.md warns against. The Log in button's behaviour didn't change: it
-still calls `onLogin()` unconditionally, regardless of what's typed above it. Styled to match
-`AdForm`'s existing label/input convention (`AdDetailPage.tsx`) rather than inventing a new one.
-The h_OURs logo TODO #1 also asks for was already there (`/favicon.svg`, the purple mark) — no
-change needed.
-
-**Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end — Inventory
-reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see below),
-Trades gaining search/filter/sort, and a real session-local trade-status pipeline (Accept/Decline,
-Quick Buy). New shared pieces: `PagedGrid` (the paged, always-square grid both Inventory and
-Trading's rows now use), `TransferBox` (the "build an offer" box Inventory and Skills share), and
-`TradeDraftContext` (see §8 — the one piece of cross-page state this prototype now has).
 
 **The first cut of Inventory and Trading was built from the TODO wording alone, then reworked
 substantially after actually clicking through it** — this is the normal, expected shape of working
@@ -101,9 +96,6 @@ page), a genuine CSS bug that crushed the trading table's tiles to a few pixels 
 decluttering pass (smaller header, fewer standing explanations, final review moved next to
 Decline, a background panel instead of a heading). §8 records the reasoning for all of it; reading
 the current code alone won't tell you the shape it used to be or why it changed.
-
-Working tree on this branch is otherwise the same as `todo-5-6-7-profile-skills-skill`'s plus this
-session's changes, ready to commit.
 
 ```bash
 npm install
@@ -169,7 +161,13 @@ src/
     TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills — see §8
 
   pages/                   one folder-less file per screen, plus its .css
-    onboarding/            multi-step onboarding, split into step components
+    onboarding/            multi-step onboarding, split into step components — StepSkills.tsx is
+                           the real "Add your skills" step (TODO #2.1), the other placeholder
+                           steps stay in OnboardingPage.tsx itself, one `if` per step index
+    skillDraft.ts          SkillDraft type + its pure helpers (catalogDraft, findProblem,
+                           matchingCatalogEntries, toSkill, ...) — pulled out of SkillPage.tsx so
+                           StepSkills can reuse the exact same validation/search/proof-gate logic
+                           rather than a second copy (TODO #2.1)
     ItemPage.tsx/.css      one inventory item's own page (view/edit/create) — TODO #10
     PartnerInventoryPage.tsx/.css   a trading partner's public inventory, read-only — see §8
 
@@ -335,7 +333,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | Route | Page | Appkarte | Notes |
 | --- | --- | --- | --- |
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). Method is `[OFFEN]` |
-| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable |
+| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable. Skills step is real (TODO #2.1); friends/verify/photo are still placeholders |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
 | `/search` | SearchPage | §4 | Filters + a placeholder map |
@@ -425,6 +423,32 @@ Final Review skill-aware, and it is optional — most trades still carry no skil
 `InventoryPage`'s `?trade=` convention exactly (same banner pattern, same "Add to offer" +
 drop-zone-summary shape) — wiring an ad's "choose a skill" step to it is TODO #8, out of this
 session's scope. It is fully built and tested against the query parameter directly.
+
+### TODO #2.1 (this session)
+
+**`SkillChooser` and `SkillForm` are exported from `SkillPage.tsx`, not duplicated for onboarding.**
+The onboarding "Add your skills" step needed the exact same catalogue-search/custom-skill/proof-gate
+flow `SkillPage`'s create mode already has — exporting the two components it's built from (both are
+components, so this doesn't trip the `react-refresh/only-export-components` lint rule the way mixing
+a component with a plain function export would) cost far less than a second, drifting picker. Their
+shared *non-component* logic (`SkillDraft`, `catalogDraft`, `findProblem`, `matchingCatalogEntries`,
+the proof-gate constants) moved out into a new `skillDraft.ts` for the same reason `topLevelRoutes.ts`
+exists — a component file can only export components once another file needs its plain functions too.
+
+**`toSkill()` needed the app's first-ever generated id.** Every other "create" flow in this prototype
+(Ad, Item, Skill itself) validates a draft and then dead-ends at a "not saved" note — nothing ever
+actually becomes a list item, so nothing has ever needed an id before. The onboarding skills step is
+different: Continue's "at least one skill" gate means there has to be a real, growing local list to
+count, so each added skill needs a stable id for its `key` and its remove button. `toSkill(draft, id)`
+takes that id as a parameter rather than generating it itself, so the function stays pure and
+testable — `crypto.randomUUID()` is called once, at the one call site in `StepSkills.tsx`, not
+buried inside a "pure" helper.
+
+**Nothing added during onboarding reaches `MOCK_SKILLS`.** The step's list is local `useState`,
+gone the moment onboarding is left — same "nothing persists" honesty every other create flow in
+this prototype already keeps, just with one more visible consequence (skills you "add" here won't
+show up on Profile/Skills afterwards). That gap is real, not hidden: it's the same kind of thing
+§13 already tracks for other pages.
 
 ### TODO #9–#13 (this session)
 
@@ -620,23 +644,29 @@ Known collisions, by TODO section:
 on purpose (see §2) since there's no account system yet to check them against; the button still
 logs in unconditionally. The logo TODO #1 also asks for was already built.
 
+**TODO #2.1 is done** (branch `todo-2-1-onboarding-skills`): onboarding's "Add your skills" step
+reuses `SkillPage`'s own catalogue/custom-skill/proof-gate flow (see §8) instead of a placeholder;
+Continue is disabled until at least one skill has been added, Skip still always works. TODO #2's
+other four sub-steps (friends, verify, how-it-works video, profile picture) are still placeholders
+or (how-it-works) a static illustration — none of those were in this round's scope.
+
+**TODO #3, #4 are done** (branch `todo-3-4-home-navbar`): Home's Ads/Your-offers headings centred
+with matching corner-arrow side and swipe direction (right arrow + swipe-left-to-right → Your
+offers; left arrow + swipe-right-to-left → Search — see `MainPage.tsx`'s doc comment for the
+reasoning if this reads backwards from what you pictured), a "create new offer" tile that lands in
+Your offers' last grid cell, and name+rating tile overlays. The nav bar now floats (`position:
+fixed`, no longer reserving layout space — every page compensates with the new `--nav-bar-height`
+padding token), Home sits in the middle of the remaining six items, Settings is off the bar, Hours
+renders as a plain `formatHoursBalance()`-formatted number (`"12h"` / `"10h15m"`) in a double-width
+slot with no icon, gridlines sit between items, and `PageShell`'s back button now calls the new
+`isTopLevelRoute()` check (`topLevelRoutes.ts`) to decide Home-vs-ordinary-back.
+
 **TODO #5, #6, #7 are done** (previous session): both ratings everywhere a skill appears, the
 Skills grid rework (grid-size columns, uncapped rows, data overlaid on the tile), the add-a-skill
 flow moved to the new Skill page, and the Skill page itself (view/edit/create, per-skill reviews, a
 link to that skill's reviewed trades).
 
-**TODO #3, #4 are done** (this session): Home's Ads/Your-offers headings centred with matching
-corner-arrow side and swipe direction (right arrow + swipe-left-to-right → Your offers; left arrow
-+ swipe-right-to-left → Search — see `MainPage.tsx`'s doc comment for the reasoning if this reads
-backwards from what you pictured), a "create new offer" tile that lands in Your offers' last grid
-cell, and name+rating tile overlays. The nav bar now floats (`position: fixed`, no longer reserving
-layout space — every page compensates with the new `--nav-bar-height` padding token), Home sits in
-the middle of the remaining six items, Settings is off the bar, Hours renders as a plain
-`formatHoursBalance()`-formatted number (`"12h"` / `"10h15m"`) in a double-width slot with no icon,
-gridlines sit between items, and `PageShell`'s back button now calls the new `isTopLevelRoute()`
-check (`topLevelRoutes.ts`) to decide Home-vs-ordinary-back.
-
-**TODO #9, #10, #11, #12, #13 are done** (this session): Inventory reworked into a non-scrollable
+**TODO #9, #10, #11, #12, #13 are done** (previous session): Inventory reworked into a non-scrollable
 paged grid with shelves fully out of scope; a new Item page (view/edit/create, public/private
 switch); Trading reworked to non-scrollable (twice — see §8 for why the current shape isn't the
 first one built); Trades gaining search, a status filter (defaulting to open), sort by real date,

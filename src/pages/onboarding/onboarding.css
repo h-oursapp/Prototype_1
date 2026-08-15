@@ -82,3 +82,56 @@
 .onboarding-step__primary:hover {
   background: var(--brand-primary-deep);
 }
+
+.onboarding-step__primary:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.onboarding-step__hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ---------- StepSkills' "added so far" list (TODO #2.1) — same row shape as TransferBox's items,
+   scoped to its own class names since this list is a local, session-only pool, not a trade offer. */
+
+.onboarding-step__skills {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.onboarding-step__skill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.onboarding-step__skill-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onboarding-step__skill-remove {
+  padding: 4px 8px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+}
+
+.onboarding-step__skill-remove:hover {
+  color: var(--text);
+}
