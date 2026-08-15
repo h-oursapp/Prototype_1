@@ -5,11 +5,12 @@ Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branc
 again on branch `todo-9-13-inventory-trading` after building TODO #9–#13 (Inventory, Item,
 Trading, Trades, the trading-process status pipeline) and then reworking Inventory and Trading
 again across several rounds of direct feedback once they were actually clicked through. Updated
-four more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
+five more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
 check in after each" call this session: `todo-3-4-home-navbar` (TODO #3–#4: Home's grids and swipe
 gestures, the nav bar's rework into a floating bar), `todo-1-login` (TODO #1: Login's email/password
-fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step), and
-`todo-2-2-onboarding-friends` (TODO #2.2: onboarding's real "Add friends" step).
+fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step),
+`todo-2-2-onboarding-friends` (TODO #2.2: onboarding's real "Add friends" step), and
+`todo-2-3-onboarding-verify` (TODO #2.3: onboarding's real "Verify your identity" step).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -52,13 +53,13 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        43 files, 307 tests, all passing
+npm run test        45 files, 314 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-This calendar session (2026-08-15) shipped four small, independently-branched-and-PR'd TODO
+This calendar session (2026-08-15) shipped five small, independently-branched-and-PR'd TODO
 points in sequence, per Márk's "one at a time, check in after each" call — each is its own PR
 rather than one large diff:
 
@@ -86,6 +87,16 @@ rather than one large diff:
   sentence and nothing more was asked for. The copy action is injected as an optional `copyLink`
   prop defaulting to the real Clipboard API, so tests supply a plain mock instead of fighting
   jsdom's partial, getter-only `navigator.clipboard`.
+- **TODO #2.3** (branch `todo-2-3-onboarding-verify`): onboarding's "Verify your identity" step is
+  now real: a big randomly-generated 5-digit code (`generateVerificationCode()` in
+  `verificationCode.ts`) and a "Take a picture" button that's a plain `<input type="file"
+  accept="image/*" capture="user">` — on a phone this already opens the OS's own camera app, so
+  there's no hand-rolled `getUserMedia` stream to build or clean up. The chosen photo is held as a
+  local object URL only ("verification pic"), revoked whenever it's replaced or the step unmounts.
+  Continue is never gated on taking the photo — only §2.1's skills step gates Continue — and
+  nothing here is actually verified, per the TODO's own words. With this step done, all three of
+  `SkippablePlaceholderStep`'s callers are gone, so it (and its now-orphaned
+  `.onboarding-step__placeholder` CSS) were deleted rather than left unused.
 
 **Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end —
 Inventory reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see
@@ -169,9 +180,11 @@ src/
 
   pages/                   one folder-less file per screen, plus its .css
     onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
-                           (TODO #2.1) and StepFriends.tsx (TODO #2.2) are real steps now; the
-                           remaining placeholder steps stay in OnboardingPage.tsx itself, one `if`
-                           per step index
+                           (TODO #2.1), StepFriends.tsx (TODO #2.2), and StepVerify.tsx (TODO
+                           #2.3) are real steps now; SkippablePlaceholderStep.tsx is gone (its
+                           last caller was replaced by StepVerify). 2.4 (StepIntro.tsx) still
+                           shows a static illustration standing in for its eventual video; 2.5
+                           isn't built yet
     skillDraft.ts          SkillDraft type + its pure helpers (catalogDraft, findProblem,
                            matchingCatalogEntries, toSkill, ...) — pulled out of SkillPage.tsx so
                            StepSkills can reuse the exact same validation/search/proof-gate logic
@@ -189,6 +202,9 @@ src/
 
   utils/swipe.ts           swipe-gesture maths, pure — isSwipeUp/isSwipeLeft/isSwipeRight (TODO #3)
   utils/formatHours.ts     formatHoursBalance() — the nav bar's "10h15m" formatter (TODO #4), pure
+  utils/verificationCode.ts   generateVerificationCode() — onboarding's 5-digit code (TODO #2.3).
+                           Not pure (uses Math.random()), tested across many samples instead of
+                           by exact value
 
   __tests__/               mirrors src/ exactly
     helpers/renderWithRouter.tsx
@@ -341,7 +357,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | Route | Page | Appkarte | Notes |
 | --- | --- | --- | --- |
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). Method is `[OFFEN]` |
-| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable. Skills (TODO #2.1) and friends (TODO #2.2) steps are real; verify/photo are still placeholders |
+| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable. Skills (#2.1), friends (#2.2), and verify (#2.3) are real; profile-picture (#2.5) isn't built yet |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
 | `/search` | SearchPage | §4 | Filters + a placeholder map |
@@ -473,6 +489,31 @@ for again anywhere else a browser API resists mocking.
 No QR code, no share sheet, no per-friend links, no way to regenerate the link: none of that is in
 the TODO's one sentence, so none of it is built. `MOCK_INVITE_LINK` is a single fixed string in
 `mockCommunity.ts`, not tied to `MOCK_PROFILE` or generated per session.
+
+### TODO #2.3 (this session)
+
+**The camera button is a plain file input, not a `getUserMedia` live feed.** Given the choice
+directly, Márk picked `<input type="file" accept="image/*" capture="user">` over a hand-rolled
+camera stream: on a real phone the file-input version already opens the OS's own camera app, and
+skips having to handle `getUserMedia` permission prompts/denials and stream cleanup for a prototype
+that never checks the result against anything. The input itself is visually hidden (clipped, not
+`display: none`) so it stays reachable by keyboard/screen reader, wrapped in a `<label>` styled as
+the button — the same "wrapper label" pattern `LoginPage`'s fields and `StepFriends`'s invite-link
+input already use.
+
+**The verification pic is an object URL, revoked on replacement or unmount.** `URL.createObjectURL`
+never touches disk or a server — it's an in-memory handle the browser tab holds for as long as the
+component needs it. Since retaking the photo is expected (identical UX to any camera app's "retake"
+button), the previous URL is explicitly revoked each time a new one is created, and again on
+unmount, so a chain of retakes across a long onboarding session doesn't quietly leak memory.
+
+**Continue is never gated here, unlike the skills step.** TODO #2.1 explicitly asks for a
+count-gated Continue; TODO #2.3 doesn't say anything of the kind, and its own last line ("we don't
+actually verify anything") argues against inventing a requirement the card never made.
+
+**`SkippablePlaceholderStep.tsx` is deleted, not left around unused.** It was skills/friends/verify's
+shared placeholder shape; once verify became this step, none of its three call sites remained.
+Its `.onboarding-step__placeholder` CSS went with it for the same reason.
 
 ### TODO #9–#13 (this session)
 
@@ -673,9 +714,13 @@ reuses `SkillPage`'s own catalogue/custom-skill/proof-gate flow (see §8) instea
 Continue is disabled until at least one skill has been added, Skip still always works.
 
 **TODO #2.2 is done** (branch `todo-2-2-onboarding-friends`): onboarding's "Add friends" step shows
-a read-only invite-link field and a Copy button (see §8) instead of a placeholder. TODO #2's
-remaining three sub-steps (verify, how-it-works video, profile picture) are still placeholders or
-(how-it-works) a static illustration — none of those were in this round's scope.
+a read-only invite-link field and a Copy button (see §8) instead of a placeholder.
+
+**TODO #2.3 is done** (branch `todo-2-3-onboarding-verify`): onboarding's "Verify your identity"
+step generates a big 5-digit code and a "Take a picture" button (a native file-input camera
+capture, see §8) instead of a placeholder; Continue is never gated on it. TODO #2's remaining two
+sub-steps (how-it-works video, profile picture) are still, respectively, a static illustration and
+not built at all — neither was in this round's scope.
 
 **TODO #3, #4 are done** (branch `todo-3-4-home-navbar`): Home's Ads/Your-offers headings centred
 with matching corner-arrow side and swipe direction (right arrow + swipe-left-to-right → Your
