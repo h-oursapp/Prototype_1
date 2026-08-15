@@ -69,7 +69,7 @@
     -show recent reviews of this spesific skill.
     -get a button to show all trades of the spesific skill and already reviewed.
 
-8.Ad -> Offer:
+8.Ad -> Offer: DONE (PR #14)
     -aka other peopels offers, let name them offer
     -we have 2 distinct offer types skill and material.
     - both should have at the details ratings shown, in case of skill both ratings.

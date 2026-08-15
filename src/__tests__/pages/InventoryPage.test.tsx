@@ -192,4 +192,65 @@ describe('InventoryPage', () => {
     expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Back to trading' })).toBeNull()
   })
+
+  describe('picking an item for a new ad (TODO #8)', () => {
+    it('appears at ?forAd=new, with different wording than the trade context', () => {
+      renderInventoryPage('/inventory?forAd=new')
+
+      expect(screen.getByRole('region', { name: 'Picking context' })).toBeInTheDocument()
+      expect(screen.getByText('Picking an item for your new ad')).toBeInTheDocument()
+      expect(grid().getByRole('button', { name: 'Use Acoustic guitar for this ad' })).toBeInTheDocument()
+    })
+
+    it('picking a second item replaces the first, since an ad has exactly one subject', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?forAd=new')
+
+      await user.click(grid().getByRole('button', { name: 'Use Acoustic guitar for this ad' }))
+      expect(offer().getByText('Acoustic guitar')).toBeInTheDocument()
+
+      await user.click(grid().getByRole('button', { name: 'Use Bread tin for this ad' }))
+      expect(offer().queryByText('Acoustic guitar')).toBeNull()
+      expect(offer().getByText('Bread tin')).toBeInTheDocument()
+    })
+
+    it('tapping the chosen item again clears it', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?forAd=new')
+
+      await user.click(grid().getByRole('button', { name: 'Use Acoustic guitar for this ad' }))
+      await user.click(grid().getByRole('button', { name: "Remove Acoustic guitar as this ad's item" }))
+
+      expect(offer().getByText('Nothing in the offer yet.')).toBeInTheDocument()
+    })
+
+    it('disables "Use this item" until one has been picked, then sends it back to the new ad', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?forAd=new')
+
+      expect(screen.getByRole('button', { name: 'Use this item' })).toBeDisabled()
+
+      await user.click(grid().getByRole('button', { name: 'Use Acoustic guitar for this ad' }))
+      await user.click(screen.getByRole('button', { name: 'Use this item' }))
+
+      expect(screen.getByTestId('location')).toHaveTextContent('/ads/new')
+      expect(screen.getByTestId('location')).toHaveTextContent('itemId=item-1')
+    })
+
+    it('goes back to the new ad, abandoning the pick', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?forAd=new')
+
+      await user.click(screen.getByRole('link', { name: 'Back to new ad' }))
+      expect(screen.getByTestId('location')).toHaveTextContent('/ads/new')
+    })
+
+    it('does not flag items as private in this context — visibility to a partner is not relevant yet', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?forAd=new')
+
+      await user.click(grid().getByRole('button', { name: 'Use Camera for this ad' }))
+      expect(offer().queryByText('Private')).toBeNull()
+    })
+  })
 })

@@ -10,8 +10,10 @@ check in after each" call this session: `todo-3-4-home-navbar` (TODO #3–#4: Ho
 gestures, the nav bar's rework into a floating bar), `todo-1-login` (TODO #1: Login's email/password
 fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step),
 `todo-2-2-onboarding-friends` (TODO #2.2: onboarding's real "Add friends" step),
-`todo-2-3-onboarding-verify` (TODO #2.3: onboarding's real "Verify your identity" step), and
-`todo-2-5-onboarding-photo` (TODO #2.5: onboarding's real "Add a profile picture" step).
+`todo-2-3-onboarding-verify` (TODO #2.3: onboarding's real "Verify your identity" step),
+`todo-2-5-onboarding-photo` (TODO #2.5: onboarding's real "Add a profile picture" step), and
+`todo-8-ad-offer` (TODO #8: Ad → Offer — ratings split by kind, the skill/item picker, wiring
+Skills/Inventory's transfer boxes to it, Quick Buy's hours prefill).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -54,13 +56,13 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        48 files, 324 tests, all passing
+npm run test        48 files, 351 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-This calendar session (2026-08-15) shipped six small, independently-branched-and-PR'd TODO
+This calendar session (2026-08-15) shipped seven small, independently-branched-and-PR'd TODO
 points in sequence, per Márk's "one at a time, check in after each" call — each is its own PR
 rather than one large diff:
 
@@ -106,6 +108,19 @@ rather than one large diff:
   (the object-URL state + revoke-on-replace/unmount logic) and `PhotoPickerButton` (the hidden-file-
   input-styled-as-a-button markup, `capture` prop toggling camera vs. picker). `StepVerify` now
   uses both too, with no change to its own tests or rendered output.
+- **TODO #8** (branch `todo-8-ad-offer`): "Ad → Offer" — `Offer` gained `reviewRating?` (skill
+  offers) and `conditionRating?` (item offers), so a skill's detail view shows both ratings and an
+  item's shows only its condition. Creating a brand-new offer now shows two big Skill/Item buttons
+  in the picture area instead of a blank frame; picking one navigates to Skills/Inventory, each now
+  showing a "picking for a new ad" banner and transfer box at `?forAd=new` (alongside their existing
+  `?trade=<id>` context), capped at one pick since an offer has exactly one subject; confirming
+  sends you back to `/ads/new?skillId=<id>`/`?itemId=<id>`, which seeds the draft (title, icon,
+  kind, ratings) from the chosen record. `TransferBox` was generalized (`backTo`/`primaryLabel`/
+  `onPrimary`/`confirmedMessage` replacing hardcoded `tradeId`/`partnerName`/"Back to
+  trading"/"Accept") so it could serve both contexts. Quick Buy now also passes the ad's listed
+  hours through to Trading, which preloads them as your offer instead of always defaulting to your
+  balance. User-facing wording shifted toward "offer" (New offer/Create offer/Offer not found,
+  etc.) per Márk's call, without touching any route. See §8 below for all of it in detail.
 
 **Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end —
 Inventory reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see
@@ -185,7 +200,8 @@ src/
     SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
     StarRating.tsx         ★★★☆☆ display
     OptionGroup.tsx        segmented control (used by Settings)
-    TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills — see §8
+    TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills, in both a
+                           trade context and (TODO #8) picking a new ad's one subject — see §8
 
   pages/                   one folder-less file per screen, plus its .css
     onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
@@ -304,7 +320,9 @@ adDetail('ad-7')   // '/ads/ad-7'   ← the actual URL
 ```
 
 Routes with an id get a **builder function** so nothing string-concatenates a URL. There's also
-`inventoryForTrade(tradeId)` → `/inventory?trade=X`, explained in §8 below.
+`inventoryForTrade(tradeId)` → `/inventory?trade=X`, and (TODO #8) `skillsForNewAd()`/
+`inventoryForNewAd()` → `/skills?forAd=new`/`/inventory?forAd=new` and `adCreateWithSkill(id)`/
+`adCreateWithItem(id)` → `/ads/new?skillId=X`/`?itemId=X` — all explained in §8 below.
 
 ### The route table (`App.tsx`)
 
@@ -377,16 +395,16 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
 | `/search` | SearchPage | §4 | Filters + a placeholder map |
-| `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below |
-| `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify |
-| `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8 |
-| `/inventory` | InventoryPage | §6 | Non-scrollable paged grid (TODO #9); `?trade=<id>` adds a transfer box |
+| `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
+| `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
+| `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8) |
+| `/inventory` | InventoryPage | §6 | Non-scrollable paged grid (TODO #9); `?trade=<id>` adds a transfer box, `?forAd=new` picks one item for a new ad (TODO #8) |
 | `/inventory/:itemId` | ItemPage | — | View/edit an item (TODO #10) |
 | `/inventory/new` | ItemPage `mode="create"` | — | Same component as above |
 | `/inventory/partner?trade=<id>` | PartnerInventoryPage | §6 | A trading partner's public items, read-only — see §8 |
 | `/wallet` | WalletPage | §7 | Charity/Foundation are `[OFFEN]` |
 | `/profile` | ProfilePage | §7 | Best skills show both ratings and open the Skill page; a button opens Trades pre-filtered to already-reviewed |
-| `/skills` | SkillsPage | §7 | Grid columns follow the Settings grid-size setting, rows uncapped; tiles open the Skill page; last tile is "+ Add skill"; transfer box at `?trade=<id>` |
+| `/skills` | SkillsPage | §7 | Grid columns follow the Settings grid-size setting, rows uncapped; tiles open the Skill page; last tile is "+ Add skill"; transfer box at `?trade=<id>` or (TODO #8) `?forAd=new` |
 | `/skills/:skillId` | SkillPage | §7 | View/edit/create in one component (AdDetailPage's pattern). Holds the proof-gated add-a-skill flow moved off SkillsPage |
 | `/skills/new` | SkillPage `mode="create"` | §7 | Same component as above |
 | `/trades` | TradesPage | §8 | Status: open / agreed / closed. `?status=closed` (optionally `&skill=<id>`) filters to already-reviewed trades |
@@ -658,6 +676,97 @@ an overlay, unlike Trading's) — safe here because `.inventory-page__grid-area`
 `min-height: 160px` floor rather than `min-height: 0`, so it can't be squeezed to nothing the way
 Trading's table could.
 
+### TODO #8 (this session)
+
+**Three architectural forks were agreed with Márk before writing any code (`AskUserQuestion`), and
+everything below follows from those three answers:**
+
+1. **Keep every route/URL exactly as it is; only user-facing *wording* shifts toward "offer".**
+   `ROUTES.adDetail`/`adCreate`/`offers` etc. are untouched — renaming them would have collided
+   head-on with `/offers` already meaning *your* offers (the exact collision §12 used to flag).
+   Only visible strings on `AdDetailPage` changed: "New ad"/"Untitled ad" → "New offer"/"Untitled
+   offer", "Create ad" → "Create offer", "Ad not found" → "Offer not found", and the page-note
+   copy that said "ad" now says "offer". Nothing else (Home's "Ads" section heading, component/file
+   names like `AdDetailPage`/`AdGallery`/`AdForm`, code comments) was renamed — the decision was
+   scoped to routes-and-wording, not a full find-and-replace, and Home's "Ads"/"Your offers" pairing
+   is structural (mirrors `MOCK_ADS`/`MOCK_YOUR_OFFERS`), not incidental copy.
+2. **The gallery shows "buttons first, then the normal photo gallery."** A brand-new, nothing-
+   picked-yet draft shows two big Skill/Item buttons in `AdGallery`'s picture area (`picker` prop);
+   the rest of the form (Title/Price/Description) renders normally underneath the whole time — only
+   the picture area itself changes. Once a subject is picked, the picture area reverts to the
+   ordinary icon+thumbnails frame plus a small "Change skill or item" link.
+3. **Wiring is a generalized query parameter, not a new picker flow.** `?forAd=new` on
+   `/skills`/`/inventory` (alongside the existing `?trade=<id>`) makes those pages show a "picking
+   for a new ad" banner and transfer box instead of building a brand-new selection UI. Confirming
+   navigates back to `/ads/new?skillId=<id>` or `?itemId=<id>`, which `AdDetailPage` reads to seed
+   the draft.
+
+**Ratings split by kind, but `Offer.rating` itself didn't move.** `reviewRating?` (skill offers) and
+`conditionRating?` (item offers) were added alongside the existing `rating` — `rating` still drives
+Home's tile overlay (TODO #3) unchanged, regardless of kind. At the offer's own detail view
+(`AdDetails`), a skill shows `rating` *and* `reviewRating` ("both ratings" per the TODO); an item
+shows only `conditionRating` in their place. `AdDraft` carries all four fields (`icon` included) as
+plain required numbers with sensible defaults (0 for ratings, 3 — "average" — for a fresh
+`conditionRating`) rather than optional/undefined, specifically so the JSX never needs `??`
+scattered through it.
+
+**A picked skill/item seeds the draft; nothing about it is stored anywhere else.** `AdDetailPage`
+reads `?skillId=`/`?itemId=` directly (not via a new context) and looks the record up itself
+(`findSkill`/`findItem`) each render — `toDraftFromSkill`/`toDraftFromItem` build an `AdDraft` from
+it, mirroring the existing `toDraft(offer)` for an already-existing ad. The existing "state changed
+during render" trick (already used to reseed the draft when `:adId` itself changes) was extended: a
+*defined* `skillId`/`itemId` change reseeds the whole draft, but the param going back to `undefined`
+(pressing "Change skill or item", which returns to a bare `/ads/new`) deliberately does **not**
+wipe anything already typed — only a genuinely new pick overwrites the draft. Without that
+asymmetry, "Change" would silently discard a title/price/description the user had already edited.
+
+**The "Offer type" toggle and the picker buttons can't both be on screen — they're the same
+decision twice.** The first cut of this had `AdForm`'s pre-existing Skill/Item `OptionGroup` render
+underneath the picker at the same time, which put two buttons named "Skill" and two named "Item" on
+one screen — genuinely ambiguous to a screen reader and to `getByRole` alike (caught by the test
+suite, not by eye). Fixed with `AdForm`'s new `showKindToggle` prop: false exactly while the picker
+is showing (`needsSubjectPick`), true everywhere else (editing an existing ad, or a create that
+already has a pick) — the two controls are mutually exclusive in time, never both mounted.
+
+**`TransferBox` is now fully generic — trade-specific language is gone from the component itself.**
+`tradeId`/`partnerName`/the hardcoded "Back to trading" `Link`/"Accept" label became `backTo:
+{label, path}`, `primaryLabel`, `onPrimary`, and an optional `confirmedMessage` string the *caller*
+builds (SkillsPage/InventoryPage now compose the "Offer accepted: N skills for the trade with X."
+sentence themselves, since an ad-picking caller has a different sentence — or none, since its
+"confirm" always navigates away immediately, the same as InventoryPage's trade-mode Accept already
+did). A new `primaryDisabled` prop (default `false`) covers the ad-picker's "nothing chosen yet"
+case, which a trade never needed (an empty offer could always be "Accept"ed). `noun`/`pluralNoun`
+shrank to just `noun` plus a new `pickActionLabel`, since the pluralized "N skills" sentence moved
+to the caller and the drag-and-drop note only ever needed the singular form.
+
+**Picking for a new ad caps at one item/skill — "add" becomes "replace."** `SkillsPage.chooseForAd`
+and `InventoryPage`'s ad-mode `toggleOffered` both call `setOfferedIds([id])`/an equivalent single-
+element array rather than appending, since an ad has exactly one subject where a trade's offer is
+open-ended. Both pages keep this pick in ordinary page-local `useState` (not `TradeDraftContext`):
+that context exists specifically so item ids survive the Inventory↔Trading round trip, which the ad
+picker doesn't need — it hands its pick back through the URL instead, the same mechanism
+`?trade=<id>` itself already uses.
+
+**Quick Buy's hours prefill was a real, separate bug — not just "add a query param."** `trading()`
+gained an `hours` option (alongside the existing `quick`), and `AdDetailPage`'s `handleQuickBuy` now
+passes `offer.hours` through. The actual fix is on `TradingPage`: `offeredHours`'s initial state used
+to always be `trade.yourHours`, full stop — `isQuickOffer` only ever affected the chat. The new pure
+`initialOfferedHours(trade, isQuickOffer, searchParams)` helper reads `?hours=` **only** when
+`isQuickOffer` is true (a plain "Open trading window" still ignores it, matching the TODO's own
+wording that only Quick Buy pre-fills), falls back to `trade.yourHours` on anything missing or
+unparseable, and clamps the result to `MOCK_HOURS_BALANCE` so a stale or tampered URL can never
+smuggle in more hours than you actually have.
+
+**A Playwright QA pass caught a test-*script* bug worth remembering, not an app bug.**
+`page.waitForURL()` resolves the instant `history.pushState` fires, which happens synchronously
+inside `navigate()` — but React's actual re-render (unmounting the old route, mounting the new one)
+happens on React's own next tick, and a screenshot taken immediately after `waitForURL` can still
+capture the *previous* page's fully-rendered DOM. Confirmed by checking `page.url()` (already
+correct) against actual DOM text (still the old page) at the same instant. Fixed by waiting on a
+locator from the destination page (`page.getByRole(...).waitFor()`) instead of the URL — the general
+lesson: **when driving client-side routing with Playwright, wait for rendered content, not for the
+URL to match.**
+
 ---
 
 ## 9. Mock data
@@ -666,7 +775,7 @@ All of it lives in `src/data/`. No component invents its own.
 
 | File | Holds |
 | --- | --- |
-| `mockOffers.ts` | `Offer` (`kind: 'skill' \| 'item'`, `hours`, `distanceKm`), `MOCK_ADS`, `MOCK_YOUR_OFFERS`, `findOffer`, `isYourOffer` |
+| `mockOffers.ts` | `Offer` (`kind: 'skill' \| 'item'`, `hours`, `distanceKm`, `rating`, now `reviewRating?` for skills and `conditionRating?` for items — TODO #8), `MOCK_ADS`, `MOCK_YOUR_OFFERS`, `findOffer`, `isYourOffer` |
 | `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill` (now incl. `description`, `reviewRating`), `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `findSkill`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS`, `reviewsForSkill()` |
 | `mockTrades.ts` | `TradeStatus`, `Trade` (incl. `partnerHours`, `skillId?`, now `lastInteractionAt` — a real ISO date, `lastInteraction` stays as display prose — and `hasUnreadMessage?`), `ChatMessage`, `MOCK_TRADES` (6), `findTrade`, `canRespondToOffer()`, `statusAfterAccept()` — the TODO #13 status-pipeline helpers |
 | `mockInventory.ts` | `InventoryItem` (`isPublic`, `description?` — **`shelf` is gone, see §8**), yours (8) + partner's (5, one private), `publicItems()`, `findItem()` |
@@ -740,12 +849,10 @@ current code as settled will fight it.
 
 **`TODO.md` wins. Where it contradicts this document, this document is out of date.**
 
-Known collisions, by TODO section:
-
-| TODO | Wants | Currently |
-| --- | --- | --- |
-| 8 Offers | Other people's ads are renamed **"offers"** | `/offers` currently means *your* offers, and `/ads/:adId` is theirs — this rename collides head-on with existing route names. **Agree the naming before starting.** |
-| 8 Offers | Items get a **condition rating** (1 = scrap, 5 = as-new), including during creation | `Offer` has no condition field |
+No open collisions remain — the one TODO #8 used to list here (other people's ads renamed
+"offers", which would have collided head-on with `/offers` already meaning *your* offers) was
+resolved by Márk's own call: keep every route as-is, shift only user-facing wording (see the
+TODO #8 entry below and §8's own subsection for the reasoning).
 
 **TODO #1 is done** (branch `todo-1-login`): `LoginPage` has Email and Password fields, uncontrolled
 on purpose (see §2) since there's no account system yet to check them against; the button still
@@ -789,9 +896,11 @@ paged grid with shelves fully out of scope; a new Item page (view/edit/create, p
 switch); Trading reworked to non-scrollable (twice — see §8 for why the current shape isn't the
 first one built); Trades gaining search, a status filter (defaulting to open), sort by real date,
 closed-trade skill ratings, and an unread-message icon; and a real session-local trade-status
-pipeline (Accept/Decline on Trading, Quick Buy's pre-filled hours and expanded chat from the Ad
-page). See §8 for the judgement calls — there are a lot of them this time, several from direct
-feedback after the first cut of Inventory/Trading was already built and clicked through.
+pipeline (Accept/Decline on Trading, Quick Buy's expanded chat from the Ad page — the hours
+themselves didn't actually preload yet at that point; that part of TODO #13's own last line stayed
+open until TODO #8 below). See §8 for the judgement calls — there are a lot of them this time,
+several from direct feedback after the first cut of Inventory/Trading was already built and
+clicked through.
 
 Both new concepts flagged as "half-built" in the previous version of this document are now fully
 built and wired:
@@ -801,10 +910,12 @@ built and wired:
 - **Item as a first-class page** exists (`ItemPage.tsx`, TODO #10), reached from Inventory's tiles
   and its own "New item" button.
 
-**Still not wired: TODO #8's "choose a skill/item" step from ad creation.** Both transfer boxes
-work fully against their own `?trade=<id>` query parameter directly; nothing on `AdDetailPage` yet
-navigates a user through "pick a skill or item" into one of them. That's still TODO #8, out of
-every session so far.
+**TODO #8 is done** (branch `todo-8-ad-offer`): both ratings for a skill offer / condition-only for
+an item offer at `AdDetailPage`; a brand-new offer's picture area shows Skill/Item picker buttons
+that hand off to Skills'/Inventory's own transfer box at `?forAd=new`, wiring the "choose a
+skill/item" step this document used to flag as the last gap; and Quick Buy's hours actually preload
+onto the trading table now (the piece of TODO #13 that stayed open above). See §8's own subsection
+for the three architectural forks this needed and every judgement call underneath them.
 
 ---
 

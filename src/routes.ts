@@ -39,11 +39,18 @@ export const ROUTES = {
 export const adDetail = (adId: string) => `/ads/${adId}`
 export const skillDetail = (skillId: string) => `/skills/${skillId}`
 export const itemDetail = (itemId: string) => `/inventory/${itemId}`
-/** Plain by default; `{ quick: true }` is TODO #13's Quick Buy path — it preloads the ad's listed
- *  hours as your offer and opens the trade's chat already expanded, instead of landing on the
- *  same blank trading table "Open trading window" does. */
-export const trading = (tradeId: string, opts?: { quick?: boolean }) =>
-  opts?.quick ? `/trading/${tradeId}?quick=1` : `/trading/${tradeId}`
+/** Plain by default; `{ quick: true }` is TODO #13's Quick Buy path — it opens the trade's chat
+ *  already expanded instead of landing on the same blank trading table "Open trading window"
+ *  does. `hours` (TODO #8) carries the ad's listed price through so the trading table starts
+ *  showing that offer rather than your usual default — AdDetailPage's Quick Buy is the only
+ *  caller that passes it. */
+export const trading = (tradeId: string, opts?: { quick?: boolean; hours?: number }) => {
+  const params = new URLSearchParams()
+  if (opts?.quick) params.set('quick', '1')
+  if (opts?.hours !== undefined) params.set('hours', String(opts.hours))
+  const query = params.toString()
+  return query ? `/trading/${tradeId}?${query}` : `/trading/${tradeId}`
+}
 export const finalReview = (tradeId: string) => `/trades/${tradeId}/review`
 
 /** Inventory in a trading context (§6): the same page, which gains a drop area and Accept /
@@ -63,9 +70,20 @@ export const itemForTrade = (itemId: string, tradeId: string) => `${itemDetail(i
 
 /** Skills in a trading context (§6/§8's transfer box): same query-parameter shape as
  *  inventoryForTrade — the page gains a "pick a skill for this offer" zone when it knows which
- *  trade it's for. Nothing links here yet (wiring an ad's "choose a skill" step is TODO #8), but
- *  the Skills page already responds to it. */
+ *  trade it's for. */
 export const skillsForTrade = (tradeId: string) => `${ROUTES.skills}?trade=${tradeId}`
+
+/** Picking a skill or item for a brand-new ad (TODO #8) — the same query-parameter convention as
+ *  skillsForTrade/inventoryForTrade above, but with no trade behind it: Skills/Inventory show a
+ *  "picking for a new ad" banner and transfer box instead of a trading one, and cap the pick at
+ *  one (an ad has exactly one subject, unlike a trade's open-ended offer). */
+export const skillsForNewAd = () => `${ROUTES.skills}?forAd=new`
+export const inventoryForNewAd = () => `${ROUTES.inventory}?forAd=new`
+
+/** Where picking a skill/item for a new ad sends you back to, with the pick attached — read by
+ *  AdDetailPage's create mode to seed the draft from the chosen skill/item (TODO #8). */
+export const adCreateWithSkill = (skillId: string) => `${ROUTES.adCreate}?skillId=${skillId}`
+export const adCreateWithItem = (itemId: string) => `${ROUTES.adCreate}?itemId=${itemId}`
 
 /** Trades filtered to "already reviewed" (closed) trades (TODO #5/#7), optionally narrowed to one
  *  skill. One builder covers both: Profile's "reviewed trades" button omits skillId, the Skill

@@ -106,20 +106,34 @@ function bestSkills(skills: Skill[], count: number): Skill[] {
   return [...skills].sort((a, b) => b.rating - a.rating).slice(0, count)
 }
 
+/** TODO #8: Quick Buy passes the ad's listed hours through as `?hours=`, so the table starts
+ *  already showing that offer instead of your usual default (`trade.yourHours`). A plain (non-
+ *  quick) open, or a missing/unparseable value, falls back to that default — and the result is
+ *  clamped to what you actually have, so a stale or tampered URL can never smuggle in more than
+ *  your balance allows. */
+function initialOfferedHours(trade: Trade, isQuickOffer: boolean, searchParams: URLSearchParams): number {
+  if (!isQuickOffer) return trade.yourHours
+  const hoursParam = searchParams.get('hours')
+  if (hoursParam === null) return trade.yourHours
+  const parsed = Number(hoursParam)
+  return Number.isNaN(parsed) ? trade.yourHours : Math.min(parsed, MOCK_HOURS_BALANCE)
+}
+
 /** Everything below the id lookup. Split out so the hooks only ever run for a trade that exists —
  *  a component can't call useState after an early return. */
 function TradeScreen({ trade }: { trade: Trade }) {
   const navigate = useNavigate()
   const { getOfferedItemIds, clearItems } = useTradeDraft()
   const [status, setStatus] = useState(trade.status)
-  const [offeredHours, setOfferedHours] = useState(trade.yourHours)
+  const [searchParams] = useSearchParams()
+  // TODO #13: AdDetailPage's Quick Buy sends you here with ?quick=1 instead of the plain trading
+  // route — the chat starting expanded (see ChatZone) and, per TODO #8, the offered hours below
+  // being preloaded from the ad's listed price are the two things that actually differ.
+  const isQuickOffer = searchParams.get('quick') === '1'
+  const [offeredHours, setOfferedHours] = useState(() => initialOfferedHours(trade, isQuickOffer, searchParams))
   const [isAdjustingHours, setIsAdjustingHours] = useState(false)
   const [offeredSkillIds, setOfferedSkillIds] = useState<string[]>([])
   const [isDeclined, setIsDeclined] = useState(false)
-  const [searchParams] = useSearchParams()
-  // TODO #13: AdDetailPage's Quick Buy sends you here with ?quick=1 instead of the plain trading
-  // route — the one thing that actually differs is the chat starting expanded (see ChatZone).
-  const isQuickOffer = searchParams.get('quick') === '1'
 
   const offeredItemIds = getOfferedItemIds(trade.id)
 

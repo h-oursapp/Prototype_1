@@ -63,6 +63,70 @@
   background: var(--brand-tint);
 }
 
+/* TODO #8: a brand-new ad's picture area shows these two buttons instead of the frame above,
+ * until a skill or item has been picked on Skills/Inventory. */
+.ad-detail__frame--picker {
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.ad-detail__picker-prompt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ad-detail__picker-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.ad-detail__picker-button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.ad-detail__picker-button span {
+  font-size: 32px;
+}
+
+.ad-detail__picker-button:hover {
+  background: var(--brand-tint);
+}
+
+/* The "redo the pick" link, once a subject has been chosen (TODO #8). */
+.ad-detail__change-pick {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 13px;
+  color: var(--brand-primary);
+  background: none;
+  border: none;
+}
+
+.ad-detail__change-pick:hover {
+  text-decoration: underline;
+}
+
+/* §8: both ratings for a skill offer, or just the condition rating for an item offer. */
+.ad-detail__ratings {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
 .ad-detail__facts {
   margin: 0;
   display: flex;
