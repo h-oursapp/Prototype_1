@@ -19,11 +19,18 @@ export function LocationProbe() {
 }
 
 interface Options {
-  /** Where the router starts, e.g. '/trades/trade-1/review'. */
+  /** Where the router starts, e.g. '/trades/trade-1/review'. Ignored when `initialEntries` is
+   *  also given. */
   route?: string
   /** The route pattern the element is mounted at — needed when the page reads useParams(),
    *  e.g. '/trades/:tradeId/review'. Defaults to rendering the element at whatever `route` is. */
   path?: string
+  /** A full history stack, for tests that need `navigate(-1)` to land somewhere specific — e.g.
+   *  PageShell's back button. Takes over from `route` when given. */
+  initialEntries?: string[]
+  /** Which entry of `initialEntries` the router starts on. Defaults to the last one, same as
+   *  MemoryRouter's own default. */
+  initialIndex?: number
 }
 
 /** Renders a page the way the app does: inside a router (so useNavigate/useParams/useLocation
@@ -31,11 +38,14 @@ interface Options {
  *  useTradeDraft works).
  *
  *  Not named *.test.tsx, so vitest treats it as a helper rather than collecting it as a suite. */
-export function renderWithRouter(ui: ReactElement, { route = '/', path }: Options = {}) {
+export function renderWithRouter(
+  ui: ReactElement,
+  { route = '/', path, initialEntries, initialIndex }: Options = {},
+) {
   return render(
     <SettingsProvider>
       <TradeDraftProvider>
-        <MemoryRouter initialEntries={[route]}>
+        <MemoryRouter initialEntries={initialEntries ?? [route]} initialIndex={initialIndex}>
           {path ? (
             <Routes>
               <Route path={path} element={ui} />

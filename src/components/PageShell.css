@@ -82,12 +82,15 @@
   border: 1px solid var(--border);
 }
 
-/* The only scrolling region in a page — the header and nav bar stay put. */
+/* The only scrolling region in a page — the header stays put, and the nav bar floats over it
+ * (TODO #4) rather than sharing its row, so the extra bottom padding is reserved by hand instead —
+ * otherwise the last bit of scrolled content would end up hidden behind the floating bar. */
 .page-shell__content {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: 12px;
+  padding-bottom: calc(12px + var(--nav-bar-height));
 }
 
 /* Shared building blocks for the prototype's pages, so each new screen doesn't invent its own

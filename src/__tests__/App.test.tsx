@@ -59,12 +59,13 @@ describe('App', () => {
     })
   })
 
-  it('reaches Settings from the nav bar and comes back with the back button', async () => {
+  it('reaches Settings from Profile (TODO #4 moved it off the nav bar) and comes back with the back button', async () => {
     const user = userEvent.setup()
     render(<App />)
     await signInAndFinishOnboarding(user)
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Profile' }))
+    await user.click(screen.getByRole('button', { name: 'Open settings' }))
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: '2 per row' }))
@@ -72,8 +73,9 @@ describe('App', () => {
 
     // findBy, not getBy: the back button calls navigate(-1), and the browser dispatches popstate
     // asynchronously — getBy would race it and pass only when the suite happens to run fast.
+    // Settings isn't one of TODO #4's "always Home" pages, so Back retraces history to Profile.
     await user.click(screen.getByRole('button', { name: 'Back' }))
-    expect(await screen.findByText('Ads')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Profile' })).toBeInTheDocument()
   })
 
   it('routes every nav bar button to a real page', async () => {

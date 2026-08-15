@@ -1,25 +1,30 @@
 import { ROUTES } from '../routes'
 
-export type NavKey = 'wallet' | 'profile' | 'community' | 'trades' | 'inventory' | 'home' | 'settings'
+export type NavKey = 'wallet' | 'profile' | 'home' | 'community' | 'trades' | 'inventory'
 
 export interface NavItem {
   key: NavKey
   label: string
-  icon: string
+  /** No icon for Hours (TODO #4) — its big "10h15m"-style number reads on its own, so this is
+   *  optional and simply omitted for that one item. */
+  icon?: string
   path: string
+  /** Roughly twice the width of a regular item — Hours needs the room for "10h15m", not just a
+   *  couple of digits (TODO #4: "time part doesn't need to be a square ... it can take up 2
+   *  positions"). */
+  wide?: boolean
 }
 
-/** The nav bar's buttons, in the order the Appkarte §3 lists them. */
+/** The nav bar's buttons (TODO #4 reworks the Appkarte §3 list): Settings has moved off the bar
+ *  entirely — it's reachable from Profile's own header instead (see ProfilePage) — and Home now
+ *  sits in the middle of what's left, rather than at the end. */
 export const NAV_ITEMS: NavItem[] = [
-  { key: 'wallet', label: 'Hours', icon: '⏱️', path: ROUTES.wallet },
+  { key: 'wallet', label: 'Hours', path: ROUTES.wallet, wide: true },
   { key: 'profile', label: 'Profile', icon: '👤', path: ROUTES.profile },
+  { key: 'home', label: 'Home', icon: '🏠', path: ROUTES.home },
   { key: 'community', label: 'Community', icon: '👥', path: ROUTES.community },
   { key: 'trades', label: 'Trades', icon: '🔄', path: ROUTES.trades },
   { key: 'inventory', label: 'Inventory', icon: '📦', path: ROUTES.inventory },
-  { key: 'home', label: 'Home', icon: '🏠', path: ROUTES.home },
-  // Not in the Appkarte's nav list (Settings sits behind Profile there) — kept on the bar from
-  // the previous prototype pass, since it's the fastest way to reach the grid-size switch.
-  { key: 'settings', label: 'Settings', icon: '⚙️', path: ROUTES.settings },
 ]
 
 /** Which nav button should read as current for a given URL.

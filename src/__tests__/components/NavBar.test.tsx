@@ -15,13 +15,25 @@ function renderNavBar({ collapsible = false, route = '/' } = {}) {
 }
 
 describe('NavBar', () => {
-  it('renders all seven nav items and marks the one matching the current URL', () => {
+  it('renders all six nav items and marks the one matching the current URL', () => {
     renderNavBar({ route: '/' })
 
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Profile' })).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('button', { name: 'Hours balance: 12, open wallet' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hours balance: 12h, open wallet' })).toBeInTheDocument()
+  })
+
+  it('keeps Settings off the bar — it lives inside Profile now (TODO #4)', () => {
+    renderNavBar({ route: '/' })
+    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument()
+  })
+
+  it('shows Hours as a big plain number with no icon (TODO #4)', () => {
+    renderNavBar()
+
+    const walletButton = screen.getByRole('button', { name: 'Hours balance: 12h, open wallet' })
+    expect(walletButton).toHaveTextContent('12h')
+    expect(walletButton.querySelector('.nav-bar__icon')).not.toBeInTheDocument()
   })
 
   it('keeps a section marked on its sub-pages', () => {
@@ -36,7 +48,7 @@ describe('NavBar', () => {
     await user.click(screen.getByRole('button', { name: 'Profile' }))
     expect(screen.getByTestId('location')).toHaveTextContent('/profile')
 
-    await user.click(screen.getByRole('button', { name: 'Hours balance: 12, open wallet' }))
+    await user.click(screen.getByRole('button', { name: 'Hours balance: 12h, open wallet' }))
     expect(screen.getByTestId('location')).toHaveTextContent('/wallet')
   })
 })

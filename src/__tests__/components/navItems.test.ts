@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { NAV_ITEMS, activeNavKey } from '../../components/navItems'
 
 describe('NAV_ITEMS', () => {
-  it('lists the Appkarte §3 buttons in order, plus Settings', () => {
+  it('lists the nav bar buttons with Home in the middle and Settings off the bar (TODO #4)', () => {
     expect(NAV_ITEMS.map((item) => item.key)).toEqual([
       'wallet',
       'profile',
+      'home',
       'community',
       'trades',
       'inventory',
-      'home',
-      'settings',
     ])
+  })
+
+  it('gives only Hours the wide slot and no icon', () => {
+    expect(NAV_ITEMS.filter((item) => item.wide).map((item) => item.key)).toEqual(['wallet'])
+    expect(NAV_ITEMS.find((item) => item.key === 'wallet')?.icon).toBeUndefined()
   })
 })
 
@@ -32,5 +36,6 @@ describe('activeNavKey', () => {
 
   it('returns null on a page that has no nav button', () => {
     expect(activeNavKey('/ads/ad-1')).toBeNull()
+    expect(activeNavKey('/settings')).toBeNull()
   })
 })

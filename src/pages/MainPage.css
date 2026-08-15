@@ -13,6 +13,10 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* The nav bar floats over the page now instead of taking its own row (TODO #4), so this bottom
+   * margin is reserved by hand — otherwise the last row of "Your offers" tiles would sit behind
+   * it. */
+  padding-bottom: var(--nav-bar-height);
 }
 
 /* The status line and the stand-in wallet sheet that used to live here are gone — every target
