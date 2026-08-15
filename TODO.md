@@ -9,7 +9,7 @@
         -skipp still possible for now.
     2.2.Add friends: DONE (PR #11)
         -add a input box for copying an friend/community link.
-    2.3.Verify your identity:
+    2.3.Verify your identity: DONE (PR #12)
         -generate a random 5 digit number called verification code
         -show the code and the instructions for the verification process.
         -make the code fairly big.

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { SkippablePlaceholderStep } from './SkippablePlaceholderStep'
 import { StepCustomize } from './StepCustomize'
 import { StepFriends } from './StepFriends'
 import { StepIntro } from './StepIntro'
 import { StepSkills } from './StepSkills'
+import { StepVerify } from './StepVerify'
 
 const TOTAL_STEPS = 5 // skills, friends, verify, intro, customize
 
@@ -36,17 +36,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   }
 
   if (stepIndex === 2) {
-    return (
-      <SkippablePlaceholderStep
-        step={stepNumber}
-        totalSteps={TOTAL_STEPS}
-        title="Verify your identity"
-        description="Verified profiles build more trust when trading with others."
-        placeholder="Verification coming soon."
-        onNext={advance}
-        onSkip={advance}
-      />
-    )
+    return <StepVerify step={stepNumber} totalSteps={TOTAL_STEPS} onNext={advance} onSkip={advance} />
   }
 
   if (stepIndex === 3) {
