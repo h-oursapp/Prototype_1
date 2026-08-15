@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SkippablePlaceholderStep } from './SkippablePlaceholderStep'
 import { StepCustomize } from './StepCustomize'
+import { StepFriends } from './StepFriends'
 import { StepIntro } from './StepIntro'
 import { StepSkills } from './StepSkills'
 
@@ -31,17 +32,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   }
 
   if (stepIndex === 1) {
-    return (
-      <SkippablePlaceholderStep
-        step={stepNumber}
-        totalSteps={TOTAL_STEPS}
-        title="Add friends"
-        description="Invite people you know, or find them once your profile is public."
-        placeholder="Friend search coming soon."
-        onNext={advance}
-        onSkip={advance}
-      />
-    )
+    return <StepFriends step={stepNumber} totalSteps={TOTAL_STEPS} onNext={advance} onSkip={advance} />
   }
 
   if (stepIndex === 2) {
