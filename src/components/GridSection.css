@@ -7,19 +7,33 @@
   padding: 8px 16px;
 }
 
+/* Three columns — arrow slot, heading, arrow slot — so the heading always lands dead center
+ * (TODO #3: "make the ads, your offers [headings] to the middle") no matter which side's slot the
+ * arrow actually occupies. Only one of the two arrow slots is ever filled at once (arrowSide). */
 .grid-section__header {
   flex-shrink: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
   align-items: center;
-  justify-content: space-between;
+  column-gap: 8px;
   margin-bottom: 6px;
 }
 
 .grid-section__header h2 {
+  grid-column: 2;
+  text-align: center;
   font-size: 15px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.grid-section__header--arrow-left .grid-section__corner-arrow {
+  grid-column: 1;
+}
+
+.grid-section__header--arrow-right .grid-section__corner-arrow {
+  grid-column: 3;
 }
 
 .grid-section__corner-arrow {
@@ -53,4 +67,19 @@
   /* Gap scales a little with the frame's own size, but is always the same horizontally and
    * vertically — offers stay evenly, uniformly spaced. */
   gap: clamp(2px, 2cqw, 12px);
+}
+
+/* Name and rating overlaid on the tile's picture (TODO #3), the same convention SkillsPage uses
+ * for its own tiles — see SquareTile's `overlay` prop. */
+.grid-section__tile-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-section__grid .square-tile__overlay .star-rating {
+  font-size: 10px;
 }

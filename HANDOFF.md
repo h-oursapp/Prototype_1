@@ -5,6 +5,8 @@ Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branc
 again on branch `todo-9-13-inventory-trading` after building TODO #9–#13 (Inventory, Item,
 Trading, Trades, the trading-process status pipeline) and then reworking Inventory and Trading
 again across several rounds of direct feedback once they were actually clicked through; updated
+again 2026-08-15 on branch `todo-3-4-home-navbar` after building TODO #3–#4 (Home's grids and
+swipe gestures, the nav bar's rework into a floating bar).
 again 2026-08-15, first on branch `todo-3-4-home-navbar` after building TODO #3–#4 (Home's grids
 and swipe gestures, the nav bar's rework into a floating bar — that PR is open as #8, not yet
 merged when this branch split off), then on branch `todo-1-login` after building TODO #1 (Login's
@@ -51,12 +53,28 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
+npm run test        40 files, 278 tests, all passing
 npm run test        38 files, 254 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
+This session (branch `todo-3-4-home-navbar`) built **TODO #3–#4** end to end — Home's two grids
+centred with side-matched corner arrows and left/right swipe gestures, a "create new offer" tile,
+name+rating overlays on every tile; and the nav bar reworked into a floating, edge-to-edge bar with
+gridlines, Home recentred, Settings removed (already reachable from Profile), Hours rendered as a
+plain `10h15m`-style number, and the back button's new "top-level pages always go Home" rule. New
+small pure-logic modules: `formatHours.ts` (the `10h15m` formatter), `topLevelRoutes.ts` (the
+back-button rule's page list), and `isSwipeLeft`/`isSwipeRight` added alongside the existing
+`isSwipeUp` in `swipe.ts` — all unit-tested on their own, same convention as `navItems.ts`.
+
+**Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end —
+Inventory reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see
+below), Trades gaining search/filter/sort, and a real session-local trade-status pipeline
+(Accept/Decline, Quick Buy). New shared pieces: `PagedGrid` (the paged, always-square grid both
+Inventory and Trading's rows now use), `TransferBox` (the "build an offer" box Inventory and Skills
+share), and `TradeDraftContext` (see §8 — the one piece of cross-page state this prototype now has).
 This branch (`todo-1-login`, split from `main` — **not** stacked on the still-open TODO #3–#4 PR)
 built **TODO #1**: `LoginPage` gained Email and Password fields above the Log in button. They're
 plain, *uncontrolled* inputs — no `useState` — because nothing reads their values yet (there's no
@@ -131,13 +149,18 @@ src/
 
   components/              reusable across pages
     PageShell.tsx/.css     the frame every page uses except Home. `compactTitle` shrinks the
-                           header's <h1> for a page that's already tight on room (Trading)
-    NavBar.tsx/.css        bottom nav, self-navigating
+                           header's <h1> for a page that's already tight on room (Trading).
+                           Its back button uses topLevelRoutes.ts (below) — TODO #4
+    topLevelRoutes.ts      isTopLevelRoute() — pure, unit-tested; the "back always goes Home
+                           from here" page list (TODO #4), pulled out of PageShell.tsx so that
+                           file can keep exporting only its component (Fast Refresh lint rule)
+    NavBar.tsx/.css        bottom nav, self-navigating, floating (TODO #4)
     navItems.ts            nav list + activeNavKey() — pure, unit-tested
     useAutoCollapse.ts     the §3 nav auto-collapse timer
     GridSection.tsx        a titled grid of tiles (used by Home) — square-only, capped, links away
-                           to a scrolling page on overflow. See PagedGrid below for the sibling
-                           this is deliberately *not* merged with
+                           to a scrolling page on overflow, name+rating tile overlay, optional
+                           "create new" tile. See PagedGrid below for the sibling this is
+                           deliberately *not* merged with
     PagedGrid.tsx/.css     a non-scrollable, *paged* grid: Inventory's item grid and every row on
                            Trading (skills, the trading table) — see §8
     SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
@@ -158,7 +181,8 @@ src/
   trading/                 TradeDraftContext + useTradeDraft — see §8. The *only* piece of
                            cross-page state in this prototype; everything else is page-local
 
-  utils/swipe.ts           swipe-gesture maths, pure
+  utils/swipe.ts           swipe-gesture maths, pure — isSwipeUp/isSwipeLeft/isSwipeRight (TODO #3)
+  utils/formatHours.ts     formatHoursBalance() — the nav bar's "10h15m" formatter (TODO #4), pure
 
   __tests__/               mirrors src/ exactly
     helpers/renderWithRouter.tsx
@@ -267,6 +291,12 @@ new page has to remember to pass them. This way a new page gets working navigati
 logic that's easy to get subtly wrong (`/trades/7/review` must still light up "Trades", and `/`
 must match only exactly, or its prefix matches every URL in the app).
 
+**The bar floats now, instead of taking its own row (TODO #4).** `.nav-bar` is `position: fixed;
+left: 0; right: 0; bottom: 0`, so it no longer reserves layout space — every page adds
+`padding-bottom: var(--nav-bar-height)` (a token in `index.css`) to get that space back for
+content instead. Picked over a "floating pill" (inset on all sides) because Márk asked for
+edge-to-edge specifically when given the choice between the two.
+
 ### `PageShell` — the frame
 
 Every page except Home renders inside it:
@@ -279,6 +309,14 @@ Every page except Home renders inside it:
 
 It provides the header with a back button, the single scrolling content area, and the nav bar.
 The header and the nav bar stay fixed; only `.page-shell__content` scrolls.
+
+**The back button isn't always ordinary browser-back (TODO #4).** From a page one tap from Home —
+Wallet, Profile, Trades, Inventory, Home, Your offers, Search — Back always goes Home regardless of
+history; everywhere else (an ad, a skill, an item, Trading, Settings, ...) it's the ordinary
+one-step `navigate(-1)`. The page list lives in `topLevelRoutes.ts` as `isTopLevelRoute()`, a pure
+function `PageShell` calls, kept in its own file rather than inline so it stays unit-testable and
+so `PageShell.tsx` keeps exporting only the component (a file mixing component and non-component
+exports breaks React Fast Refresh — that's an ESLint rule, not a style opinion).
 
 **Home is the deliberate exception.** `MainPage` renders `<NavBar>` directly instead. Two reasons:
 its square grids need a definite page height, which `PageShell`'s padded scrolling content removes;
@@ -575,9 +613,6 @@ Known collisions, by TODO section:
 
 | TODO | Wants | Currently |
 | --- | --- | --- |
-| 3 Home | Ads/your-offers centred; arrows repositioned and flipped; swipe left/right → offers/search; "create offer" button in the last grid cell | Corner arrows → search/offers; swipe **up** → wallet |
-| 4 Nav bar | Home in the middle; **Settings removed** (lives in Profile); hours as plain `10h15m`; nav bar **floating** so content gets the space; gridlines between items | Settings is on the bar (`navItems.ts` has a comment defending it — that comment is now overruled); home is 6th of 7; nav bar occupies layout space |
-| 4 Nav bar | Back button goes **home** from top-level pages, default behaviour elsewhere | `PageShell` always calls `navigate(-1)` |
 | 8 Offers | Other people's ads are renamed **"offers"** | `/offers` currently means *your* offers, and `/ads/:adId` is theirs — this rename collides head-on with existing route names. **Agree the naming before starting.** |
 | 8 Offers | Items get a **condition rating** (1 = scrap, 5 = as-new), including during creation | `Offer` has no condition field |
 
@@ -589,6 +624,17 @@ logs in unconditionally. The logo TODO #1 also asks for was already built.
 Skills grid rework (grid-size columns, uncapped rows, data overlaid on the tile), the add-a-skill
 flow moved to the new Skill page, and the Skill page itself (view/edit/create, per-skill reviews, a
 link to that skill's reviewed trades).
+
+**TODO #3, #4 are done** (this session): Home's Ads/Your-offers headings centred with matching
+corner-arrow side and swipe direction (right arrow + swipe-left-to-right → Your offers; left arrow
++ swipe-right-to-left → Search — see `MainPage.tsx`'s doc comment for the reasoning if this reads
+backwards from what you pictured), a "create new offer" tile that lands in Your offers' last grid
+cell, and name+rating tile overlays. The nav bar now floats (`position: fixed`, no longer reserving
+layout space — every page compensates with the new `--nav-bar-height` padding token), Home sits in
+the middle of the remaining six items, Settings is off the bar, Hours renders as a plain
+`formatHoursBalance()`-formatted number (`"12h"` / `"10h15m"`) in a double-width slot with no icon,
+gridlines sit between items, and `PageShell`'s back button now calls the new `isTopLevelRoute()`
+check (`topLevelRoutes.ts`) to decide Home-vs-ordinary-back.
 
 **TODO #9, #10, #11, #12, #13 are done** (this session): Inventory reworked into a non-scrollable
 paged grid with shelves fully out of scope; a new Item page (view/edit/create, public/private

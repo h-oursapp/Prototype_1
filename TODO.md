@@ -27,7 +27,7 @@
         -add a buttton to chose a picture from your phone.
         -skippable
     
-3.Home:
+3.Home: DONE (PR #8)
     -make the ads, your offers to the middle
     -change the arrow on the button to point to the right.
     -put the arrow button on the left and make it point to the left.
@@ -36,7 +36,7 @@
     -after the last of your offers or in the last grid space make a button to create new offer.
     -overlay the tiles with the name of the offer and the rating.
 
-4.Nav bar:
+4.Nav bar: DONE (PR #8)
     -put home in the middle
     -remove settings from the nav bar, it is present inside the profile.
     -make the hours just big numbers no need for an icon. exp.: 10h15m

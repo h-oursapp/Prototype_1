@@ -22,6 +22,10 @@
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --corner-cut: 8px;
+  /* The nav bar floats over every page now (TODO #4) instead of taking its own row, so this is
+   * how much bottom space each page reserves by hand instead — kept in one place since the bar's
+   * own CSS and every page that pads around it both need the same number. */
+  --nav-bar-height: 64px;
   /* Shared chamfer shapes: a small straight cut on every corner, or on just the top two (for
    * elements anchored to the bottom edge, like the nav bar). Referenced via clip-path, not
    * border-radius, everywhere in the app that wants this look. */

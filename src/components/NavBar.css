@@ -1,11 +1,21 @@
+/* Floats over the page instead of taking its own row (TODO #4: "the nav bar place is blocked ...
+ * make it so it gives back the space for the content") — pages add bottom padding sized to
+ * --nav-bar-height (index.css) so nothing sits hidden behind it. */
 .nav-bar {
-  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  min-height: var(--nav-bar-height);
   display: flex;
   justify-content: space-between;
   gap: 2px;
   border-top: 1px solid var(--border);
   background: var(--surface);
   padding: 8px 4px;
+  box-shadow: 0 -2px 8px var(--shadow);
 
   /* Only the top corners are cut — the bar is anchored to the bottom edge, so its bottom corners
    * are never visible anyway. */
@@ -25,6 +35,18 @@
 
   /* Same small straight corner cut as the rest of the app's buttons. */
   clip-path: var(--chamfer);
+}
+
+/* A thin divider between adjacent buttons (TODO #4: "put some grid lines between the nav bar
+ * items"). Skipped before the first item, so the bar's own left edge doesn't get one too. */
+.nav-bar__item + .nav-bar__item {
+  border-left: 1px solid var(--border);
+}
+
+/* Hours needs roughly twice the room to show "10h15m" without wrapping or truncating
+ * (TODO #4: "time part ... can take up 2 positions"). */
+.nav-bar__item--wide {
+  flex: 2;
 }
 
 .nav-bar__item:hover {
@@ -49,12 +71,25 @@
   white-space: nowrap;
 }
 
-/* The floating corner button the bar collapses into away from Home (Appkarte §3). It replaces
- * the bar rather than sitting on top of it, so it takes the bar's place in the page's flex
- * column and the content above keeps the same amount of room either way. */
+/* Hours reads as a big plain number rather than an icon plus a tiny label (TODO #4: "make the
+ * hours just big numbers, no need for an icon"). */
+.nav-bar__label--hours {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nav-bar__item.is-active .nav-bar__label--hours {
+  color: var(--brand-primary);
+}
+
+/* The floating corner button the bar collapses into away from Home (Appkarte §3). Fixed in place
+ * for the same reason the full bar is — it never reserves layout space, collapsed or not. */
 .nav-bar__reopen {
-  flex-shrink: 0;
-  align-self: flex-end;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
