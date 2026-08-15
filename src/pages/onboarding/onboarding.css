@@ -135,3 +135,59 @@
 .onboarding-step__skill-remove:hover {
   color: var(--text);
 }
+
+/* ---------- StepFriends' invite-link copy box (TODO #2.2) ---------- */
+
+.onboarding-step__field {
+  margin-bottom: 16px;
+}
+
+.onboarding-step__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.onboarding-step__copy-row {
+  display: flex;
+  gap: 8px;
+}
+
+.onboarding-step__input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.onboarding-step__input:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
+}
+
+.onboarding-step__copy {
+  padding: 10px 16px;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--brand-primary);
+  clip-path: var(--chamfer);
+  white-space: nowrap;
+}
+
+.onboarding-step__copy:hover {
+  background: var(--brand-primary-deep);
+}
+
+.onboarding-step__copied {
+  margin: 8px 0 0;
+  padding: 8px;
+  font-size: 13px;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  clip-path: var(--chamfer);
+}

@@ -1,6 +1,11 @@
 /** Placeholder social data for the Community page (§9): friends list, blocked persons, and the
  *  message board. */
 
+/** TODO #2.2: a stand-in invite link the onboarding "Add friends" step lets you copy. Doesn't
+ *  resolve anywhere real — there's no invite/referral backend in this prototype, only the copy
+ *  box the TODO actually asks for. */
+export const MOCK_INVITE_LINK = 'https://h-ours.app/invite/mark-nemeth'
+
 export interface Friend {
   id: string
   name: string

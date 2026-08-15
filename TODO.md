@@ -7,7 +7,7 @@
         -add here the a skill page.
         -continue should be disabled till there is one skill atleast.
         -skipp still possible for now.
-    2.2.Add friends:
+    2.2.Add friends: DONE (PR #11)
         -add a input box for copying an friend/community link.
     2.3.Verify your identity:
         -generate a random 5 digit number called verification code

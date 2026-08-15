@@ -5,10 +5,11 @@ Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branc
 again on branch `todo-9-13-inventory-trading` after building TODO #9–#13 (Inventory, Item,
 Trading, Trades, the trading-process status pipeline) and then reworking Inventory and Trading
 again across several rounds of direct feedback once they were actually clicked through. Updated
-three more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
+four more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
 check in after each" call this session: `todo-3-4-home-navbar` (TODO #3–#4: Home's grids and swipe
 gestures, the nav bar's rework into a floating bar), `todo-1-login` (TODO #1: Login's email/password
-fields), and `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step).
+fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step), and
+`todo-2-2-onboarding-friends` (TODO #2.2: onboarding's real "Add friends" step).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -51,13 +52,13 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        42 files, 303 tests, all passing
+npm run test        43 files, 307 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-This calendar session (2026-08-15) shipped three small, independently-branched-and-PR'd TODO
+This calendar session (2026-08-15) shipped four small, independently-branched-and-PR'd TODO
 points in sequence, per Márk's "one at a time, check in after each" call — each is its own PR
 rather than one large diff:
 
@@ -79,6 +80,12 @@ rather than one large diff:
   (`SkillChooser`/`SkillForm`, now exported from there) rather than a second picker. Continue is
   disabled until at least one skill has been added; Skip stays available regardless. See §8 for why
   this needed the app's first-ever generated id (`crypto.randomUUID()`, in the new `skillDraft.ts`).
+- **TODO #2.2** (branch `todo-2-2-onboarding-friends`): onboarding's "Add friends" step is now real
+  too — a read-only field holding a stand-in invite link (`MOCK_INVITE_LINK` in `mockCommunity.ts`)
+  plus a Copy button, since "an input box for copying a friend/community link" is the entire TODO
+  sentence and nothing more was asked for. The copy action is injected as an optional `copyLink`
+  prop defaulting to the real Clipboard API, so tests supply a plain mock instead of fighting
+  jsdom's partial, getter-only `navigator.clipboard`.
 
 **Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end —
 Inventory reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see
@@ -161,9 +168,10 @@ src/
     TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills — see §8
 
   pages/                   one folder-less file per screen, plus its .css
-    onboarding/            multi-step onboarding, split into step components — StepSkills.tsx is
-                           the real "Add your skills" step (TODO #2.1), the other placeholder
-                           steps stay in OnboardingPage.tsx itself, one `if` per step index
+    onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
+                           (TODO #2.1) and StepFriends.tsx (TODO #2.2) are real steps now; the
+                           remaining placeholder steps stay in OnboardingPage.tsx itself, one `if`
+                           per step index
     skillDraft.ts          SkillDraft type + its pure helpers (catalogDraft, findProblem,
                            matchingCatalogEntries, toSkill, ...) — pulled out of SkillPage.tsx so
                            StepSkills can reuse the exact same validation/search/proof-gate logic
@@ -333,7 +341,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | Route | Page | Appkarte | Notes |
 | --- | --- | --- | --- |
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). Method is `[OFFEN]` |
-| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable. Skills step is real (TODO #2.1); friends/verify/photo are still placeholders |
+| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable. Skills (TODO #2.1) and friends (TODO #2.2) steps are real; verify/photo are still placeholders |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
 | `/search` | SearchPage | §4 | Filters + a placeholder map |
@@ -450,6 +458,22 @@ this prototype already keeps, just with one more visible consequence (skills you
 show up on Profile/Skills afterwards). That gap is real, not hidden: it's the same kind of thing
 §13 already tracks for other pages.
 
+### TODO #2.2 (this session)
+
+**The Copy action is injected as a prop (`copyLink`), not called on `navigator.clipboard` directly
+inside the component.** `StepFriends`'s default is the real Clipboard API
+(`(link) => navigator.clipboard.writeText(link)`), but jsdom's own `navigator.clipboard` turned out
+to be a getter with no setter — `Object.assign`/`Object.defineProperty` onto it either threw or
+silently didn't take effect, the kind of test-environment fight that isn't worth winning. Accepting
+the copy function as an optional prop sidesteps it entirely: tests pass a plain `vi.fn()`, the real
+app gets the real API for free from the default parameter. The same shape would be worth reaching
+for again anywhere else a browser API resists mocking.
+
+**"An input box for copying a friend/community link" is taken literally — one field, one button.**
+No QR code, no share sheet, no per-friend links, no way to regenerate the link: none of that is in
+the TODO's one sentence, so none of it is built. `MOCK_INVITE_LINK` is a single fixed string in
+`mockCommunity.ts`, not tied to `MOCK_PROFILE` or generated per session.
+
 ### TODO #9–#13 (this session)
 
 **`PagedGrid` is a new, separate component from `GridSection`, not a rewrite of it.** Both lock a
@@ -563,7 +587,7 @@ All of it lives in `src/data/`. No component invents its own.
 | `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill` (now incl. `description`, `reviewRating`), `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `findSkill`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS`, `reviewsForSkill()` |
 | `mockTrades.ts` | `TradeStatus`, `Trade` (incl. `partnerHours`, `skillId?`, now `lastInteractionAt` — a real ISO date, `lastInteraction` stays as display prose — and `hasUnreadMessage?`), `ChatMessage`, `MOCK_TRADES` (6), `findTrade`, `canRespondToOffer()`, `statusAfterAccept()` — the TODO #13 status-pipeline helpers |
 | `mockInventory.ts` | `InventoryItem` (`isPublic`, `description?` — **`shelf` is gone, see §8**), yours (8) + partner's (5, one private), `publicItems()`, `findItem()` |
-| `mockCommunity.ts` | `Friend` (7), `BlockedPerson` (2), `BoardPost` (4) |
+| `mockCommunity.ts` | `Friend` (7), `BlockedPerson` (2), `BoardPost` (4), `MOCK_INVITE_LINK` (TODO #2.2) |
 
 **Adding a required field to `Offer`, `Skill`, or `Trade` breaks test factories.** They build objects
 by hand. `tsc --noEmit` will tell you exactly where.
@@ -646,9 +670,12 @@ logs in unconditionally. The logo TODO #1 also asks for was already built.
 
 **TODO #2.1 is done** (branch `todo-2-1-onboarding-skills`): onboarding's "Add your skills" step
 reuses `SkillPage`'s own catalogue/custom-skill/proof-gate flow (see §8) instead of a placeholder;
-Continue is disabled until at least one skill has been added, Skip still always works. TODO #2's
-other four sub-steps (friends, verify, how-it-works video, profile picture) are still placeholders
-or (how-it-works) a static illustration — none of those were in this round's scope.
+Continue is disabled until at least one skill has been added, Skip still always works.
+
+**TODO #2.2 is done** (branch `todo-2-2-onboarding-friends`): onboarding's "Add friends" step shows
+a read-only invite-link field and a Copy button (see §8) instead of a placeholder. TODO #2's
+remaining three sub-steps (verify, how-it-works video, profile picture) are still placeholders or
+(how-it-works) a static illustration — none of those were in this round's scope.
 
 **TODO #3, #4 are done** (branch `todo-3-4-home-navbar`): Home's Ads/Your-offers headings centred
 with matching corner-arrow side and swipe direction (right arrow + swipe-left-to-right → Your
