@@ -1,4 +1,4 @@
-1.Login:
+1.Login: DONE (PR #9)
     -add email and passwrod fields, not funcionality yet.
     - add the hours logo.
 

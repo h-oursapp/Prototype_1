@@ -4,7 +4,11 @@ Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branc
 `todo-5-6-7-profile-skills-skill` after building TODO #5–#7 (Profile, Skills, Skill); updated
 again on branch `todo-9-13-inventory-trading` after building TODO #9–#13 (Inventory, Item,
 Trading, Trades, the trading-process status pipeline) and then reworking Inventory and Trading
-again across several rounds of direct feedback once they were actually clicked through.
+again across several rounds of direct feedback once they were actually clicked through; updated
+again 2026-08-15, first on branch `todo-3-4-home-navbar` after building TODO #3–#4 (Home's grids
+and swipe gestures, the nav bar's rework into a floating bar — that PR is open as #8, not yet
+merged when this branch split off), then on branch `todo-1-login` after building TODO #1 (Login's
+email/password fields).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -47,13 +51,23 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        38 files, 252 tests, all passing
+npm run test        38 files, 254 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-This session (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end — Inventory
+This branch (`todo-1-login`, split from `main` — **not** stacked on the still-open TODO #3–#4 PR)
+built **TODO #1**: `LoginPage` gained Email and Password fields above the Log in button. They're
+plain, *uncontrolled* inputs — no `useState` — because nothing reads their values yet (there's no
+account system to check them against); adding state that does nothing would be the exact
+"premature abstraction" CLAUDE.md warns against. The Log in button's behaviour didn't change: it
+still calls `onLogin()` unconditionally, regardless of what's typed above it. Styled to match
+`AdForm`'s existing label/input convention (`AdDetailPage.tsx`) rather than inventing a new one.
+The h_OURs logo TODO #1 also asks for was already there (`/favicon.svg`, the purple mark) — no
+change needed.
+
+**Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end — Inventory
 reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see below),
 Trades gaining search/filter/sort, and a real session-local trade-status pipeline (Accept/Decline,
 Quick Buy). New shared pieces: `PagedGrid` (the paged, always-square grid both Inventory and
@@ -282,7 +296,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 
 | Route | Page | Appkarte | Notes |
 | --- | --- | --- | --- |
-| `/login` | LoginPage | §2 | Method is `[OFFEN]` |
+| `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). Method is `[OFFEN]` |
 | `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
@@ -566,6 +580,10 @@ Known collisions, by TODO section:
 | 4 Nav bar | Back button goes **home** from top-level pages, default behaviour elsewhere | `PageShell` always calls `navigate(-1)` |
 | 8 Offers | Other people's ads are renamed **"offers"** | `/offers` currently means *your* offers, and `/ads/:adId` is theirs — this rename collides head-on with existing route names. **Agree the naming before starting.** |
 | 8 Offers | Items get a **condition rating** (1 = scrap, 5 = as-new), including during creation | `Offer` has no condition field |
+
+**TODO #1 is done** (branch `todo-1-login`): `LoginPage` has Email and Password fields, uncontrolled
+on purpose (see §2) since there's no account system yet to check them against; the button still
+logs in unconditionally. The logo TODO #1 also asks for was already built.
 
 **TODO #5, #6, #7 are done** (previous session): both ratings everywhere a skill appears, the
 Skills grid rework (grid-size columns, uncapped rows, data overlaid on the tile), the add-a-skill
