@@ -49,7 +49,7 @@ describe('OnboardingPage', () => {
     expect(screen.getByText('Verify your identity')).toBeInTheDocument()
   })
 
-  it('has no Skip button on the intro step, and Next leads to the customize step', async () => {
+  it('has no Skip button on the intro step, and Next leads to the profile-picture step (TODO #2.5)', async () => {
     const user = userEvent.setup()
     renderOnboarding()
 
@@ -60,17 +60,19 @@ describe('OnboardingPage', () => {
     expect(screen.queryByText('Skip')).not.toBeInTheDocument()
 
     await user.click(screen.getByText('Next'))
-    expect(screen.getByText('Make it yours')).toBeInTheDocument()
+    expect(screen.getByText('Add a profile picture')).toBeInTheDocument()
   })
 
   it('calls onComplete when Finish is pressed on the last step', async () => {
     const user = userEvent.setup()
     const onComplete = renderOnboarding()
 
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Next'))
+    await user.click(screen.getByText('Skip')) // skills
+    await user.click(screen.getByText('Skip')) // friends
+    await user.click(screen.getByText('Skip')) // verify
+    await user.click(screen.getByText('Next')) // intro -> profile picture
+    await user.click(screen.getByText('Skip')) // profile picture -> customize
+    expect(screen.getByText('Make it yours')).toBeInTheDocument()
     expect(onComplete).not.toHaveBeenCalled()
 
     await user.click(screen.getByText('Finish'))

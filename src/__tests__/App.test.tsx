@@ -16,10 +16,11 @@ beforeEach(() => {
 /** Login → skip the three skippable onboarding steps → Finish → Home. */
 async function signInAndFinishOnboarding(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Log in' }))
-  await user.click(screen.getByText('Skip'))
-  await user.click(screen.getByText('Skip'))
-  await user.click(screen.getByText('Skip'))
-  await user.click(screen.getByText('Next'))
+  await user.click(screen.getByText('Skip')) // skills
+  await user.click(screen.getByText('Skip')) // friends
+  await user.click(screen.getByText('Skip')) // verify
+  await user.click(screen.getByText('Next')) // intro -> profile picture (TODO #2.5)
+  await user.click(screen.getByText('Skip')) // profile picture -> customize
   await user.click(screen.getByText('Finish'))
 }
 
@@ -40,10 +41,11 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Log in' }))
 
     expect(screen.getByText('Add your skills')).toBeInTheDocument()
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Skip'))
-    await user.click(screen.getByText('Next'))
+    await user.click(screen.getByText('Skip')) // skills
+    await user.click(screen.getByText('Skip')) // friends
+    await user.click(screen.getByText('Skip')) // verify
+    await user.click(screen.getByText('Next')) // intro -> profile picture (TODO #2.5)
+    await user.click(screen.getByText('Skip')) // profile picture -> customize
 
     expect(screen.getByText('Make it yours')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '4 per row' }))

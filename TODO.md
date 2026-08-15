@@ -22,7 +22,7 @@
         -create a script that runs trough the motions of: home screen handling and trading, showing a full trade from clicking on the offer till the final review when the trade is closed.
         - we will need to record this as a video.
         -play the video here
-    2.5.Profile picture:
+    2.5.Profile picture: DONE (PR #13)
         -add a button to take a profile picture.
         -add a buttton to chose a picture from your phone.
         -skippable

@@ -5,12 +5,13 @@ Written 2026-08-14, on branch `scaffolding_prototype`; updated same day on branc
 again on branch `todo-9-13-inventory-trading` after building TODO #9–#13 (Inventory, Item,
 Trading, Trades, the trading-process status pipeline) and then reworking Inventory and Trading
 again across several rounds of direct feedback once they were actually clicked through. Updated
-five more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
+six more times on 2026-08-15, each its own small branch/PR per Márk's "one TODO point at a time,
 check in after each" call this session: `todo-3-4-home-navbar` (TODO #3–#4: Home's grids and swipe
 gestures, the nav bar's rework into a floating bar), `todo-1-login` (TODO #1: Login's email/password
 fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your skills" step),
-`todo-2-2-onboarding-friends` (TODO #2.2: onboarding's real "Add friends" step), and
-`todo-2-3-onboarding-verify` (TODO #2.3: onboarding's real "Verify your identity" step).
+`todo-2-2-onboarding-friends` (TODO #2.2: onboarding's real "Add friends" step),
+`todo-2-3-onboarding-verify` (TODO #2.3: onboarding's real "Verify your identity" step), and
+`todo-2-5-onboarding-photo` (TODO #2.5: onboarding's real "Add a profile picture" step).
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -53,13 +54,13 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        45 files, 314 tests, all passing
+npm run test        48 files, 324 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
 
-This calendar session (2026-08-15) shipped five small, independently-branched-and-PR'd TODO
+This calendar session (2026-08-15) shipped six small, independently-branched-and-PR'd TODO
 points in sequence, per Márk's "one at a time, check in after each" call — each is its own PR
 rather than one large diff:
 
@@ -97,6 +98,14 @@ rather than one large diff:
   nothing here is actually verified, per the TODO's own words. With this step done, all three of
   `SkippablePlaceholderStep`'s callers are gone, so it (and its now-orphaned
   `.onboarding-step__placeholder` CSS) were deleted rather than left unused.
+- **TODO #2.5** (branch `todo-2-5-onboarding-photo`): a new sixth onboarding step, "Add a profile
+  picture" — two buttons, "Take a picture" (camera capture) and "Choose from your phone" (the
+  system's normal file/photo picker), both previewing locally. This was the *second* real call
+  site for #2.3's photo-capture pattern, so the shared parts were pulled out on the strength of
+  that repetition (same bar `StarRating`/`TransferBox` were extracted at, see §8): `usePhotoCapture`
+  (the object-URL state + revoke-on-replace/unmount logic) and `PhotoPickerButton` (the hidden-file-
+  input-styled-as-a-button markup, `capture` prop toggling camera vs. picker). `StepVerify` now
+  uses both too, with no change to its own tests or rendered output.
 
 **Previous session** (branch `todo-9-13-inventory-trading`) built **TODO #9–#13** end to end —
 Inventory reworked into a non-scrollable paged grid, a new Item page, Trading reworked (twice — see
@@ -180,11 +189,18 @@ src/
 
   pages/                   one folder-less file per screen, plus its .css
     onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
-                           (TODO #2.1), StepFriends.tsx (TODO #2.2), and StepVerify.tsx (TODO
-                           #2.3) are real steps now; SkippablePlaceholderStep.tsx is gone (its
-                           last caller was replaced by StepVerify). 2.4 (StepIntro.tsx) still
-                           shows a static illustration standing in for its eventual video; 2.5
-                           isn't built yet
+                           (#2.1), StepFriends.tsx (#2.2), StepVerify.tsx (#2.3), and StepPhoto.tsx
+                           (#2.5) are real steps now, six total with StepIntro (#2.4, still a
+                           static illustration standing in for its eventual video) and
+                           StepCustomize (pre-existing, outside TODO's numbered list, kept last).
+                           Step order follows TODO.md's own 2.1–2.5 numbering.
+                           SkippablePlaceholderStep.tsx is gone — no callers left once verify
+                           became real
+    usePhotoCapture.ts     the object-URL "picked photo" state + revoke-on-replace/unmount logic,
+                           shared by StepVerify and StepPhoto (TODO #2.3/#2.5) — see §8
+    PhotoPickerButton.tsx  a styled button wrapping a hidden `<input type="file">`; its `capture`
+                           prop is the entire difference between "take a picture" and "choose from
+                           your phone" (TODO #2.5) — see §8
     skillDraft.ts          SkillDraft type + its pure helpers (catalogDraft, findProblem,
                            matchingCatalogEntries, toSkill, ...) — pulled out of SkillPage.tsx so
                            StepSkills can reuse the exact same validation/search/proof-gate logic
@@ -357,7 +373,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | Route | Page | Appkarte | Notes |
 | --- | --- | --- | --- |
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). Method is `[OFFEN]` |
-| `/onboarding` | OnboardingPage | §2 | Multi-step; most steps skippable. Skills (#2.1), friends (#2.2), and verify (#2.3) are real; profile-picture (#2.5) isn't built yet |
+| `/onboarding` | OnboardingPage | §2 | Six steps, most skippable. Skills (#2.1), friends (#2.2), verify (#2.3), and profile picture (#2.5) are all real; only #2.4's video is still a static illustration |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
 | `/search` | SearchPage | §4 | Filters + a placeholder map |
@@ -514,6 +530,32 @@ actually verify anything") argues against inventing a requirement the card never
 **`SkippablePlaceholderStep.tsx` is deleted, not left around unused.** It was skills/friends/verify's
 shared placeholder shape; once verify became this step, none of its three call sites remained.
 Its `.onboarding-step__placeholder` CSS went with it for the same reason.
+
+### TODO #2.5 (this session)
+
+**`usePhotoCapture` and `PhotoPickerButton` were extracted from `StepVerify`, not built fresh for
+`StepPhoto`.** TODO #2.3's photo-capture pattern (object-URL state, revoke-on-replace/unmount, a
+hidden file input styled as a button) was written once, for one call site, and left inline — the
+right call at the time, per this document's own "no premature abstraction" bar (`StarRating`,
+`TransferBox`). TODO #2.5 needing the *exact* same mechanics is what makes this the second real
+call site, so pulling the shared parts into `usePhotoCapture.ts` (the state/effect half) and
+`PhotoPickerButton.tsx` (the markup half) now clears that bar. `StepVerify` was refactored to use
+both; its own tests needed no changes, since its rendered output is identical.
+
+**`PhotoPickerButton`'s only real variable is the `capture` prop.** "Take a picture" vs. "choose
+from your phone" (TODO #2.5's two buttons) turned out to be the same `<input type="file">` with
+one HTML attribute present or absent — `capture="user"` jumps straight to the front camera, no
+`capture` at all opens the OS's normal photo/file picker. Not two mechanisms, one component.
+
+**The new step's position in the sequence follows TODO.md's own numbering, not insertion order.**
+`OnboardingPage` now has six steps: skills (#2.1) → friends (#2.2) → verify (#2.3) → how-it-works
+(#2.4) → profile picture (#2.5) → customize. `customize` ("Make it yours") predates TODO #2's
+numbered list entirely (an earlier session's own addition per the Appkarte), so it stays last
+rather than being reordered around #2.5.
+
+**Nothing chosen here reaches `MOCK_PROFILE`.** Same "nothing persists" honesty as #2.3's
+verification pic and every create/edit flow before it — `ProfilePage`'s avatar is still the fixed
+🙂 in `mockUser.ts` regardless of what's previewed during onboarding.
 
 ### TODO #9–#13 (this session)
 
@@ -718,9 +760,13 @@ a read-only invite-link field and a Copy button (see §8) instead of a placehold
 
 **TODO #2.3 is done** (branch `todo-2-3-onboarding-verify`): onboarding's "Verify your identity"
 step generates a big 5-digit code and a "Take a picture" button (a native file-input camera
-capture, see §8) instead of a placeholder; Continue is never gated on it. TODO #2's remaining two
-sub-steps (how-it-works video, profile picture) are still, respectively, a static illustration and
-not built at all — neither was in this round's scope.
+capture, see §8) instead of a placeholder; Continue is never gated on it.
+
+**TODO #2.5 is done** (branch `todo-2-5-onboarding-photo`): a new sixth onboarding step, "Add a
+profile picture", with both buttons the TODO asks for (see §8 for `usePhotoCapture`/
+`PhotoPickerButton`, shared with #2.3 now that this is a second real call site). TODO #2's only
+remaining gap is #2.4's video, which is still a static illustration — that one alone was flagged
+earlier this session as needing a real recorded asset, not code, and stays out of scope here too.
 
 **TODO #3, #4 are done** (branch `todo-3-4-home-navbar`): Home's Ads/Your-offers headings centred
 with matching corner-arrow side and swipe direction (right arrow + swipe-left-to-right → Your

@@ -1,6 +1,8 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useState } from 'react'
 import { generateVerificationCode } from '../../utils/verificationCode'
 import { OnboardingStepShell } from './OnboardingStepShell'
+import { PhotoPickerButton } from './PhotoPickerButton'
+import { usePhotoCapture } from './usePhotoCapture'
 
 interface StepVerifyProps {
   step: number
@@ -17,28 +19,11 @@ interface StepVerifyProps {
  *  The camera button is a plain `<input type="file" accept="image/*" capture="user">`, not a
  *  live `getUserMedia` feed — on a phone this already opens the OS's own camera app directly,
  *  which is simpler and more reliable than building and cleaning up a custom camera stream for a
- *  prototype that never checks the result against anything. */
+ *  prototype that never checks the result against anything. See PhotoPickerButton/usePhotoCapture,
+ *  shared with StepPhoto (TODO #2.5) once that became a second real call site for the same thing. */
 export function StepVerify({ step, totalSteps, onNext, onSkip }: StepVerifyProps) {
   const [code] = useState(generateVerificationCode)
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-
-  // The "verification pic" is only ever an object URL pointing at the browser's own memory —
-  // revoke the previous one whenever it's replaced or this step unmounts, so retaking the photo
-  // a few times doesn't leak memory for the rest of the tab's life.
-  useEffect(() => {
-    return () => {
-      if (photoUrl) URL.revokeObjectURL(photoUrl)
-    }
-  }, [photoUrl])
-
-  const handlePhotoChosen = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setPhotoUrl((current) => {
-      if (current) URL.revokeObjectURL(current)
-      return URL.createObjectURL(file)
-    })
-  }
+  const { photoUrl, choosePhoto } = usePhotoCapture()
 
   return (
     <OnboardingStepShell
@@ -54,16 +39,11 @@ export function StepVerify({ step, totalSteps, onNext, onSkip }: StepVerifyProps
         {code}
       </p>
 
-      <label className="onboarding-step__photo-button">
-        <input
-          className="onboarding-step__photo-input"
-          type="file"
-          accept="image/*"
-          capture="user"
-          onChange={handlePhotoChosen}
-        />
-        {photoUrl ? 'Retake picture' : 'Take a picture'}
-      </label>
+      <PhotoPickerButton
+        label={photoUrl ? 'Retake picture' : 'Take a picture'}
+        capture="user"
+        onChoose={choosePhoto}
+      />
 
       {photoUrl && (
         <div className="onboarding-step__photo-preview">
