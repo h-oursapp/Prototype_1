@@ -37,12 +37,16 @@ describe('OnboardingPage', () => {
     expect(screen.getByText('How h_OURs works')).toBeInTheDocument()
   })
 
-  it('advances via Continue just like Skip', async () => {
+  // TODO #2.1: unlike the other two skippable steps, the skills step's own Continue only
+  // advances once at least one skill has been added — see StepSkills.test.tsx for that gating in
+  // detail. This just confirms Continue still advances the overall sequence once it's enabled.
+  it('advances via Continue on the friends step, just like Skip', async () => {
     const user = userEvent.setup()
     renderOnboarding()
 
+    await user.click(screen.getByText('Skip')) // past the skills step
     await user.click(screen.getByText('Continue'))
-    expect(screen.getByText('Add friends')).toBeInTheDocument()
+    expect(screen.getByText('Verify your identity')).toBeInTheDocument()
   })
 
   it('has no Skip button on the intro step, and Next leads to the customize step', async () => {

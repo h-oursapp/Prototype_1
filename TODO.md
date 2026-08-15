@@ -3,7 +3,7 @@
     - add the hours logo.
 
 2.Onboarding:
-    2.1.Add your skills:
+    2.1.Add your skills: DONE (PR #10)
         -add here the a skill page.
         -continue should be disabled till there is one skill atleast.
         -skipp still possible for now.

@@ -10,6 +10,11 @@ interface OnboardingStepShellProps {
   primaryLabel: string
   onPrimary: () => void
   onSkip?: () => void
+  /** Disables the primary button and shows `primaryHint` beneath the actions row instead — so far
+   *  only the "Add your skills" step needs this (TODO #2.1: "continue should be disabled till
+   *  there is one skill at least"). Skip, when present, stays enabled regardless. */
+  primaryDisabled?: boolean
+  primaryHint?: string
 }
 
 export function OnboardingStepShell({
@@ -21,6 +26,8 @@ export function OnboardingStepShell({
   primaryLabel,
   onPrimary,
   onSkip,
+  primaryDisabled = false,
+  primaryHint,
 }: OnboardingStepShellProps) {
   return (
     <section className="onboarding-step">
@@ -41,10 +48,11 @@ export function OnboardingStepShell({
             Skip
           </button>
         )}
-        <button type="button" className="onboarding-step__primary" onClick={onPrimary}>
+        <button type="button" className="onboarding-step__primary" onClick={onPrimary} disabled={primaryDisabled}>
           {primaryLabel}
         </button>
       </div>
+      {primaryDisabled && primaryHint && <p className="onboarding-step__hint">{primaryHint}</p>}
     </section>
   )
 }
