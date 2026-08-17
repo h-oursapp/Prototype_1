@@ -46,7 +46,9 @@ describe('OffersPage', () => {
     expect(screen.getByRole('button', { name: /Web design/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Resume review/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Cupcake tin/ })).not.toBeInTheDocument()
-    expect(screen.getAllByText('Page 1 of 2')).toHaveLength(2)
+    // 12 offers in each section, 6 boxes per page at the default grid density: page 1 and 2 fill
+    // exactly, and the add-more prompt gets a third page of its own.
+    expect(screen.getAllByText('Page 1 of 3')).toHaveLength(2)
   })
 
   it('flips a section to the next page without moving the other section', async () => {
@@ -59,8 +61,8 @@ describe('OffersPage', () => {
     expect(screen.queryByRole('button', { name: /Web design/ })).not.toBeInTheDocument()
     // The item section stayed on its own first page.
     expect(screen.getByRole('button', { name: /Desk lamp/ })).toBeInTheDocument()
-    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument()
-    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
+    expect(screen.getByText('Page 2 of 3')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 of 3')).toBeInTheDocument()
   })
 
   it('flips back, and cannot flip past either end', async () => {
@@ -70,8 +72,10 @@ describe('OffersPage', () => {
     expect(screen.getByRole('button', { name: 'Previous page of skill offers' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Next page of skill offers' }))
+    await user.click(screen.getByRole('button', { name: 'Next page of skill offers' }))
     expect(screen.getByRole('button', { name: 'Next page of skill offers' })).toBeDisabled()
 
+    await user.click(screen.getByRole('button', { name: 'Previous page of skill offers' }))
     await user.click(screen.getByRole('button', { name: 'Previous page of skill offers' }))
     expect(screen.getByRole('button', { name: /Web design/ })).toBeInTheDocument()
   })
@@ -82,6 +86,8 @@ describe('OffersPage', () => {
 
     expect(screen.queryByRole('button', { name: 'Add more skill offers' })).not.toBeInTheDocument()
 
+    // Pages 1 and 2 are full (6 offers each); the prompt only appears once those 12 are behind us.
+    await user.click(screen.getByRole('button', { name: 'Next page of skill offers' }))
     await user.click(screen.getByRole('button', { name: 'Next page of skill offers' }))
     await user.click(screen.getByRole('button', { name: 'Add more skill offers' }))
 
@@ -101,8 +107,8 @@ describe('OffersPage', () => {
     storeGridSize(2)
     renderOffersPage()
 
-    // 2 per row x 2 rows = 4 boxes, so 8 skill offers plus the add prompt need three pages.
-    expect(screen.getAllByText('Page 1 of 3')).toHaveLength(2)
+    // 2 per row x 2 rows = 4 boxes, so 12 skill offers plus the add prompt need four pages.
+    expect(screen.getAllByText('Page 1 of 4')).toHaveLength(2)
     expect(screen.queryByRole('button', { name: /Event photography/ })).not.toBeInTheDocument()
   })
 })

@@ -7,34 +7,140 @@
   width: 100%;
 }
 
-.search-page__controls {
+/* TODO #13: the view changer used to live here as its own OptionGroup row; it now renders in
+ * PageShell's header via headerAction (see ViewToggle in SearchPage.tsx), so this wrapper just
+ * pairs the two icon buttons the same 4px apart that OptionGroup uses between its own buttons. */
+.search-page__view-toggle {
   display: flex;
-  flex-direction: column;
+  gap: 4px;
+}
+
+/* No wrapping <label> text above the field anymore (TODO #13's "search header") — the input
+ * carries its accessible name via aria-label instead, and this row just places the field and the
+ * small search button side by side. */
+.search-page__search-bar {
+  display: flex;
   gap: 8px;
 }
 
-/* OptionGroup carries its own bottom margin for stacked settings forms; here the flex gap already
- * spaces the rows. */
-.search-page__controls .option-group {
-  margin-bottom: 0;
-}
-
-.search-page__search {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-weight: 600;
-}
-
 .search-page__field {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 10px 12px;
   font: inherit;
-  font-weight: 400;
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
   clip-path: var(--chamfer);
+}
+
+.search-page__search-submit {
+  flex-shrink: 0;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--brand-primary);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.search-page__search-submit:hover {
+  background: var(--brand-tint);
+}
+
+/* TODO #13's filter row: three small buttons that always fit on one line — each one's own floating
+ * panel (below) is what used to be permanent, always-visible controls here. `position: relative`
+ * is what lets a panel anchor to this row instead of the whole page.
+ *
+ * No `overflow-x: auto` here even as a narrow-viewport safety net: `overflow` on either axis
+ * computes the *other* axis to `auto` too if it isn't already `visible` (CSS Overflow §3), and
+ * `overflow: auto` clips any descendant that paints outside this box — including the floating
+ * panel below, which is an absolutely-positioned descendant of this element and needs to paint
+ * well past its short, one-row height. That combination silently clipped the panel to invisible
+ * the first time this was written; the three buttons are short enough to fit at any width this
+ * app targets; a real overflow guard would need to live on a wrapper around just the buttons,
+ * a sibling of this element rather than this element itself. */
+.search-page__filters {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.search-page__filter-trigger {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+/* Says at a glance that this button no longer holds its default — same is-active idiom OptionGroup
+ * and PageShell's header actions already use elsewhere in the app. */
+.search-page__filter-trigger.is-active {
+  border-color: var(--brand-primary);
+  background: var(--brand-tint);
+  color: var(--brand-primary-deep);
+  font-weight: 600;
+}
+
+/* The "floating page" a filter button opens: anchored under the whole row rather than under just
+ * its own button, so it never has to worry about overflowing the right edge when it's the last
+ * button in the row that opened it. Only one is ever rendered at a time (SearchPage.tsx's
+ * `openFilter`), so they never have to stack or avoid each other. */
+.search-page__filter-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+  box-shadow: 0 8px 20px var(--shadow);
+}
+
+.search-page__filter-panel .option-group {
+  margin: 0;
+}
+
+.search-page__filter-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.search-page__filter-control input[type='range'] {
+  width: 100%;
+  accent-color: var(--brand-primary);
+}
+
+.search-page__filter-done {
+  display: block;
+  margin: 10px 0 0 auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.search-page__filter-done:hover {
+  background: var(--brand-tint);
 }
 
 .search-page__count {
@@ -43,63 +149,16 @@
   color: var(--text-muted);
 }
 
-/* §4: roughly half the space is the map, the other half the nearby hits. */
-.search-page__map-view {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  min-height: 280px;
-}
-
-.search-page__nearby,
-.search-page__map {
-  flex: 1 1 50%;
-  min-width: 0;
-}
-
-.search-page__nearby-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.search-page__hit {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  padding: 10px;
-  text-align: left;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.search-page__hit:hover {
-  background: var(--surface-alt);
-}
-
-.search-page__hit-title {
-  font-size: 14px;
-}
-
-.search-page__hit-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
 /* Dashed edge plus faux grid lines: reads as a map panel at a glance, and as unfinished on a
- * second look. */
+ * second look. TODO #13.1 puts this above the results grid rather than beside a separate list, so
+ * it's a fixed-height banner now instead of a 50%-width flex half. */
 .search-page__map {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-height: 160px;
   padding: 12px;
   text-align: center;
   border: 1px dashed var(--border);
@@ -162,4 +221,21 @@
 .search-page__result-meta {
   font-size: clamp(8px, 8cqw, 12px);
   color: var(--text-muted);
+}
+
+/* TODO #13: "show the rating ... in the upper right corner as for example: 5*". .square-tile is
+ * already `position: relative`, so this just pins to its corner rather than sharing the bottom
+ * overlay strip the name would otherwise use. */
+.search-page__result-rating {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 1px 5px;
+  font-size: clamp(8px, 8cqw, 11px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--brand-primary-deep);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
 }

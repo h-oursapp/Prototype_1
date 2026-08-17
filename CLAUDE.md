@@ -13,3 +13,4 @@
 - At the begining of the session ask me wich todo point are we working on.
 - When commited mark done TODO items.
 - When commited create a push requiest.
+- Skipp visual testing. Except when told spesificly.

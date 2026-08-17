@@ -1,48 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
+import { StarRatingInput } from '../components/StarRatingInput'
 import type { Trade } from '../data/mockTrades'
 import { TRADE_STATUS_LABEL, findTrade } from '../data/mockTrades'
 import { ROUTES } from '../routes'
 import './FinalReviewPage.css'
-
-/** Appkarte §8: ratings run 0–5★, so zero is a real choice and not just "nothing picked yet". */
-const RATING_VALUES = [0, 1, 2, 3, 4, 5]
-
-interface StarRatingProps {
-  /** Names the group and prefixes each star, so the two ratings on this page stay tellable apart. */
-  label: string
-  /** Groups the radios in the DOM — must differ per rating on the page. */
-  name: string
-  value: number
-  onChange: (value: number) => void
-}
-
-/** A 0–5★ rating built from real radio inputs: the browser then handles arrow-key selection and
- *  group semantics for free, and every star carries its number in its accessible name instead of
- *  being a bare ★ glyph a screen reader cannot read out. */
-function StarRating({ label, name, value, onChange }: StarRatingProps) {
-  return (
-    <fieldset className="final-review-page__rating">
-      <legend>{label}</legend>
-      <div className="final-review-page__stars">
-        {RATING_VALUES.map((rating) => (
-          <label key={rating} className={`final-review-page__star ${rating <= value ? 'is-active' : ''}`}>
-            <input
-              type="radio"
-              name={name}
-              checked={rating === value}
-              onChange={() => onChange(rating)}
-              aria-label={`${label}: Rate ${rating} out of 5`}
-            />
-            <span aria-hidden="true">{rating === 0 ? '0' : '★'}</span>
-          </label>
-        ))}
-      </div>
-      <p className="final-review-page__value">{value} of 5</p>
-    </fieldset>
-  )
-}
 
 interface TradeSummaryProps {
   trade: Trade
@@ -124,7 +87,7 @@ function FinalReviewForm({ trade }: FinalReviewFormProps) {
             <span aria-hidden="true">{trade.icon} </span>
             {trade.subject}
           </p>
-          <StarRating
+          <StarRatingInput
             label="Skill rating"
             name="skill-rating"
             value={skillRating}
@@ -147,7 +110,7 @@ function FinalReviewForm({ trade }: FinalReviewFormProps) {
             How the trade went as a person-to-person exchange: communication, punctuality,
             reliability. Kept separate from the skill rating above.
           </p>
-          <StarRating
+          <StarRatingInput
             label="Personal rating"
             name="personal-rating"
             value={personalRating}

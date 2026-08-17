@@ -29,18 +29,18 @@ describe('InventoryPage', () => {
     renderInventoryPage()
 
     expect(screen.getByRole('heading', { name: 'Inventory' })).toBeInTheDocument()
-    // Default grid size is 3 (settings/types.ts), so a 3x3 page has 9 cells — all 8 mock items
-    // fit on the first page, padded with one visibly empty cell (PagedGrid's `fill`/padding).
+    // Default grid size is 3 (settings/types.ts), so a 3x3 page has 9 cells — with 20 mock items
+    // now, the first page fills exactly (no empty padding cell; that only shows up on page 3).
     expect(grid().getByRole('button', { name: 'Acoustic guitar' })).toBeInTheDocument()
     expect(grid().getByRole('button', { name: 'Bread tin' })).toBeInTheDocument()
     expect(grid().getAllByRole('listitem')).toHaveLength(9)
-    expect(grid().getAllByRole('button', { name: /^[A-Z]/ })).toHaveLength(8)
+    expect(grid().getAllByRole('button', { name: /^[A-Z]/ })).toHaveLength(9)
   })
 
   it('says how much of the inventory a trading partner can see', () => {
     renderInventoryPage()
 
-    expect(screen.getByText(/6 of 8 items are visible to a trading partner/)).toBeInTheDocument()
+    expect(screen.getByText(/16 of 20 items are visible to a trading partner/)).toBeInTheDocument()
   })
 
   it('New shelf is a fully inert header icon, not a shelf-creation form', () => {

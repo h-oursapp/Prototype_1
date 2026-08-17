@@ -27,8 +27,9 @@ export interface Offer {
   conditionRating?: number
 }
 
-// Placeholder data for the prototype. 16 entries each so grid size 4 (a 4x4 grid) always has
-// enough to show.
+// Placeholder data for the prototype. At least 16 entries so grid size 4 (a 4x4 grid) always has
+// enough to show; the extra entries beyond that push distance and rating further apart, which is
+// what the Search page's range and minimum-rating filters (TODO #13) need to have something to do.
 export const MOCK_ADS: Offer[] = [
   { id: 'ad-1', title: 'Guitar lessons', icon: '🎸', kind: 'skill', hours: 2, distanceKm: 0.4, description: 'Learn the basics of guitar from a friendly neighbor.', rating: 5, reviewRating: 5 },
   { id: 'ad-2', title: 'Bike repair', icon: '🚲', kind: 'skill', hours: 1, distanceKm: 0.8, description: 'Get your bike tuned up and rolling again.', rating: 4, reviewRating: 4 },
@@ -46,6 +47,16 @@ export const MOCK_ADS: Offer[] = [
   { id: 'ad-14', title: 'Knitted scarf', icon: '🧶', kind: 'item', hours: 3, distanceKm: 2.7, description: 'Hand-knit scarves in any color.', rating: 4, conditionRating: 5 },
   { id: 'ad-15', title: 'Piano tuning', icon: '🎹', kind: 'skill', hours: 2, distanceKm: 3.6, description: 'Get your piano back in tune.', rating: 4, reviewRating: 4 },
   { id: 'ad-16', title: 'Home repairs', icon: '🔧', kind: 'skill', hours: 2, distanceKm: 1.4, description: 'Small fixes around the house.', rating: 3, reviewRating: 3 },
+  { id: 'ad-17', title: 'Furniture assembly', icon: '🔨', kind: 'skill', hours: 2, distanceKm: 0.3, description: 'Flat-pack furniture, built and levelled.', rating: 4, reviewRating: 4 },
+  { id: 'ad-18', title: 'Cake baking', icon: '🎂', kind: 'skill', hours: 2, distanceKm: 1.0, description: 'A custom cake for a birthday or party.', rating: 5, reviewRating: 5 },
+  { id: 'ad-19', title: 'Laptop repair', icon: '💻', kind: 'skill', hours: 3, distanceKm: 2.9, description: 'Diagnose and fix a slow or broken laptop.', rating: 4, reviewRating: 3 },
+  { id: 'ad-20', title: 'Used skateboard', icon: '🛹', kind: 'item', hours: 2, distanceKm: 3.3, description: 'A few scuffs, wheels still roll smooth.', rating: 3, conditionRating: 3 },
+  { id: 'ad-21', title: 'Moving boxes', icon: '📦', kind: 'item', hours: 1, distanceKm: 0.5, description: 'A bundle of used boxes, some tape residue.', rating: 2, conditionRating: 2 },
+  { id: 'ad-22', title: 'Haircut', icon: '💇', kind: 'skill', hours: 1, distanceKm: 1.6, description: 'A trim or a fresh style, your choice.', rating: 5, reviewRating: 5 },
+  { id: 'ad-23', title: 'Vintage lamp', icon: '💡', kind: 'item', hours: 2, distanceKm: 6.4, description: 'Working condition, a little wear on the base.', rating: 4, conditionRating: 4 },
+  { id: 'ad-24', title: 'Car detailing', icon: '🚙', kind: 'skill', hours: 3, distanceKm: 7.8, description: 'Interior and exterior clean, inside and out.', rating: 3, reviewRating: 3 },
+  { id: 'ad-25', title: 'Board game collection', icon: '🎲', kind: 'item', hours: 2, distanceKm: 4.5, description: 'Six family games, all pieces present.', rating: 5, conditionRating: 5 },
+  { id: 'ad-26', title: 'House cleaning', icon: '🧹', kind: 'skill', hours: 2, distanceKm: 9.1, description: 'A thorough clean, kitchen and bathrooms included.', rating: 2, reviewRating: 2 },
 ]
 
 // Deliberately a mix of both kinds, so the Offers page's skill and item sections are both
@@ -67,6 +78,14 @@ export const MOCK_YOUR_OFFERS: Offer[] = [
   { id: 'mine-14', title: 'Monitor stand', icon: '🖥️', kind: 'item', hours: 1, description: 'Simple wooden riser for a monitor.', rating: 3, conditionRating: 3 },
   { id: 'mine-15', title: 'Cupcake tin', icon: '🧁', kind: 'item', hours: 1, description: 'Twelve-cup tin, non-stick.', rating: 4, conditionRating: 4 },
   { id: 'mine-16', title: 'Drawing set', icon: '📐', kind: 'item', hours: 2, description: 'Compass, rulers and pencils in a case.', rating: 4, conditionRating: 4 },
+  { id: 'mine-17', title: 'Furniture painting', icon: '🖌️', kind: 'skill', hours: 2, description: 'Give an old piece a fresh coat and finish.', rating: 4, reviewRating: 4 },
+  { id: 'mine-18', title: 'Guitar restring', icon: '🎸', kind: 'skill', hours: 1, description: 'New strings fitted and tuned up.', rating: 5, reviewRating: 5 },
+  { id: 'mine-19', title: "Kids' bike", icon: '🚲', kind: 'item', hours: 3, description: 'Ages 5-7, recently serviced.', rating: 4, conditionRating: 4 },
+  { id: 'mine-20', title: 'Coffee table', icon: '🪵', kind: 'item', hours: 3, description: 'Solid wood, a couple of surface scratches.', rating: 3, conditionRating: 3 },
+  { id: 'mine-21', title: 'French tutoring', icon: '📚', kind: 'skill', hours: 2, description: 'Conversational practice, beginner to intermediate.', rating: 5, reviewRating: 5 },
+  { id: 'mine-22', title: 'Camping gear', icon: '⛺', kind: 'item', hours: 2, description: 'Tent, two sleeping bags, and a lantern.', rating: 4, conditionRating: 4 },
+  { id: 'mine-23', title: 'Dog sitting', icon: '🐶', kind: 'skill', hours: 4, description: 'A day of walks, feeding, and company.', rating: 5, reviewRating: 5 },
+  { id: 'mine-24', title: 'Vinyl records', icon: '💿', kind: 'item', hours: 2, description: 'A small crate, mostly jazz and folk.', rating: 4, conditionRating: 4 },
 ]
 
 /** Your own listings are the ones the Appkarte lets you edit; everything else is someone

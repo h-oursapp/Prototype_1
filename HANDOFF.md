@@ -15,7 +15,10 @@ fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your sk
 `todo-8-ad-offer` (TODO #8: Ad → Offer — ratings split by kind, the skill/item picker, wiring
 Skills/Inventory's transfer boxes to it, Quick Buy's hours prefill). Updated again on 2026-08-17 on
 branch `first-phone` — not a `TODO.md` point, but Márk's own request to get the app running on a
-phone; see the new subsection at the end of §2 for what that added and what's still open.
+phone; see the new subsection at the end of §2 for what that added and what's still open. Updated
+again same day on branch `todo-13-search` after building **TODO #13** (Search — see §2 for the
+full rundown), plus a larger mock-data expansion across `mockOffers.ts`/`mockInventory.ts`
+requested mid-session.
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -58,11 +61,53 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        48 files, 351 tests, all passing
+npm run test        48 files, 357 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-17, branch `todo-13-search`** built **TODO #13** (Search) end to end, plus a mock-data
+expansion Márk asked for mid-session:
+
+- **Search bar**: the visible "Search" label above the field is gone — the input's accessible name
+  now comes from `aria-label` alone — and a small submit button (🔍) sits to its right, both wrapped
+  in a `role="search"` `<form>` so Enter and the button do the same (currently no-op beyond the
+  live-as-you-type filtering that was already there) thing without a page reload.
+- **Filters became a one-row bar of three buttons** (kind / distance / minimum rating), each naming
+  its own current value ("All", "Any distance", "Min 4★"), rather than always-visible controls.
+  Tapping one opens a floating panel underneath the row with the real control; opening a different
+  one closes whichever was open (`FilterBar`'s single `openFilter` state, not three independent
+  booleans). The kind panel closes itself the moment you pick an option; distance and rating — both
+  adjusted rather than picked in one tap — wait for an explicit "Done" button instead. This was a
+  direct rework of the first pass, which had these same three filters permanently on-screen as a
+  slider row; see §8 for a CSS trap hit along the way that's worth reading before touching this
+  again.
+- **Minimum rating is a star picker, not a slider** — literally the same control Final Review uses
+  to *set* a rating, not a lookalike. Pulled out into a new shared component,
+  `components/StarRatingInput.tsx` (radio-group stars, 0 is a real "no minimum" choice same as
+  Final Review's "no rating yet"), once there were two real callers; `FinalReviewPage.tsx` was
+  refactored to use it too, so the two pickers can no longer drift apart from each other. The
+  read-only `components/StarRating.tsx` (the ★★★★☆ glyph-row display, used on Profile/Skills/Trades/
+  offer detail pages) is unrelated and unchanged — display and input stay two components on
+  purpose, per that file's own doc comment.
+- **Map view restructured** (TODO #13.1): the map placeholder now sits *above* the same results
+  grid the text view uses (columns from the grid-size setting), instead of a separate side-by-side
+  "nearby hits" list — that list component is gone. Both views sort/display through one
+  `ResultsGrid`; only the map view sorts it by distance first.
+- **Rating badge**: a compact `"N★"` pill pinned to a tile's top-right corner (`position: absolute`
+  on `.square-tile`'s existing positioned box), replacing a five-glyph star row that has no room to
+  spare at grid size. Same idea TODO #3 wants for Home's grid tiles — not done there yet, but this
+  is the pattern to reuse rather than reinvent when that's picked up.
+- **Scrolling**: no new code needed — `PageShell`'s content area already had `overflow-y: auto`, so
+  the page just grows with the result count.
+- **Mock data expansion** (Márk's mid-session ask, same branch): `MOCK_ADS` 16→26 entries,
+  `MOCK_YOUR_OFFERS` 16→24, `MOCK_YOUR_INVENTORY` 8→20, `MOCK_PARTNER_INVENTORY` 5→12 — wider
+  spread of distance/rating/public-private values so Search's new filters and Inventory's paging
+  have real variety to exercise. This shifted pagination math on two other pages that read the same
+  arrays (`OffersPage`'s section now runs 3–4 pages instead of 2–3 at the same grid densities;
+  `InventoryPage`'s first page is now a full 9 tiles instead of 8 + one empty) — both pages'
+  existing tests were updated to match, not the pages themselves.
 
 This calendar session (2026-08-15) shipped seven small, independently-branched-and-PR'd TODO
 points in sequence, per Márk's "one at a time, check in after each" call — each is its own PR
@@ -437,7 +482,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/onboarding` | OnboardingPage | §2 | Six steps, most skippable. Skills (#2.1), friends (#2.2), verify (#2.3), and profile picture (#2.5) are all real; only #2.4's video is still a static illustration |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
-| `/search` | SearchPage | §4 | Filters + a placeholder map |
+| `/search` | SearchPage | §4 | One-row filter bar opening floating panels (TODO #13); map view shows the placeholder map above the same results grid the text view uses |
 | `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
 | `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
 | `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8) |
@@ -810,6 +855,39 @@ locator from the destination page (`page.getByRole(...).waitFor()`) instead of t
 lesson: **when driving client-side routing with Playwright, wait for rendered content, not for the
 URL to match.**
 
+**A floating panel that was genuinely invisible, not a browser quirk — `overflow-x` alone clips
+both axes.** Search's filter panels (TODO #13) render as an absolutely-positioned child of
+`.search-page__filters`, which had `overflow-x: auto` on it as a speculative narrow-viewport safety
+net. That single declaration was enough to hide every panel completely: per CSS Overflow §3, setting
+`overflow` on one axis computes the *other* axis to `auto` too if it isn't already `visible` — so
+`overflow-y` silently became `auto` as well, and `overflow: auto` clips *any* descendant that paints
+outside the box, including an absolutely-positioned one whose whole point is to paint past its
+parent's own short height. The DOM was correct the whole time (`aria-expanded` flipped, the panel
+had a real bounding box, `elementFromPoint` even returned its button as topmost) — it was being
+clipped to invisible, not failing to render. Diagnosed by forcing a loud `background: red; z-index:
+99999` inline style, which *still* didn't show, ruling out z-index/paint-order before checking every
+ancestor's computed `overflow`. Fixed by deleting the `overflow-x: auto` outright — the row's three
+buttons already fit at any width this app targets — documented in `SearchPage.css`'s own comment.
+**General lesson: never add `overflow-x`/`overflow-y` to an element that also hosts an
+absolutely-positioned overlay meant to extend past it — put the overflow guard on a sibling wrapper
+around just the part that needs it instead.**
+
+**`StarRatingInput` (`components/`) is Final Review's own rating picker, moved out once Search
+needed the identical thing.** It used to be a small component defined locally inside
+`FinalReviewPage.tsx` (radio-group stars, §8's "0 is a real choice" rule). TODO #13's
+minimum-rating filter asked for "a star chooser like when creating a rating" — not a lookalike, the
+same control — so rather than duplicate the radio-group/CSS a second time, it moved to
+`components/StarRatingInput.tsx` once there were two real callers (the "wait for a second use before
+abstracting" bar this codebase already applies elsewhere, e.g. `TransferBox`, `usePhotoCapture`).
+`FinalReviewPage.tsx` now imports it instead of defining it; its own tests were untouched by the
+move since they query by role/label, not by the old `final-review-page__star*` class names (those
+moved to `StarRatingInput.css` and got their own `star-rating-input__*` names — nothing outside the
+component referenced the old ones). Don't confuse it with the pre-existing, unrelated
+`components/StarRating.tsx` — that one is the read-only ★★★★☆ *display* used on Profile/Skills/
+Trades/offer-detail pages; the two stay separate components on purpose, per that file's own doc
+comment, because a display and an input have different accessibility needs (a label read aloud vs.
+a real radio group).
+
 ---
 
 ## 9. Mock data
@@ -818,10 +896,10 @@ All of it lives in `src/data/`. No component invents its own.
 
 | File | Holds |
 | --- | --- |
-| `mockOffers.ts` | `Offer` (`kind: 'skill' \| 'item'`, `hours`, `distanceKm`, `rating`, now `reviewRating?` for skills and `conditionRating?` for items — TODO #8), `MOCK_ADS`, `MOCK_YOUR_OFFERS`, `findOffer`, `isYourOffer` |
+| `mockOffers.ts` | `Offer` (`kind: 'skill' \| 'item'`, `hours`, `distanceKm`, `rating`, now `reviewRating?` for skills and `conditionRating?` for items — TODO #8), `MOCK_ADS` (26), `MOCK_YOUR_OFFERS` (24), `findOffer`, `isYourOffer` |
 | `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill` (now incl. `description`, `reviewRating`), `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `findSkill`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS`, `reviewsForSkill()` |
 | `mockTrades.ts` | `TradeStatus`, `Trade` (incl. `partnerHours`, `skillId?`, now `lastInteractionAt` — a real ISO date, `lastInteraction` stays as display prose — and `hasUnreadMessage?`), `ChatMessage`, `MOCK_TRADES` (6), `findTrade`, `canRespondToOffer()`, `statusAfterAccept()` — the TODO #13 status-pipeline helpers |
-| `mockInventory.ts` | `InventoryItem` (`isPublic`, `description?` — **`shelf` is gone, see §8**), yours (8) + partner's (5, one private), `publicItems()`, `findItem()` |
+| `mockInventory.ts` | `InventoryItem` (`isPublic`, `description?` — **`shelf` is gone, see §8**), yours (20) + partner's (12, two private), `publicItems()`, `findItem()` |
 | `mockCommunity.ts` | `Friend` (7), `BlockedPerson` (2), `BoardPost` (4), `MOCK_INVITE_LINK` (TODO #2.2) |
 
 **Adding a required field to `Offer`, `Skill`, or `Trade` breaks test factories.** They build objects

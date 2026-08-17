@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -25,28 +25,27 @@ function renderSearchPage() {
   )
 }
 
-function nearbyHitNames() {
-  const hits = within(screen.getByRole('list')).getAllByRole('button')
-  return hits.map((hit) => hit.textContent ?? '')
+function resultNames() {
+  const results = within(screen.getByRole('list')).getAllByRole('button')
+  return results.map((result) => result.textContent ?? '')
 }
 
 describe('SearchPage', () => {
-  it('opens on the map view: a labelled map stand-in beside a real list of nearby hits', () => {
+  it('opens on the map view: a labelled map stand-in above the results grid', () => {
     renderSearchPage()
 
     expect(screen.getByText('Map — not wired up')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Nearby' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guitar lessons/ })).toBeInTheDocument()
     expect(screen.getByText(/0.4 km away/)).toBeInTheDocument()
   })
 
-  it('lists nearby hits nearest first', () => {
+  it('sorts the map view results nearest first', () => {
     renderSearchPage()
 
-    const names = nearbyHitNames()
-    expect(names[0]).toContain('Guitar lessons')
-    expect(names[1]).toContain('Sourdough bread')
-    expect(names[2]).toContain('Bike repair')
+    const names = resultNames()
+    expect(names[0]).toContain('Furniture assembly')
+    expect(names[1]).toContain('Guitar lessons')
+    expect(names[2]).toContain('Moving boxes')
   })
 
   it('switches to the text-search results grid and back', async () => {
@@ -72,17 +71,81 @@ describe('SearchPage', () => {
     expect(screen.getByText('1 result')).toBeInTheDocument()
   })
 
-  it('narrows the hits to skills or items with the filter row', async () => {
+  it('has a search button next to the field', () => {
+    renderSearchPage()
+
+    expect(screen.getByRole('button', { name: 'Submit search' })).toBeInTheDocument()
+  })
+
+  it('opens a filter\'s panel from its button, closing whichever panel was open before', async () => {
     const user = userEvent.setup()
     renderSearchPage()
 
-    await user.click(screen.getByRole('button', { name: 'Items' }))
+    const kindTrigger = screen.getByRole('button', { name: 'All' })
+    await user.click(kindTrigger)
+    expect(kindTrigger).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('group', { name: 'Show' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Any distance' }))
+    expect(kindTrigger).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('group', { name: 'Show' })).not.toBeInTheDocument()
+  })
+
+  it('narrows the hits to skills or items from the kind filter panel', async () => {
+    const user = userEvent.setup()
+    renderSearchPage()
+
+    await user.click(screen.getByRole('button', { name: 'All' }))
+    await user.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Items' }))
     expect(screen.getByRole('button', { name: /Wooden chair/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Guitar lessons/ })).not.toBeInTheDocument()
+    // Picking an option closes the panel — the trigger itself now reads "Items".
+    expect(screen.queryByRole('group', { name: 'Show' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Skills' }))
+    await user.click(screen.getByRole('button', { name: 'Items' }))
+    await user.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Skills' }))
     expect(screen.getByRole('button', { name: /Guitar lessons/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Wooden chair/ })).not.toBeInTheDocument()
+  })
+
+  it('narrows the hits with the distance range filter, from its panel', () => {
+    renderSearchPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Any distance' }))
+    fireEvent.change(screen.getByLabelText(/Within \d+ km|Any distance/), { target: { value: '1' } })
+
+    expect(screen.getByRole('button', { name: /Guitar lessons/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /House cleaning/ })).not.toBeInTheDocument()
+  })
+
+  it('narrows the hits with the minimum-rating star picker, from its panel', async () => {
+    const user = userEvent.setup()
+    renderSearchPage()
+
+    await user.click(screen.getByRole('button', { name: 'Any rating' }))
+    await user.click(screen.getByRole('radio', { name: 'Minimum rating: Rate 5 out of 5' }))
+
+    expect(screen.getByRole('button', { name: /Guitar lessons/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Bike repair/ })).not.toBeInTheDocument()
+  })
+
+  it('closes a filter panel with Done', async () => {
+    const user = userEvent.setup()
+    renderSearchPage()
+
+    await user.click(screen.getByRole('button', { name: 'Any distance' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+
+    expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()
+  })
+
+  it('shows a compact rating badge on each result', async () => {
+    const user = userEvent.setup()
+    renderSearchPage()
+
+    await user.type(screen.getByLabelText('Search'), 'guitar lessons')
+
+    expect(screen.getByText('5★')).toBeInTheDocument()
   })
 
   it('keeps the search text and filter when the view is toggled', async () => {
@@ -90,11 +153,13 @@ describe('SearchPage', () => {
     renderSearchPage()
 
     await user.type(screen.getByLabelText('Search'), 'tutoring')
-    await user.click(screen.getByRole('button', { name: 'Skills' }))
+    await user.click(screen.getByRole('button', { name: 'All' }))
+    await user.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Skills' }))
     await user.click(screen.getByRole('button', { name: 'Text search' }))
 
     expect(screen.getByLabelText('Search')).toHaveValue('tutoring')
-    expect(screen.getByRole('button', { name: 'Skills' })).toHaveAttribute('aria-pressed', 'true')
+    // The kind trigger now reads "Skills" and shows it holds a non-default value.
+    expect(screen.getByRole('button', { name: 'Skills' })).toHaveClass('is-active')
     expect(screen.getByRole('button', { name: /Spanish tutoring/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Guitar lessons/ })).not.toBeInTheDocument()
   })
@@ -109,7 +174,7 @@ describe('SearchPage', () => {
     expect(screen.getByText('0 results')).toBeInTheDocument()
   })
 
-  it('opens the ad detail page from a nearby hit and from a result tile', async () => {
+  it('opens the ad detail page from a result tile, in either view', async () => {
     const user = userEvent.setup()
     renderSearchPage()
 
