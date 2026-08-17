@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FilterChip, FilterChipDone } from '../components/FilterChip'
 import { OptionGroup } from '../components/OptionGroup'
 import { PageShell } from '../components/PageShell'
+import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
 import { StarRatingInput } from '../components/StarRatingInput'
 import type { Offer } from '../data/mockOffers'
@@ -172,78 +174,52 @@ function FilterBar({
 
   return (
     <div className="search-page__filters">
-      <button
-        type="button"
-        className={`search-page__filter-trigger ${kindFilter !== 'all' ? 'is-active' : ''}`}
-        aria-haspopup="true"
-        aria-expanded={openFilter === 'kind'}
-        onClick={() => toggleFilter('kind')}
+      <FilterChip
+        label={kindFilterLabel(kindFilter)}
+        isActive={kindFilter !== 'all'}
+        isOpen={openFilter === 'kind'}
+        onToggle={() => toggleFilter('kind')}
       >
-        {kindFilterLabel(kindFilter)}
-        <span aria-hidden="true"> ▾</span>
-      </button>
-      <button
-        type="button"
-        className={`search-page__filter-trigger ${maxDistanceKm < MAX_DISTANCE_KM ? 'is-active' : ''}`}
-        aria-haspopup="true"
-        aria-expanded={openFilter === 'distance'}
-        onClick={() => toggleFilter('distance')}
-      >
-        {distanceFilterLabel(maxDistanceKm)}
-        <span aria-hidden="true"> ▾</span>
-      </button>
-      <button
-        type="button"
-        className={`search-page__filter-trigger ${minRating > 0 ? 'is-active' : ''}`}
-        aria-haspopup="true"
-        aria-expanded={openFilter === 'rating'}
-        onClick={() => toggleFilter('rating')}
-      >
-        {ratingFilterLabel(minRating)}
-        <span aria-hidden="true"> ▾</span>
-      </button>
+        <OptionGroup
+          legend="Show"
+          options={KIND_FILTER_OPTIONS}
+          selected={kindFilter}
+          onSelect={(value) => {
+            onKindFilterChange(value)
+            closeFilter()
+          }}
+        />
+      </FilterChip>
 
-      {openFilter === 'kind' && (
-        <div className="search-page__filter-panel">
-          <OptionGroup
-            legend="Show"
-            options={KIND_FILTER_OPTIONS}
-            selected={kindFilter}
-            onSelect={(value) => {
-              onKindFilterChange(value)
-              closeFilter()
-            }}
+      <FilterChip
+        label={distanceFilterLabel(maxDistanceKm)}
+        isActive={maxDistanceKm < MAX_DISTANCE_KM}
+        isOpen={openFilter === 'distance'}
+        onToggle={() => toggleFilter('distance')}
+      >
+        <label className="filter-chip__control">
+          <span>{distanceFilterLabel(maxDistanceKm)}</span>
+          <input
+            type="range"
+            min={1}
+            max={MAX_DISTANCE_KM}
+            step={1}
+            value={maxDistanceKm}
+            onChange={(event) => onMaxDistanceKmChange(Number(event.target.value))}
           />
-        </div>
-      )}
+        </label>
+        <FilterChipDone onClick={closeFilter} />
+      </FilterChip>
 
-      {openFilter === 'distance' && (
-        <div className="search-page__filter-panel">
-          <label className="search-page__filter-control">
-            <span>{distanceFilterLabel(maxDistanceKm)}</span>
-            <input
-              type="range"
-              min={1}
-              max={MAX_DISTANCE_KM}
-              step={1}
-              value={maxDistanceKm}
-              onChange={(event) => onMaxDistanceKmChange(Number(event.target.value))}
-            />
-          </label>
-          <button type="button" className="search-page__filter-done" onClick={closeFilter}>
-            Done
-          </button>
-        </div>
-      )}
-
-      {openFilter === 'rating' && (
-        <div className="search-page__filter-panel">
-          <StarRatingInput label="Minimum rating" name="min-rating-filter" value={minRating} onChange={onMinRatingChange} />
-          <button type="button" className="search-page__filter-done" onClick={closeFilter}>
-            Done
-          </button>
-        </div>
-      )}
+      <FilterChip
+        label={ratingFilterLabel(minRating)}
+        isActive={minRating > 0}
+        isOpen={openFilter === 'rating'}
+        onToggle={() => toggleFilter('rating')}
+      >
+        <StarRatingInput label="Minimum rating" name="min-rating-filter" value={minRating} onChange={onMinRatingChange} />
+        <FilterChipDone onClick={closeFilter} />
+      </FilterChip>
     </div>
   )
 }
@@ -309,19 +285,7 @@ export function SearchPage() {
   return (
     <PageShell title="Search" headerAction={<ViewToggle view={view} onSelect={setView} />}>
       <div className="search-page">
-        <form className="search-page__search-bar" role="search" onSubmit={(event) => event.preventDefault()}>
-          <input
-            className="search-page__field"
-            type="search"
-            aria-label="Search"
-            value={query}
-            placeholder="Skills, items, anything"
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button type="submit" className="search-page__search-submit" aria-label="Submit search">
-            <span aria-hidden="true">🔍</span>
-          </button>
-        </form>
+        <SearchBar value={query} onChange={setQuery} placeholder="Skills, items, anything" />
 
         <FilterBar
           kindFilter={kindFilter}

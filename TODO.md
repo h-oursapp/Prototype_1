@@ -8,7 +8,13 @@
    
     
 3.Home: 
-    -replace the stars on the grid items with number + *. exp.: **** -> 4*. make them small in the upper right coner of the grid item.
+    -replace the stars on the grid items with number + *. exp.: **** -> 4*. make them small in the upper right coner of the grid item. 
+    -remove your offers both the text and the grid.
+    -make the ads grid as many rows as the page fits. 
+    -ask for the picture before starting.
+    -the upper left corner is with a button that leads to your offers.
+    -upper right corner button to the search.
+    -inbetween these add the hours logo.
    
 4.Nav bar: 
 
@@ -20,7 +26,7 @@
 
 8.Ad: 
 
-9.Inventory:
+9.Inventory: DONE
     -add search bar with filters (no skills are here )
     -make the grid fill up the rest of the page. columns by the setting and rows as many as fits. keep the paging.
 
@@ -42,3 +48,6 @@
     13.1.Map search: DONE
         - put the map under the search + filters fields.
         -under the map use the usual grid structure (use the from setting how many items in a row)
+
+14.Icon: DONE
+    -replace the defaulte vite icons,logos with the logo of h_ours.

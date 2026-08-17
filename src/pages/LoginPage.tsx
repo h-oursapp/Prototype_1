@@ -1,3 +1,4 @@
+import wordmark from '../assets/hours-wordmark.png'
 import './LoginPage.css'
 
 interface LoginPageProps {
@@ -9,8 +10,15 @@ interface LoginPageProps {
 export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <main className="login-page">
-      <img className="login-page__mark" src="/favicon.svg" alt="" aria-hidden="true" />
-      <h1>h_OURs</h1>
+      {/* TODO #14: the plain "h_OURs" text heading + small badge icon this page opened with are now
+       *  one image, the real wordmark — imported like any other module rather than referenced by a
+       *  public/ URL string, so Vite fingerprints and bundles it the same way it would any other
+       *  code the app depends on. It still *is* the page's h1: the image's alt text is what gives
+       *  the heading its accessible name, there's just no separate line of visible text to also
+       *  keep in sync with it. */}
+      <h1>
+        <img className="login-page__wordmark" src={wordmark} alt="h_OURs" />
+      </h1>
       <p className="login-page__tagline">Trade skills and time with people nearby.</p>
 
       {/* Plain, uncontrolled inputs — no `useState` here on purpose. Nothing reads these values yet

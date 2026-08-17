@@ -9,14 +9,13 @@
   text-align: center;
 }
 
-.login-page__mark {
-  width: 64px;
-  height: 64px;
+/* TODO #14: the wordmark image (imported in LoginPage.tsx) replaces what used to be a small
+ * square badge icon plus a separate "h_OURs" text heading — sized by height with width left to
+ * follow the image's own ~1.94:1 aspect ratio, unlike the old badge's fixed 64x64 square. */
+.login-page__wordmark {
+  height: 56px;
+  width: auto;
   margin-bottom: 8px;
-}
-
-.login-page h1 {
-  font-size: 32px;
 }
 
 .login-page__tagline {

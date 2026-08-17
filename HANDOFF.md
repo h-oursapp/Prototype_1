@@ -18,7 +18,11 @@ branch `first-phone` — not a `TODO.md` point, but Márk's own request to get t
 phone; see the new subsection at the end of §2 for what that added and what's still open. Updated
 again same day on branch `todo-13-search` after building **TODO #13** (Search — see §2 for the
 full rundown), plus a larger mock-data expansion across `mockOffers.ts`/`mockInventory.ts`
-requested mid-session.
+requested mid-session. Updated again on the same branch, same day, after a **TODO #9 rework**
+(Inventory's search bar + filter, and its grid actually filling the page instead of a fixed N×N)
+and **TODO #14** (swapping the h_OURs logo into the favicon/PWA icons and the login screen) —
+Márk asked to keep working on this one branch rather than opening a new one per TODO point, which
+is why this update doesn't have its own branch name.
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -61,11 +65,37 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        48 files, 357 tests, all passing
+npm run test        51 files, 378 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-17, branch `todo-13-search` (same branch, later the same day)** reworked **TODO #9**
+(Inventory) and built **TODO #14** (the real logo):
+
+- **Inventory gained a search bar and one filter** — TODO #9's "no skills are here" means Search's
+  skill/item split doesn't apply, so the one filter is visibility (All/Public/Private), the concept
+  the page already tracked. Both narrow only what the *grid* shows: an item already added to a
+  trade offer stays in the transfer box even if a search typed afterwards would hide its tile.
+- **The search bar and filter-chip shell are now shared components**, not copied from `SearchPage`:
+  `components/SearchBar.tsx` and `components/FilterChip.tsx`, pulled out once Inventory became the
+  second real page wanting the exact same "field + small submit button" and "button that opens a
+  floating panel underneath it" patterns TODO #13 built first. `SearchPage` was refactored to use
+  both — its own 14 tests kept passing unchanged, which is the actual proof the refactor didn't
+  change behaviour, not just a claim.
+- **The grid now measures how many rows fit, instead of reusing the grid-size setting for both
+  dimensions.** TODO #9: "columns by the setting and rows as many as fits" — `hooks/
+  useFittingRows.ts` watches the grid's container with a `ResizeObserver` and computes how many
+  square, `columns`-wide cells fit the height actually available under the new search/filter row.
+  Falls back to the old fixed `gridSize × gridSize` behaviour whenever it can't measure anything
+  real (jsdom, or the one frame before layout exists) — see §8 for why that fallback choice meant
+  none of Inventory's existing tests needed touching.
+- **TODO #14**: the default Vite/React scaffold icons were already long gone (removed in this
+  repo's second-ever commit) — what TODO #14 actually needed was swapping last session's
+  placeholder h_OURs mark for the real logo Márk's design work produced. See §8 for the full story,
+  including a near-miss (the source files were handed over sitting inside the gitignored `dist/`
+  build folder, one `npm run build` away from being silently deleted).
 
 **2026-08-17, branch `todo-13-search`** built **TODO #13** (Search) end to end, plus a mock-data
 expansion Márk asked for mid-session:
@@ -286,10 +316,23 @@ src/
     PagedGrid.tsx/.css     a non-scrollable, *paged* grid: Inventory's item grid and every row on
                            Trading (skills, the trading table) — see §8
     SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
-    StarRating.tsx         ★★★☆☆ display
+    StarRating.tsx         ★★★☆☆ *display* — unrelated to StarRatingInput below, see §8
+    StarRatingInput.tsx/.css   the star-picker *input* (radio-group fieldset) — Final Review's own
+                           rating control, moved here once Search's minimum-rating filter (TODO
+                           #13) needed the identical thing, not a lookalike — see §8
     OptionGroup.tsx        segmented control (used by Settings)
     TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills, in both a
                            trade context and (TODO #8) picking a new ad's one subject — see §8
+    SearchBar.tsx/.css     a text field + small submit button — Search's own search bar (TODO #13),
+                           moved here once Inventory (TODO #9) needed the identical thing — see §8
+    FilterChip.tsx/.css    a button that opens a floating panel underneath it — the shell Search's
+                           filter row (TODO #13) and Inventory's one filter (TODO #9) both use; only
+                           the shell is shared, panel content is always the caller's own — see §8
+
+  hooks/
+    useFittingRows.ts      how many square, N-wide cells fit a measured container — Inventory's
+                           grid rows now come from this instead of reusing the grid-size setting
+                           for both dimensions (TODO #9) — see §8
 
   pages/                   one folder-less file per screen, plus its .css
     onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
@@ -311,6 +354,11 @@ src/
                            rather than a second copy (TODO #2.1)
     ItemPage.tsx/.css      one inventory item's own page (view/edit/create) — TODO #10
     PartnerInventoryPage.tsx/.css   a trading partner's public inventory, read-only — see §8
+
+  assets/                  images imported as modules (fingerprinted/bundled by Vite), not served
+                           from public/ — currently just hours-wordmark.png, the login page's logo
+                           image (TODO #14). The favicon/PWA icon *source*
+                           (hours-logo-source.png) lives in public/ instead, and has to — see §8
 
   data/                    all mock data — mockOffers, mockUser, mockTrades,
                            mockInventory, mockCommunity
@@ -478,7 +526,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 
 | Route | Page | Appkarte | Notes |
 | --- | --- | --- | --- |
-| `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). Method is `[OFFEN]` |
+| `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). The h_OURs wordmark image is the page's `<h1>` (TODO #14). Method is `[OFFEN]` |
 | `/onboarding` | OnboardingPage | §2 | Six steps, most skippable. Skills (#2.1), friends (#2.2), verify (#2.3), and profile picture (#2.5) are all real; only #2.4's video is still a static illustration |
 | `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
@@ -486,7 +534,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
 | `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
 | `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8) |
-| `/inventory` | InventoryPage | §6 | Non-scrollable paged grid (TODO #9); `?trade=<id>` adds a transfer box, `?forAd=new` picks one item for a new ad (TODO #8) |
+| `/inventory` | InventoryPage | §6 | Non-scrollable paged grid, now with a search bar + visibility filter and rows sized to fill the page (TODO #9); `?trade=<id>` adds a transfer box, `?forAd=new` picks one item for a new ad (TODO #8) |
 | `/inventory/:itemId` | ItemPage | — | View/edit an item (TODO #10) |
 | `/inventory/new` | ItemPage `mode="create"` | — | Same component as above |
 | `/inventory/partner?trade=<id>` | PartnerInventoryPage | §6 | A trading partner's public items, read-only — see §8 |
@@ -888,6 +936,90 @@ Trades/offer-detail pages; the two stay separate components on purpose, per that
 comment, because a display and an input have different accessibility needs (a label read aloud vs.
 a real radio group).
 
+### TODO #9 rework — search, filter, and fitting rows (this session, same branch as TODO #13)
+
+**`SearchBar` and `FilterChip` (`components/`) are TODO #13's search bar and filter-chip shell,
+pulled out once Inventory became the second real page that wanted them.** Same bar this document
+already sets elsewhere (`StarRatingInput`, `TransferBox`, `usePhotoCapture`): the first page to need
+a pattern gets it written inline; the second gets it extracted. `SearchPage.tsx` was refactored to
+import both instead of keeping its own copies — its 14 existing tests passed unchanged after the
+refactor, which is what actually confirms nothing about its behaviour moved, not just the diff
+looking equivalent. `FilterChip` owns only the "small button that reveals a floating panel
+underneath it" shell (trigger + panel, single-open-at-a-time state stays with whichever page uses
+it — Search juggles three, Inventory just one); what's inside the panel is always the caller's own
+choice of control (`OptionGroup`, a range input, `StarRatingInput`).
+
+**`useFittingRows` (`hooks/`) measures the grid's own container instead of trusting the grid-size
+setting for both dimensions.** TODO #9 asked for "columns by the setting and rows as many as fits"
+— previously `InventoryPage` passed `gridSize` into *both* of `PagedGrid`'s `columns`/`rows` props,
+so a 3-setting always meant a fixed 3×3 page regardless of how much vertical space was actually
+free. The new hook watches `.inventory-page__grid-area` with a `ResizeObserver`, and
+`fittingRows(width, height, columns, minRows)` (exported separately, tested with plain numbers) works
+out how many square, `columns`-wide cells fit the measured height. `minRows` defaults to `columns`
+itself, which matters more than it looks: jsdom never lays anything out (`getBoundingClientRect`
+always reads `{0,0,0,0}` there), so every existing Inventory test keeps seeing the old fixed 3×3
+page for free, with no geometry stubbing needed — only a *new* test (mocking
+`getBoundingClientRect` to a taller box) exercises the "more rows than columns" path at all. jsdom
+also has no `ResizeObserver` — `setupTests.ts` now installs a harmless no-op stand-in globally, the
+same "polyfill once for the whole run" idea as the `@testing-library/jest-dom` import already there,
+since nothing needs it to actually *fire* in a test environment with no real layout to observe.
+
+**Inventory's search and filter only narrow what the grid shows — they never touch the underlying
+item list.** An item already sitting in a trade's transfer box (added before you typed a search)
+stays there even once a search or the visibility filter would hide its tile; `offeredItems` is
+still computed from the full `MOCK_YOUR_INVENTORY`, only the grid's own `matches` list is filtered.
+The one filter is visibility (All/Public/Private) rather than Search's skill/item split — TODO #9's
+own "no skills are here" — since that's the axis this page already cared about (the "N of M visible
+to a trading partner" line predates this rework).
+
+### TODO #14 — the real h_OURs logo (this session, same branch)
+
+**The default Vite/React scaffold icons were long gone before this TODO was even written** —
+`src/assets/{react,vite}.svg` were deleted in this repo's second-ever commit. What TODO #14 actually
+needed, once that was checked, was replacing last session's placeholder favicon/PWA icon set (a
+hand-drawn abstract mark, purple-branded but not the real logo) with the actual h_OURs logo, which
+only reached this repo as raster PNG exports from wherever Márk's design work happens — a claude.ai
+design-system project was checked first (`DesignSync`'s `list_projects`/`list_files`) and came back
+empty, so the files were shared directly instead.
+
+**Near-miss: the exports were handed over sitting inside `dist/`, which is gitignored and gets wiped
+by every `npm run build`.** First move on receiving the path was copying the two needed files out —
+`public/hours-logo-source.png` (the circular badge) and `src/assets/hours-wordmark.png` (the
+"h_OURs" wordmark) — into permanent, tracked locations *before* touching any config. Confirmed
+after the fact: a build run later in the same session did wipe `dist/assets/design/`, exactly as
+expected.
+
+**The PWA icon generator writes output *next to* its source image — there's no separate "output
+directory" option.** `pwa-assets.config.ts`'s `images: [...]` array has always worked this way (the
+previous `public/favicon.svg` source coincidentally already lived where the output needed to go); a
+first attempt at keeping the source in a tidier separate `design/` folder produced icons in
+`design/` instead of `public/`. The source has to live inside `public/` itself for that reason,
+however much a separate design-assets folder sounds like better hygiene.
+
+**There is no vector favicon anymore, on purpose, not as an oversight.** The old `public/favicon.svg`
+was a hand-drawn vector; the real logo only exists as a raster export with no vector equivalent.
+Rather than fake one (embedding the PNG inside an `<svg><image>` wrapper — technically valid, not
+actually scalable, just a lie about the file format), `public/favicon.svg` and its
+`<link type="image/svg+xml">` in `index.html` were removed outright. Browsers fall back to
+`favicon.ico` (48×48, still generated) or the manifest's own PNG icon list — the same as any site
+that never had an SVG favicon. `sharp`, which the generator uses internally, reads PNG input exactly
+as well as SVG; the only real constraint is that it can't rasterize *up* past the source's own
+519×518 resolution, comfortably above every size this preset asks for (512px, the largest).
+
+**The login page's wordmark image *is* the page's `<h1>` now, not a caption next to one.** It used
+to be a small badge `<img alt="" aria-hidden>` beside a plain text `<h1>h_OURs</h1>` — TODO #14
+replaced both with one `<img>` carrying the real wordmark, imported as a module
+(`import wordmark from '../assets/hours-wordmark.png'`) rather than referenced by a `public/` URL
+string, so Vite fingerprints and bundles it like any other code dependency. The image sits inside
+the `<h1>` (`<h1><img alt="h_OURs" /></h1>`) so the page keeps a real heading for document structure
+and assistive tech, even though there's no separate line of visible text left to give it one.
+
+**Left alone on purpose, worth a decision later: the manifest's `theme_color` and every
+`--brand-primary` button/highlight in the app are still the old solid purple (`#863bff`), while the
+new logo is a green→purple gradient.** Recolouring the app's whole palette to match felt like a
+separate call from "swap the icon" — flag this if a future TODO wants the brand colours to follow
+the new logo.
+
 ---
 
 ## 9. Mock data
@@ -954,8 +1086,8 @@ These are Márk's rules. They override default behaviour.
 - New git branch every session where anything is modified
 - **Don't commit until Márk says so**
 - Remove commented-out code before committing
-- Before committing: run `/compact` and save the result into `HANDOFF.md` — **this file**. Update it
-  rather than starting a new one, and correct anything in it that the session made untrue.
+- Before committing: update `HANDOFF.md` — **this file**. Update it rather than starting a new
+  one, and correct anything in it that the session made untrue.
 - **`TODO.md` is Márk's list, written between sessions.** He specifies which points to tackle.
 - **Ask at the start of each session which TODO point you're working on.**
 - **Once committed, open a pull request.**
@@ -1037,6 +1169,24 @@ that hand off to Skills'/Inventory's own transfer box at `?forAd=new`, wiring th
 skill/item" step this document used to flag as the last gap; and Quick Buy's hours actually preload
 onto the trading table now (the piece of TODO #13 that stayed open above). See §8's own subsection
 for the three architectural forks this needed and every judgement call underneath them.
+
+**TODO #13 is done** (branch `todo-13-search`) — note this is `TODO.md`'s *current* #13
+("Sreach"), a different item from the trading-status-pipeline #13 the entry above refers to;
+`TODO.md`'s numbering was reused between sessions. Search's header search-label is gone in favour
+of `aria-label` alone, a small submit button sits beside the field, the always-visible
+skill/item/distance/rating controls became a one-row bar of buttons opening floating panels
+(minimum rating is the exact same star picker Final Review uses to *set* one, not a lookalike —
+see §8), the view toggle moved into the page header, the map view now shows the same results grid
+underneath it instead of a separate side-by-side list, and each tile carries a compact `"N★"`
+corner badge instead of a five-glyph star row. See §8 for a real CSS clipping bug hit along the way.
+
+**TODO #9's rework is done, and TODO #14 is done** (same branch, later): Inventory gained the
+search bar + visibility filter TODO #9 asked for, and its grid now measures how many rows actually
+fit under them instead of reusing the grid-size setting for both dimensions. The favicon, every PWA
+icon, and the login page's wordmark all show the real h_OURs logo now, not the placeholder abstract
+mark from the PWA session before this one. See §8 for both — the icon swap in particular has a
+near-miss worth reading (design files handed over inside the gitignored `dist/` folder) before it
+happens again.
 
 ---
 

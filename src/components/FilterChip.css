@@ -1,0 +1,73 @@
+/* Moved here from SearchPage.css when Inventory (TODO #9) started wanting the same shell for its
+ * own filter — see FilterChip.tsx's own comment. */
+
+.filter-chip__trigger {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.filter-chip__trigger.is-active {
+  border-color: var(--brand-primary);
+  background: var(--brand-tint);
+  color: var(--brand-primary-deep);
+  font-weight: 600;
+}
+
+/* Anchored under the whole row a FilterChip sits in, not just under its own button — see
+ * FilterChip.tsx's comment on why that row must be `position: relative` and never set
+ * `overflow-x`/`overflow-y`. Only one panel is ever open in a row that manages that itself, so
+ * panels never have to stack or avoid each other. */
+.filter-chip__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+  box-shadow: 0 8px 20px var(--shadow);
+}
+
+.filter-chip__panel .option-group {
+  margin: 0;
+}
+
+.filter-chip__control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.filter-chip__control input[type='range'] {
+  width: 100%;
+  accent-color: var(--brand-primary);
+}
+
+.filter-chip__done {
+  display: block;
+  margin: 10px 0 0 auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.filter-chip__done:hover {
+  background: var(--brand-tint);
+}

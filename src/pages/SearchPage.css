@@ -15,132 +15,19 @@
   gap: 4px;
 }
 
-/* No wrapping <label> text above the field anymore (TODO #13's "search header") — the input
- * carries its accessible name via aria-label instead, and this row just places the field and the
- * small search button side by side. */
-.search-page__search-bar {
-  display: flex;
-  gap: 8px;
-}
+/* The search bar itself (field + small submit button) moved to components/SearchBar.css when
+ * Inventory (TODO #9) started wanting the same bar. */
 
-.search-page__field {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
-  font: inherit;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.search-page__search-submit {
-  flex-shrink: 0;
-  width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: var(--brand-primary);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.search-page__search-submit:hover {
-  background: var(--brand-tint);
-}
-
-/* TODO #13's filter row: three small buttons that always fit on one line — each one's own floating
- * panel (below) is what used to be permanent, always-visible controls here. `position: relative`
- * is what lets a panel anchor to this row instead of the whole page.
- *
- * No `overflow-x: auto` here even as a narrow-viewport safety net: `overflow` on either axis
- * computes the *other* axis to `auto` too if it isn't already `visible` (CSS Overflow §3), and
- * `overflow: auto` clips any descendant that paints outside this box — including the floating
- * panel below, which is an absolutely-positioned descendant of this element and needs to paint
- * well past its short, one-row height. That combination silently clipped the panel to invisible
- * the first time this was written; the three buttons are short enough to fit at any width this
- * app targets; a real overflow guard would need to live on a wrapper around just the buttons,
- * a sibling of this element rather than this element itself. */
+/* TODO #13's filter row: three small buttons that always fit on one line — the trigger/panel/done
+ * styling itself moved to components/FilterChip.css when Inventory (TODO #9) started wanting the
+ * same shell for its own filter. `position: relative` is what lets a FilterChip's panel anchor to
+ * this row instead of the whole page; see FilterChip.tsx's comment for why this row must also
+ * never set `overflow-x`/`overflow-y`. */
 .search-page__filters {
   position: relative;
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;
-}
-
-.search-page__filter-trigger {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 12px;
-  font-size: 12px;
-  white-space: nowrap;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-/* Says at a glance that this button no longer holds its default — same is-active idiom OptionGroup
- * and PageShell's header actions already use elsewhere in the app. */
-.search-page__filter-trigger.is-active {
-  border-color: var(--brand-primary);
-  background: var(--brand-tint);
-  color: var(--brand-primary-deep);
-  font-weight: 600;
-}
-
-/* The "floating page" a filter button opens: anchored under the whole row rather than under just
- * its own button, so it never has to worry about overflowing the right edge when it's the last
- * button in the row that opened it. Only one is ever rendered at a time (SearchPage.tsx's
- * `openFilter`), so they never have to stack or avoid each other. */
-.search-page__filter-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 2;
-  padding: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-  box-shadow: 0 8px 20px var(--shadow);
-}
-
-.search-page__filter-panel .option-group {
-  margin: 0;
-}
-
-.search-page__filter-control {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.search-page__filter-control input[type='range'] {
-  width: 100%;
-  accent-color: var(--brand-primary);
-}
-
-.search-page__filter-done {
-  display: block;
-  margin: 10px 0 0 auto;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand-primary);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.search-page__filter-done:hover {
-  background: var(--brand-tint);
 }
 
 .search-page__count {
