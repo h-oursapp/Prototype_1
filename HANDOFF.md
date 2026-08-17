@@ -13,7 +13,9 @@ fields), `todo-2-1-onboarding-skills` (TODO #2.1: onboarding's real "Add your sk
 `todo-2-3-onboarding-verify` (TODO #2.3: onboarding's real "Verify your identity" step),
 `todo-2-5-onboarding-photo` (TODO #2.5: onboarding's real "Add a profile picture" step), and
 `todo-8-ad-offer` (TODO #8: Ad → Offer — ratings split by kind, the skill/item picker, wiring
-Skills/Inventory's transfer boxes to it, Quick Buy's hours prefill).
+Skills/Inventory's transfer boxes to it, Quick Buy's hours prefill). Updated again on 2026-08-17 on
+branch `first-phone` — not a `TODO.md` point, but Márk's own request to get the app running on a
+phone; see the new subsection at the end of §2 for what that added and what's still open.
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -147,6 +149,46 @@ npm run test:watch # tests, re-running on save
 
 Everything is designed at **phone width**. Check it in a narrow window or device emulation.
 
+### Running on a phone (branch `first-phone`, 2026-08-17)
+
+Not a `TODO.md` point — Márk asked directly for the easiest way to get the app onto an Android
+phone. Neither Java, Android Studio, nor the Android SDK is installed on this Mac, which ruled out
+Capacitor (a real installable `.apk`) as "easiest": that path needs the full SDK/Xcode-equivalent
+toolchain installed first. Chose **PWA** instead — no native tooling at all, works from the existing
+Vite build.
+
+What changed: `vite-plugin-pwa` (build-time manifest + service-worker generation) and
+`@vite-pwa/assets-generator` (rasterizes `public/favicon.svg` into every icon size Android/iOS
+need — `npm run generate-pwa-assets` regenerates them if the logo changes) are new dev
+dependencies, configured in `vite.config.ts` and `pwa-assets.config.ts`. `index.html` gained the
+icon links, `theme-color`, and the two Apple-specific meta tags Safari needs for its own "Add to
+Home Screen" to open standalone. None of this touches app code — `npm run build` output just gains
+`manifest.webmanifest` + `sw.js` alongside the usual bundle.
+
+**Still open, and worth knowing before the next session touches this:**
+
+- **The install button doesn't appear yet.** Chrome (and Safari) only offer the real
+  install/"Add to Home Screen" prompt over a secure context — `https://` or `localhost`. Tested
+  over plain `http://<lan-ip>:4173` (via `npm run preview -- --host`), which loads and works fine,
+  but Chrome silently refuses to register the service worker under those conditions, so it doesn't
+  count as installable. This isn't a bug in the config — confirmed the manifest, `sw.js`, and every
+  icon are served with correct content-types and up-to-date content.
+- **Testing so far has been Mac-tethered**, and that took several attempts to get working at all:
+  home wifi worked; a guest wifi network didn't (client isolation blocks phone↔laptop traffic even
+  though both have internet); a spare router did work for LAN reachability, but its lack of its own
+  internet uplink meant the Mac lost its connection to Claude Code the moment it joined — there's no
+  way around needing a network with internet for that half, independent of the phone/Mac pairing.
+- **The actual fix for both is deploying the build to a free static host** (Vercel/Netlify/etc.) —
+  gives a permanent `https://` link, the install button starts working, and the Mac stops being
+  required at all afterward (the service worker then genuinely caches the app onto the phone, so it
+  keeps working offline too). Offered twice; Márk held off both times ("not yet") — don't deploy
+  anywhere without asking again first.
+- If a future session revisits this: Capacitor (real `.apk`/`.ipa`) remains fully compatible with
+  everything built here — it wraps the same `dist/` output, manifest/icons/service-worker carry
+  over unchanged. It would need Android Studio + the SDK (Android) and/or full Xcode + CocoaPods
+  (iOS, Command Line Tools alone isn't enough) installed first, plus a paid Apple Developer account
+  ($99/yr) for anything beyond a 7-day sideload on iOS.
+
 ---
 
 ## 3. Stack
@@ -160,6 +202,7 @@ Everything is designed at **phone width**. Check it in a narrow window or device
 | Vitest | 4.1 | Test runner |
 | Testing Library | + `user-event` | Component tests |
 | ESLint | 10, flat config | — |
+| vite-plugin-pwa | 1.3 | Manifest + service-worker generation, see §2's phone subsection |
 
 **No CSS framework, no component library, no state library.** Plain CSS files and React's own
 `useState`/`useContext`. For a prototype this size, a framework would be more to learn and more to
