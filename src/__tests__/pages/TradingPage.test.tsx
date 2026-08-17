@@ -294,6 +294,38 @@ describe('TradingPage', () => {
     expect(screen.getByRole('button', { name: 'Collapse chat' })).toBeInTheDocument()
   })
 
+  it("preloads the offered hours from the ad's listed price on a quick offer (TODO #8)", () => {
+    renderWithRouter(<TradingPage />, {
+      route: '/trading/trade-1?quick=1&hours=5',
+      path: '/trading/:tradeId',
+    })
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).getByText('5 h')).toBeInTheDocument()
+  })
+
+  it('ignores ?hours= on a plain (non-quick) open, keeping the usual default', () => {
+    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?hours=5', path: '/trading/:tradeId' })
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).getByText('2 h')).toBeInTheDocument() // trade-1's yourHours
+  })
+
+  it('falls back to the usual default when ?hours= is missing or not a number', () => {
+    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?quick=1&hours=nope', path: '/trading/:tradeId' })
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).getByText('2 h')).toBeInTheDocument()
+  })
+
+  it('clamps a preloaded value that exceeds your hours balance', () => {
+    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?quick=1&hours=999', path: '/trading/:tradeId' })
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    // MOCK_HOURS_BALANCE (mockUser.ts) is 12.
+    expect(within(yourTable).getByText('12 h')).toBeInTheDocument()
+  })
+
   it('shows a way back instead of crashing on an unknown trade id', () => {
     renderTradingPage('no-such-trade')
 

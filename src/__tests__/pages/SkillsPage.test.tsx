@@ -116,4 +116,48 @@ describe('SkillsPage', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/trading/trade-1')
     })
   })
+
+  describe('picking a skill for a new ad (TODO #8)', () => {
+    it('appears at ?forAd=new, with different wording than the trade context', () => {
+      renderSkillsPage('/skills?forAd=new')
+
+      expect(screen.getByText('Picking a skill for your new ad')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Your offer' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Use Web design for this ad' })).toBeInTheDocument()
+    })
+
+    it('picking a second skill replaces the first, since an ad has exactly one subject', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage('/skills?forAd=new')
+      const offer = () => within(screen.getByRole('group', { name: 'Your offer for this trade' }))
+
+      await user.click(screen.getByRole('button', { name: 'Use Web design for this ad' }))
+      expect(offer().getByText('Web design')).toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Use Piano for this ad' }))
+      expect(offer().queryByText('Web design')).not.toBeInTheDocument()
+      expect(offer().getByText('Piano')).toBeInTheDocument()
+    })
+
+    it('disables "Use this skill" until one has been picked, then sends it back to the new ad', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage('/skills?forAd=new')
+
+      expect(screen.getByRole('button', { name: 'Use this skill' })).toBeDisabled()
+
+      await user.click(screen.getByRole('button', { name: 'Use Web design for this ad' }))
+      await user.click(screen.getByRole('button', { name: 'Use this skill' }))
+
+      expect(screen.getByTestId('location')).toHaveTextContent('/ads/new')
+      expect(screen.getByTestId('location')).toHaveTextContent('skillId=skill-1')
+    })
+
+    it('goes back to the new ad, abandoning the pick', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage('/skills?forAd=new')
+
+      await user.click(screen.getByRole('link', { name: 'Back to new ad' }))
+      expect(screen.getByTestId('location')).toHaveTextContent('/ads/new')
+    })
+  })
 })

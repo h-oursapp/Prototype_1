@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { trading } from '../routes'
 import './TransferBox.css'
 
 export interface TransferBoxItem {
@@ -14,39 +13,54 @@ export interface TransferBoxItem {
 
 interface TransferBoxProps {
   items: TransferBoxItem[]
-  /** Singular/plural for what's being transferred — "item"/"items" or "skill"/"skills". This was
-   *  the only real difference between InventoryPage's and SkillsPage's versions of this box. */
+  /** Singular noun for what's being transferred — named in the drag-and-drop note below
+   *  ("use '{pickActionLabel}' on a {noun} above"). */
   noun: string
-  pluralNoun: string
-  tradeId: string
-  partnerName: string
-  /** Shows the "offer accepted" confirmation below the actions. Optional — a caller whose Accept
-   *  navigates straight away (InventoryPage, on direct feedback) has nothing to confirm in place,
-   *  so it simply never passes this. */
-  isAccepted?: boolean
+  /** What the picking control on the page above is actually called — "Add to offer" while
+   *  building a trade, "Use for this ad" while picking a new ad's one subject (TODO #8). Named by
+   *  the caller rather than assumed, since the two contexts use different words for it. */
+  pickActionLabel: string
+  /** Link back to wherever this box was opened from. A trade goes "Back to trading"; picking a
+   *  new ad's subject goes back to the ad draft instead — generalized out of a hardcoded
+   *  `tradeId`/"Back to trading" so both contexts (TODO #8) can share this component. */
+  backTo: { label: string; path: string }
+  primaryLabel: string
+  onPrimary: () => void
+  /** Disables the primary button — e.g. the ad-picker has nothing to confirm until something has
+   *  been picked. Trades never disable it (an empty offer can still be "Accept"ed today), so this
+   *  defaults to false. */
+  primaryDisabled?: boolean
+  /** Shows a confirmation message below the actions once the primary action has been taken
+   *  without navigating away. Optional — a caller whose primary action leaves the page immediately
+   *  (InventoryPage's Accept, on direct feedback, and the ad-picker's confirm) has nothing left to
+   *  confirm in place. */
+  confirmedMessage?: string
   onRemove: (id: string) => void
-  onAccept: () => void
   /** Extra context between the drop area and the actions — Inventory's "still private" count.
    *  Optional: most callers have nothing to add here. */
   extraNote?: ReactNode
 }
 
-/** The "build an offer" zone shared by Inventory (§6) and Skills (TODO #6): a drop area
- *  (drag-and-drop is a placeholder everywhere in the prototype — items arrive via each page's own
- *  "Add to offer" button), Accept, and a link back to the trade being built.
+/** The "build an offer" zone shared by Inventory (§6), Skills (TODO #6) and, since TODO #8, both
+ *  pages again while picking the one subject of a brand-new ad: a drop area (drag-and-drop is a
+ *  placeholder everywhere in the prototype — items arrive via each page's own picking control),
+ *  a primary confirm action, and a link back to wherever the box was opened from.
  *
- *  Pulled out once both pages' versions were identical but for wording — the bar HANDOFF.md sets
- *  before extracting anything (see StarRating's own history): two real call sites, not a guess
- *  that a third might show up. */
+ *  Pulled out once both pages' trade-context versions were identical but for wording — the bar
+ *  HANDOFF.md sets before extracting anything (see StarRating's own history): two real call sites,
+ *  not a guess that a third might show up. TODO #8 generalized `tradeId`/`partnerName`/"Back to
+ *  trading" into `backTo`/`primaryLabel`/`onPrimary` for the same reason, once picking a new ad's
+ *  subject became a second real context this same box needed to serve. */
 export function TransferBox({
   items,
   noun,
-  pluralNoun,
-  tradeId,
-  partnerName,
-  isAccepted = false,
+  pickActionLabel,
+  backTo,
+  primaryLabel,
+  onPrimary,
+  primaryDisabled = false,
+  confirmedMessage,
   onRemove,
-  onAccept,
   extraNote,
 }: TransferBoxProps) {
   return (
@@ -77,7 +91,7 @@ export function TransferBox({
             </ul>
           )}
           <p className="page-note">
-            Drag-and-drop is not wired up in the prototype — use &quot;Add to offer&quot; on a{' '}
+            Drag-and-drop is not wired up in the prototype — use &quot;{pickActionLabel}&quot; on a{' '}
             {noun} above.
           </p>
         </div>
@@ -85,24 +99,24 @@ export function TransferBox({
         {extraNote}
 
         <div className="transfer-box__actions">
-          <Link className="transfer-box__secondary" to={trading(tradeId)}>
-            Back to trading
+          <Link className="transfer-box__secondary" to={backTo.path}>
+            {backTo.label}
           </Link>
-          <button type="button" className="transfer-box__primary" onClick={onAccept}>
-            Accept
+          <button type="button" className="transfer-box__primary" onClick={onPrimary} disabled={primaryDisabled}>
+            {primaryLabel}
           </button>
         </div>
 
-        {isAccepted && (
+        {confirmedMessage !== undefined && (
           <p className="transfer-box__accepted" role="status">
-            Offer accepted: {items.length} {items.length === 1 ? noun : pluralNoun} for the trade
-            with {partnerName}.
+            {confirmedMessage}
           </p>
         )}
 
         <p className="page-note">
-          Accept and Back-to-trading don't send anything anywhere — they confirm the offer in this
-          screen's state only, and changing the offer afterwards withdraws that confirmation again.
+          {backTo.label} and {primaryLabel} don&apos;t send anything anywhere — they confirm the
+          offer in this screen&apos;s state only, and changing the offer afterwards withdraws that
+          confirmation again.
         </p>
       </div>
     </section>
