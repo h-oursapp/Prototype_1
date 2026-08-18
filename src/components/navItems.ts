@@ -1,6 +1,6 @@
 import { ROUTES } from '../routes'
 
-export type NavKey = 'wallet' | 'profile' | 'home' | 'community' | 'trades' | 'inventory'
+export type NavKey = 'wallet' | 'profile' | 'home' | 'offers' | 'community' | 'trades' | 'inventory'
 
 export interface NavItem {
   key: NavKey
@@ -17,11 +17,14 @@ export interface NavItem {
 
 /** The nav bar's buttons (TODO #4 reworks the Appkarte §3 list): Settings has moved off the bar
  *  entirely — it's reachable from Profile's own header instead (see ProfilePage) — and Home now
- *  sits in the middle of what's left, rather than at the end. */
+ *  sits in the middle of what's left, rather than at the end. Offers joined the bar right next to
+ *  Home (TODO #3): it used to be a corner button on Home itself, but Home's topbar has since given
+ *  that spot to the quick search bar instead. */
 export const NAV_ITEMS: NavItem[] = [
   { key: 'wallet', label: 'Hours', path: ROUTES.wallet, wide: true },
   { key: 'profile', label: 'Profile', icon: '👤', path: ROUTES.profile },
   { key: 'home', label: 'Home', icon: '🏠', path: ROUTES.home },
+  { key: 'offers', label: 'Offers', icon: '🏷️', path: ROUTES.offers },
   { key: 'community', label: 'Community', icon: '👥', path: ROUTES.community },
   { key: 'trades', label: 'Trades', icon: '🔄', path: ROUTES.trades },
   { key: 'inventory', label: 'Inventory', icon: '📦', path: ROUTES.inventory },

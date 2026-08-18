@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from '../App'
+import { DEFAULT_SEARCH_FILTERS } from '../data/searchFilters'
 import { stubMatchMedia } from './helpers/renderWithRouter'
 
 beforeEach(() => {
@@ -52,12 +53,13 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Dark' }))
     await user.click(screen.getByText('Finish'))
 
-    expect(screen.getByText('Ads')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'h_OURs' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(JSON.parse(window.localStorage.getItem('h-ours:settings') ?? '{}')).toEqual({
       colorTheme: 'dark',
       gridSize: 4,
+      defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
     })
   })
 
@@ -108,6 +110,6 @@ describe('App', () => {
     window.history.pushState({}, '', '/nope')
     await user.click(screen.getByRole('button', { name: 'Home' }))
 
-    expect(screen.getByText('Ads')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'h_OURs' })).toBeInTheDocument()
   })
 })

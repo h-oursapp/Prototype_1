@@ -33,3 +33,15 @@
 .search-bar__submit:hover {
   background: var(--brand-tint);
 }
+
+/* Home's topbar (TODO #3): the bar sits inline with the logo instead of taking a full row of its
+ * own, so both the field and the button shrink to match. */
+.search-bar--compact .search-bar__field {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.search-bar--compact .search-bar__submit {
+  width: 30px;
+  font-size: 13px;
+}

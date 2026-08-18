@@ -16,12 +16,13 @@ function CurrentPath() {
   return <p>{`Current path: ${pathname}`}</p>
 }
 
-function renderSearchPage() {
+function renderSearchPage(route?: string) {
   renderWithRouter(
     <>
       <SearchPage />
       <CurrentPath />
     </>,
+    route ? { route } : undefined,
   )
 }
 
@@ -184,5 +185,54 @@ describe('SearchPage', () => {
     await user.click(screen.getByRole('button', { name: 'Text search' }))
     await user.click(screen.getByRole('button', { name: /Bike repair/ }))
     expect(screen.getByText('Current path: /ads/ad-2')).toBeInTheDocument()
+  })
+
+  describe('entry points (TODO #3)', () => {
+    it('seeds the query and jumps straight to the text view via ?q=&view=text (Home\'s quick search bar)', () => {
+      renderSearchPage('/search?q=guitar&view=text')
+
+      expect(screen.queryByText('Map — not wired up')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Search')).toHaveValue('guitar')
+      expect(screen.getByRole('button', { name: /Guitar lessons/ })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Bike repair/ })).not.toBeInTheDocument()
+    })
+
+    it('opens the text view even with a blank query, whenever ?view=text is set', () => {
+      renderSearchPage('/search?view=text')
+
+      expect(screen.queryByText('Map — not wired up')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Search')).toHaveValue('')
+    })
+
+    it('opens on the map view with no query, same as before, when there is no ?view= at all', () => {
+      renderSearchPage('/search')
+
+      expect(screen.getByText('Map — not wired up')).toBeInTheDocument()
+    })
+
+    it('seeds the query but opens the map view via ?q=&view=map (Home\'s location-pin button)', () => {
+      renderSearchPage('/search?q=guitar&view=map')
+
+      expect(screen.getByText('Map — not wired up')).toBeInTheDocument()
+      expect(screen.getByLabelText('Search')).toHaveValue('guitar')
+      expect(screen.getByRole('button', { name: /Guitar lessons/ })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Bike repair/ })).not.toBeInTheDocument()
+    })
+
+    it('starts from Settings\' default search filters instead of always "show everything"', () => {
+      window.localStorage.setItem(
+        'h-ours:settings',
+        JSON.stringify({
+          colorTheme: 'light',
+          gridSize: 3,
+          defaultSearchFilters: { kindFilter: 'item', maxDistanceKm: 10, minRating: 0 },
+        }),
+      )
+      renderSearchPage()
+
+      expect(screen.getByRole('button', { name: 'Items' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Wooden chair/ })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Guitar lessons/ })).not.toBeInTheDocument()
+    })
   })
 })

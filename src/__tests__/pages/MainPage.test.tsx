@@ -31,30 +31,37 @@ function swipeX(fromX: number, toX: number) {
 }
 
 describe('MainPage', () => {
-  it('renders the Ads and Your offers grids plus the nav bar', () => {
+  it('renders the Ads grid, the bigger logo, and the nav bar, with no visible "Ads" label or Your offers (TODO #3)', () => {
     renderMainPage()
-    expect(screen.getByText('Ads')).toBeInTheDocument()
-    expect(screen.getByText('Your offers')).toBeInTheDocument()
+    expect(screen.queryByText('Ads')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your offers')).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'h_OURs' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Guitar lessons' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Guitar lessons,/ })).toBeInTheDocument()
   })
 
   it('opens an ad when its tile is tapped', async () => {
     const user = userEvent.setup()
     renderMainPage()
 
-    await user.click(screen.getByRole('button', { name: 'Guitar lessons' }))
+    await user.click(screen.getByRole('button', { name: /^Guitar lessons,/ }))
     expect(screen.getByTestId('location')).toHaveTextContent('/ads/ad-1')
   })
 
-  it('opens Search and Offers from the two corner arrows', async () => {
+  it('has no Offers or Search buttons of its own anymore — Offers moved to the nav bar, Search became the search bar (TODO #3)', () => {
+    renderMainPage()
+
+    // The nav bar does have an Offers button (navItems.test.ts covers it) — this just checks
+    // Home itself isn't still rendering a second, topbar one alongside it.
+    expect(screen.getAllByRole('button', { name: 'Offers' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Search' })).not.toBeInTheDocument()
+  })
+
+  it('opens Offers from the nav bar', async () => {
     const user = userEvent.setup()
     renderMainPage()
 
-    await user.click(screen.getByRole('button', { name: 'Open search' }))
-    expect(screen.getByTestId('location')).toHaveTextContent('/search')
-
-    await user.click(screen.getByRole('button', { name: 'Open your offers' }))
+    await user.click(screen.getByRole('button', { name: 'Offers' }))
     expect(screen.getByTestId('location')).toHaveTextContent('/offers')
   })
 
@@ -105,12 +112,42 @@ describe('MainPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/wallet')
   })
 
-  it('offers a "create new offer" tile after the last of Your offers (TODO #3)', async () => {
+  it('sends a typed search to the text-results view with the query filled in (TODO #3)', async () => {
     const user = userEvent.setup()
     renderMainPage()
 
-    await user.click(screen.getByRole('button', { name: 'Create new offer' }))
-    expect(screen.getByTestId('location')).toHaveTextContent('/ads/new')
+    await user.type(screen.getByLabelText('Search'), 'guitar')
+    await user.click(screen.getByRole('button', { name: 'Submit search' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?q=guitar&view=text')
+  })
+
+  it('sends a blank search to the text view too, just without a query (TODO #3)', async () => {
+    const user = userEvent.setup()
+    renderMainPage()
+
+    await user.click(screen.getByRole('button', { name: 'Submit search' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?view=text')
+  })
+
+  it('sends a typed search to the map view from the location-pin button next to the search bar (TODO #3)', async () => {
+    const user = userEvent.setup()
+    renderMainPage()
+
+    await user.type(screen.getByLabelText('Search'), 'guitar')
+    await user.click(screen.getByRole('button', { name: 'Open map search' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?q=guitar&view=map')
+  })
+
+  it('sends a blank search to the map view too, just without a query (TODO #3)', async () => {
+    const user = userEvent.setup()
+    renderMainPage()
+
+    await user.click(screen.getByRole('button', { name: 'Open map search' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?view=map')
   })
 
   it('keeps the nav bar permanently open, since Home never collapses it (§3)', () => {
