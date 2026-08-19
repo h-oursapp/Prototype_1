@@ -22,7 +22,13 @@ requested mid-session. Updated again on the same branch, same day, after a **TOD
 (Inventory's search bar + filter, and its grid actually filling the page instead of a fixed N×N)
 and **TODO #14** (swapping the h_OURs logo into the favicon/PWA icons and the login screen) —
 Márk asked to keep working on this one branch rather than opening a new one per TODO point, which
-is why this update doesn't have its own branch name.
+is why this update doesn't have its own branch name. Updated again on 2026-08-18 on branch
+`todo-3-home` after reworking **TODO #3** (Home) across four rounds of direct feedback: Your
+offers' own grid is gone entirely, its `GridSection` now sizes itself the same way Inventory's
+grid does instead of a locked square frame, tile ratings became the same compact badge TODO #13
+built for Search, the topbar settled into a bigger left-aligned logo plus a quick search bar and a
+location-pin map-search button, Offers moved onto the nav bar, and Search now opens with a
+Settings-configurable default filter instead of always "show everything."
 
 This document exists so a new session (human or Claude) can pick the project up cold without
 re-reading every file. It records **what is built, why it was built that way, and what is
@@ -65,11 +71,52 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        51 files, 378 tests, all passing
+npm run test        53 files, 405 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-18, branch `todo-3-home`** reworked **TODO #3** (Home) across four rounds of direct
+feedback, each landing on top of the last:
+
+- **Your offers' own grid is gone from Home entirely** — heading text and grid both, TODO #3's
+  explicit ask. Only Ads remains, and `GridSection` (`components/`) was rewritten to size it the
+  way Inventory's grid already does (TODO #9 rework, below) rather than a locked square N×N frame:
+  columns from the grid-size setting, rows from `useFittingRows` measuring the space actually left.
+  It now composes `PagedGrid` directly instead of duplicating its square-cell CSS math — see §8 for
+  why that's safe (short version: the slice handed to it is always already capped at one page's
+  worth, so `PagedGrid`'s own pager can never actually fire). `useFittingRows` gained a
+  `reserveBottomPx` parameter (default: `PagedGrid`'s pager-height allowance; Home passes `0`,
+  since it never shows one) so Home doesn't lose a row's worth of height to a pager it'll never
+  render.
+- **Ratings on grid tiles became a compact "N★" badge, not a five-glyph row** — the same
+  convention TODO #13 built for Search's result tiles, now genuinely shared rather than
+  parallel-built: the label formatting and the corner-pinned badge moved into a new
+  `components/RatingBadge.tsx`, and `SearchPage` was refactored to use it too instead of keeping
+  its own copy.
+- **Home's topbar went through three shapes this round.** Landed on: a bigger, left-aligned
+  h_OURs logo; a compact search bar filling the rest of the row (submitting it opens Search's
+  text-results view with the typed query — `routes.ts`'s new `searchWithQuery`); a location-pin
+  button beside it for the same query's map view instead (`searchWithQuery`'s `view` argument is
+  the only difference between the two); and the Offers button, which the topbar no longer has room
+  for, moved onto the nav bar instead (`navItems.ts`, right next to Home). Home's own swipe
+  gestures (left-to-right → Offers, right-to-left → Search's map view) are unchanged throughout —
+  only the visible buttons advertising them moved.
+- **Search's starting filters are configurable in Settings now, not hardcoded "show
+  everything."** A new `data/searchFilters.ts` holds `KindFilter`/`SearchFilters`,
+  `MAX_DISTANCE_KM`, and the three filter-label helpers, pulled out of `SearchPage.tsx` once
+  `SettingsPage` needed the same vocabulary for its new "Default search filters" section (kind,
+  distance, minimum rating — the same three controls Search's own filter bar exposes).
+  `AppSettings` gained `defaultSearchFilters`; `SearchPage` seeds its three filter `useState`s from
+  it now, regardless of entry point. The storage fallback is deliberately asymmetric — see §8.
+- **`SearchBar` gained two optional, backward-compatible props:** `onSubmit` (every pre-existing
+  caller still just filters live and ignores it; only Home's bar acts on submit) and `compact`
+  (shrinks the field/button for Home's tighter topbar slot — same idea as `PageShell`'s existing
+  `compactTitle`).
+
+See §8's own subsection for the rest of the judgement calls, including the `GridSection`/
+`PagedGrid` relationship and the settings-fallback asymmetry.
 
 **2026-08-17, branch `todo-13-search` (same branch, later the same day)** reworked **TODO #9**
 (Inventory) and built **TODO #14** (the real logo):
@@ -309,12 +356,16 @@ src/
     NavBar.tsx/.css        bottom nav, self-navigating, floating (TODO #4)
     navItems.ts            nav list + activeNavKey() — pure, unit-tested
     useAutoCollapse.ts     the §3 nav auto-collapse timer
-    GridSection.tsx        a titled grid of tiles (used by Home) — square-only, capped, links away
-                           to a scrolling page on overflow, name+rating tile overlay, optional
-                           "create new" tile. See PagedGrid below for the sibling this is
-                           deliberately *not* merged with
-    PagedGrid.tsx/.css     a non-scrollable, *paged* grid: Inventory's item grid and every row on
-                           Trading (skills, the trading table) — see §8
+    GridSection.tsx        Home's one remaining grid (Ads — Your offers' own grid is gone, TODO
+                           #3): a heading-less, capped grid that composes PagedGrid for its actual
+                           rendering, with rows sized by useFittingRows instead of a locked square
+                           frame. Links away to Search on overflow rather than paging in place —
+                           see §8 for how that squares with also using PagedGrid
+    PagedGrid.tsx/.css     a non-scrollable, *paged* grid: Inventory's item grid, every row on
+                           Trading (skills, the trading table), and (TODO #3) GridSection's own
+                           rendering — see §8
+    RatingBadge.tsx/.css   the compact "N★" corner badge (TODO #13), reused by Home's grid tiles
+                           (TODO #3) once there were two real callers — see §8
     SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
     StarRating.tsx         ★★★☆☆ *display* — unrelated to StarRatingInput below, see §8
     StarRatingInput.tsx/.css   the star-picker *input* (radio-group fieldset) — Final Review's own
@@ -324,7 +375,9 @@ src/
     TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills, in both a
                            trade context and (TODO #8) picking a new ad's one subject — see §8
     SearchBar.tsx/.css     a text field + small submit button — Search's own search bar (TODO #13),
-                           moved here once Inventory (TODO #9) needed the identical thing — see §8
+                           moved here once Inventory (TODO #9) needed the identical thing. Two
+                           optional props added for Home's bar (TODO #3): `onSubmit` (every other
+                           caller ignores it) and `compact` (shrinks it for Home's topbar) — see §8
     FilterChip.tsx/.css    a button that opens a floating panel underneath it — the shell Search's
                            filter row (TODO #13) and Inventory's one filter (TODO #9) both use; only
                            the shell is shared, panel content is always the caller's own — see §8
@@ -332,7 +385,8 @@ src/
   hooks/
     useFittingRows.ts      how many square, N-wide cells fit a measured container — Inventory's
                            grid rows now come from this instead of reusing the grid-size setting
-                           for both dimensions (TODO #9) — see §8
+                           for both dimensions (TODO #9). `reserveBottomPx` (TODO #3) lets a caller
+                           with no pager (Home's GridSection) skip reserving room for one — see §8
 
   pages/                   one folder-less file per screen, plus its .css
     onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
@@ -361,9 +415,13 @@ src/
                            (hours-logo-source.png) lives in public/ instead, and has to — see §8
 
   data/                    all mock data — mockOffers, mockUser, mockTrades,
-                           mockInventory, mockCommunity
+                           mockInventory, mockCommunity; plus searchFilters.ts (TODO #3) — the
+                           KindFilter/SearchFilters types, MAX_DISTANCE_KM, and the filter-label
+                           helpers, shared by SearchPage and (now) SettingsPage's default-filter
+                           picker rather than living only inside SearchPage.tsx
 
-  settings/                theme + grid-size context, persisted to localStorage
+  settings/                theme + grid-size + (TODO #3) default search filters, persisted to
+                           localStorage
 
   trading/                 TradeDraftContext + useTradeDraft — see §8. The *only* piece of
                            cross-page state in this prototype; everything else is page-local
@@ -528,9 +586,9 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | --- | --- | --- | --- |
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). The h_OURs wordmark image is the page's `<h1>` (TODO #14). Method is `[OFFEN]` |
 | `/onboarding` | OnboardingPage | §2 | Six steps, most skippable. Skills (#2.1), friends (#2.2), verify (#2.3), and profile picture (#2.5) are all real; only #2.4's video is still a static illustration |
-| `/` | MainPage | §3 | Two fixed grids, no scroll. Not in PageShell |
+| `/` | MainPage | §3 | One fixed Ads grid, no scroll (Your offers' own grid is gone, TODO #3). Topbar: bigger left-aligned logo, a quick search bar (→ Search's text view), a location-pin button (→ map view, same query) — Offers moved to the nav bar. Not in PageShell |
 | `/offers` | OffersPage | §4 | **Your** offers |
-| `/search` | SearchPage | §4 | One-row filter bar opening floating panels (TODO #13); map view shows the placeholder map above the same results grid the text view uses |
+| `/search` | SearchPage | §4 | One-row filter bar opening floating panels (TODO #13), now seeded from Settings' configurable default filter (TODO #3) rather than always "show everything"; `?q=`/`?view=` seed the query and force a view for Home's two entry points; map view shows the placeholder map above the same results grid the text view uses |
 | `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
 | `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
 | `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8) |
@@ -546,7 +604,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/trades` | TradesPage | §8 | Status: open / agreed / closed. `?status=closed` (optionally `&skill=<id>`) filters to already-reviewed trades |
 | `/trades/:tradeId/review` | FinalReviewPage | §8 | Star **input**, not display |
 | `/community` | CommunityPage | §9 | Out of prototype scope |
-| `/settings` | SettingsPage | §9 | Theme + grid size, actually works |
+| `/settings` | SettingsPage | §9 | Theme + grid size, plus (TODO #3) Search's default kind/distance/rating filter — all actually work |
 | `/legal` | LegalPage | §9 | Out of scope — **see the warning below** |
 
 ### The Legal page contains no legal text, on purpose
@@ -718,7 +776,9 @@ grid to a square-cell frame via container-query units, but they answer "what hap
 are more items than fit?" differently: `GridSection` caps the grid and links away to a page that
 scrolls (Home → Offers/Search). Inventory and Trading (TODO #9/#11) *are* that non-scrolling page,
 so overflow is paged through in place instead — a fundamentally different behaviour, not a config
-flag on the same component. `GridSection` is untouched; Home still uses it.
+flag on the same component. **Update, TODO #3 (below): `GridSection` now composes `PagedGrid`
+internally** rather than duplicating its square-cell CSS, but the behavioural distinction drawn
+here still holds — see that section for why the two aren't in tension.
 
 **`PagedGrid`'s square-cell math had a real, shipped bug — read this before touching the CSS
 again.** Two compounding causes: (1) `.paged-grid__grid` is a `<ul>`, and never reset the browser's
@@ -1020,9 +1080,82 @@ new logo is a green→purple gradient.** Recolouring the app's whole palette to 
 separate call from "swap the icon" — flag this if a future TODO wants the brand colours to follow
 the new logo.
 
----
+### TODO #3 rework — Home's search bar, topbar, and Ads grid (this session, branch `todo-3-home`)
 
-## 9. Mock data
+**`GridSection` now composes `PagedGrid` instead of keeping its own square-frame CSS — this is
+safe specifically because `GridSection` always hands `PagedGrid` an already-capped slice.**
+`PagedGrid.tsx`'s own pager only renders once `items.length` exceeds `columns × rows`; `GridSection`
+slices `offers` down to exactly `gridSize × rows` (`rows` from `useFittingRows`) *before* handing
+them to `PagedGrid`, so `totalPages` is always 1 and the pager can never actually appear. That's the
+whole reason this doesn't contradict the TODO #9–#13 entry above (`GridSection` caps-and-links-away,
+`PagedGrid` pages-in-place, and mixing the two would be a bug) — `GridSection` still caps and links
+away; it just no longer needs its own copy of `PagedGrid`'s square-cell `min()` calc to do it. A
+side effect worth knowing: a short page of ads now pads out with `PagedGrid`'s visible dashed empty
+cells instead of just showing fewer real tiles in an otherwise-blank frame — the same look Inventory
+already has when it runs short, not a new visual language.
+
+**`useFittingRows` needed a `reserveBottomPx` parameter, not a second hook.** It was written for
+`PagedGrid` callers and hardcodes a `PAGER_ALLOWANCE_PX` (40px) reservation so a page that turns out
+not to need a pager still measured its rows assuming one might appear. `GridSection` never shows a
+pager (see above), so reserving that height would waste a real row on a tall phone for nothing.
+Rather than duplicate the row-fitting math for a "no pager" variant, `fittingRows`/`useFittingRows`
+both gained an optional `reserveBottomPx` argument (default: the existing 40px, so every current
+caller — Inventory — is unaffected), and `GridSection` passes `0`.
+
+**`RatingBadge` (`components/`) is the "N★" badge TODO #13 built for Search, pulled out once Home's
+grid became the second real caller wanting the identical thing** — the same "wait for a second use"
+bar this document keeps applying (`StarRating`, `TransferBox`, `usePhotoCapture`,
+`StarRatingInput`). It's purely decorative (`aria-hidden`): both callers already fold the rating
+into the tile's own accessible name (`"Guitar lessons, rated 4 out of 5"`), matching the convention
+Search's tiles already used — `GridSection`'s tiles didn't do this before (they had a separate,
+non-hidden `StarRating` with its own accessible name) and were changed to match on this pass, not
+left inconsistent with Search.
+
+**Home's topbar went through three shapes this session, each a direct response to feedback on the
+last — worth knowing what didn't stick, since none of it survives in the code:**
+1. First cut: two labelled corner buttons (a left arrow → Your offers, a right arrow → Search)
+   flanking the h_OURs wordmark, replacing the two grids' old per-section corner arrows now that
+   only one grid (Ads) was left to carry one.
+2. Feedback: drop the visible "Ads" heading above the grid entirely (the grid's accessible name —
+   `gridLabel`/`heading` — stayed, just stopped rendering as visible text); give the two corner
+   buttons visible words instead of icon+`aria-label` alone ("Offers"/"Search"); change the Search
+   button's icon from a plain arrow to a magnifying glass (🔍, matching `SearchBar`'s own icon).
+3. Feedback again — the current shape: the logo got bigger and moved to the left instead of sitting
+   centred between two buttons; a compact `SearchBar` took the space the Search button used to
+   occupy, inline with the logo (submitting it — Enter or the 🔍 button — opens Search's
+   text-results view with the typed query, via the new `searchWithQuery` in `routes.ts`); a
+   location-pin (📍) button was added to its right for the *same* query's map view instead
+   (`searchWithQuery`'s new `view: 'text' | 'map' = 'text'` argument is the only difference between
+   the two — one helper, not two near-duplicates); and the Offers button, with nowhere left in the
+   topbar to live, moved onto the nav bar instead (`navItems.ts`, added right next to Home — see
+   below). Home's own swipe gestures (left-to-right → Offers, right-to-left → Search's plain map
+   view, no query) were never touched across any of this — only the visible affordances advertising
+   them moved.
+
+**The nav bar gained an eighth slot-width (`offers`, next to `home`), the first change to
+`NAV_ITEMS` since TODO #4.** Icon is 🏷️ (unused elsewhere in the app). This wasn't visually
+verified on a narrow phone width — per Márk's skip-visual-testing rule, only `getByRole` assertions
+confirm it renders and navigates, not that seven items (eight slot-widths, wallet still double-wide)
+stay comfortably legible at 360–390px. Worth an actual look before assuming it's fine.
+
+**Search's default filters moved from hardcoded literals to a Settings-configurable value —
+deliberately backward-compatible in a way `colorTheme`/`gridSize` aren't.** `AppSettings` gained
+`defaultSearchFilters: SearchFilters` (`data/searchFilters.ts`); `settingsStorage.ts`'s
+`loadSettings()` still returns `null` for the *whole* blob if `colorTheme`/`gridSize` fail
+validation (unchanged), but a missing-or-invalid `defaultSearchFilters` alone falls back to
+`DEFAULT_SEARCH_FILTERS` without touching the other two fields. That asymmetry is intentional:
+`defaultSearchFilters` didn't exist before this session, so every already-saved `localStorage`
+settings blob out there is technically "missing" it — invalidating the whole blob over one new
+field would silently reset someone's theme and grid-size choice too, for a change they never made.
+`SearchPage`'s three filter `useState`s now seed from `defaultSearchFilters` (read once at mount,
+same as `gridSize` — Search doesn't re-sync if Settings changes while it's already open) instead of
+literal `'all'`/`MAX_DISTANCE_KM`/`0`, regardless of entry point.
+
+**`?q=`/`?view=` on `/search` exist specifically for Home's two new entry points, and nothing else
+reads them.** `searchWithQuery(query, view)` builds them; `SearchPage` reads `?q=` into its initial
+query state and treats any `?view=` other than exactly `'text'` (including absent) as `'map'` — so
+Search's own corner-adjacent entry points (a bare `/search`, the right-to-left swipe) are completely
+unaffected and keep opening on the map view with no query, exactly as before.
 
 All of it lives in `src/data/`. No component invents its own.
 
@@ -1138,6 +1271,16 @@ padding token), Home sits in the middle of the remaining six items, Settings is 
 renders as a plain `formatHoursBalance()`-formatted number (`"12h"` / `"10h15m"`) in a double-width
 slot with no icon, gridlines sit between items, and `PageShell`'s back button now calls the new
 `isTopLevelRoute()` check (`topLevelRoutes.ts`) to decide Home-vs-ordinary-back.
+
+**TODO #3's rework is done** (branch `todo-3-home`, this session) — the description above is now
+the *first* pass, substantially superseded: Your offers' own grid is gone from Home entirely (only
+Ads remains, now sized by `useFittingRows` instead of a locked square frame, and using the same
+compact "N★" rating badge Search's tiles use — TODO #13); the two corner arrows are gone too, replaced
+by a bigger, left-aligned logo, a compact search bar (→ Search's text view), and a location-pin
+button (→ Search's map view, same query); Offers moved off Home entirely onto the nav bar, next to
+Home; and Search now opens with a Settings-configurable default filter instead of always "show
+everything." See §2's dated entry and §8's own subsection for the full rundown, including three
+rounds of topbar iteration that didn't stick.
 
 **TODO #5, #6, #7 are done** (previous session): both ratings everywhere a skill appears, the
 Skills grid rework (grid-size columns, uncapped rows, data overlaid on the tile), the add-a-skill

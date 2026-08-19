@@ -53,6 +53,19 @@ export const trading = (tradeId: string, opts?: { quick?: boolean; hours?: numbe
 }
 export const finalReview = (tradeId: string) => `/trades/${tradeId}/review`
 
+/** Home's own quick search bar (TODO #3): jumps straight to Search with whatever was typed
+ *  already filled in. Defaults to Search's text-results view — the search bar's own submit
+ *  button — but the location-pin button beside it (also TODO #3) asks for `'map'` instead, same
+ *  query, the other view. `q` is left off entirely for a blank query rather than sent as an empty
+ *  string, so a plain search still reads as "not typed yet" rather than "searched for nothing".
+ *  Search's own corner button/nav still lands on a bare `ROUTES.search`, unaffected by this. */
+export const searchWithQuery = (query: string, view: 'text' | 'map' = 'text') => {
+  const params = new URLSearchParams()
+  if (query.trim() !== '') params.set('q', query)
+  params.set('view', view)
+  return `${ROUTES.search}?${params.toString()}`
+}
+
 /** Inventory in a trading context (§6): the same page, which gains a drop area and Accept /
  *  Back-to-trading buttons when it knows which trade you're building an offer for. */
 export const inventoryForTrade = (tradeId: string) => `${ROUTES.inventory}?trade=${tradeId}`

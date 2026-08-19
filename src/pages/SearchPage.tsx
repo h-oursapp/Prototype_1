@@ -1,13 +1,23 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FilterChip, FilterChipDone } from '../components/FilterChip'
 import { OptionGroup } from '../components/OptionGroup'
 import { PageShell } from '../components/PageShell'
+import { RatingBadge } from '../components/RatingBadge'
 import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
 import { StarRatingInput } from '../components/StarRatingInput'
+import { MAX_STARS } from '../components/StarRating'
 import type { Offer } from '../data/mockOffers'
 import { MOCK_ADS } from '../data/mockOffers'
+import {
+  KIND_FILTER_OPTIONS,
+  MAX_DISTANCE_KM,
+  distanceFilterLabel,
+  kindFilterLabel,
+  ratingFilterLabel,
+  type KindFilter,
+} from '../data/searchFilters'
 import { adDetail } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import './SearchPage.css'
@@ -16,21 +26,6 @@ import './SearchPage.css'
  *  or the grid on its own. The view changer lives in the page header, opposite the title, so the
  *  search bar and filters above the results can stay small (TODO #13). */
 type SearchView = 'map' | 'text'
-
-type KindFilter = 'all' | 'skill' | 'item'
-
-const KIND_FILTER_OPTIONS: { value: KindFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'skill', label: 'Skills' },
-  { value: 'item', label: 'Items' },
-]
-
-/** Upper bound of the range slider, in km. MOCK_ADS' farthest entry sits just inside this, so
- *  dragging to the end always means "no distance filter" rather than accidentally hiding
- *  something. */
-const MAX_DISTANCE_KM = 10
-
-const MAX_RATING = 5
 
 /** Title-only matching: the mock descriptions would make hits look arbitrary at prototype size,
  *  and the card doesn't say what the search covers. */
@@ -71,25 +66,6 @@ function distanceLabel(offer: Offer): string {
   return offer.distanceKm === undefined ? 'Distance unknown' : `${offer.distanceKm} km away`
 }
 
-/** "5★" — the compact badge TODO #13 wants in a tile's corner instead of a full star row, which
- *  has no room to spare at grid size. Works the same for a skill or an item offer, since both
- *  carry the one overall `rating` field. */
-function ratingBadgeLabel(offer: Offer): string {
-  return `${offer.rating}★`
-}
-
-function kindFilterLabel(kindFilter: KindFilter): string {
-  return KIND_FILTER_OPTIONS.find((option) => option.value === kindFilter)?.label ?? 'All'
-}
-
-function distanceFilterLabel(maxDistanceKm: number): string {
-  return maxDistanceKm >= MAX_DISTANCE_KM ? 'Any distance' : `Within ${maxDistanceKm} km`
-}
-
-function ratingFilterLabel(minRating: number): string {
-  return minRating === 0 ? 'Any rating' : `Min ${minRating}★`
-}
-
 /** Stands in for the map itself. A real map needs a tile provider and a location source, both out
  *  of scope for the prototype, so this occupies the space §4 gives the map and says plainly that
  *  it is not wired up rather than quietly rendering nothing. */
@@ -119,7 +95,7 @@ function ResultsGrid({ offers, columns, onSelectOffer }: ResultsGridProps) {
       {offers.map((offer) => (
         <li key={offer.id} className="search-page__result">
           <SquareTile
-            label={`${offer.title}, ${offer.hours} hours, rated ${offer.rating} out of ${MAX_RATING}`}
+            label={`${offer.title}, ${offer.hours} hours, rated ${offer.rating} out of ${MAX_STARS}`}
             onClick={() => onSelectOffer(offer)}
           >
             <span className="search-page__result-tile">
@@ -129,9 +105,7 @@ function ResultsGrid({ offers, columns, onSelectOffer }: ResultsGridProps) {
               <span className="search-page__result-title">{offer.title}</span>
               <span className="search-page__result-meta">{distanceLabel(offer)}</span>
             </span>
-            <span className="search-page__result-rating" aria-hidden="true">
-              {ratingBadgeLabel(offer)}
-            </span>
+            <RatingBadge value={offer.rating} />
           </SquareTile>
         </li>
       ))}
@@ -268,15 +242,23 @@ function ViewToggle({ view, onSelect }: ViewToggleProps) {
  *
  *  There's no fixed-height container anywhere in here, so the page just grows with the result
  *  count and PageShell's content area (already `overflow-y: auto`) scrolls it — TODO #13's "the
- *  site is scrollable when there is enough items found" falls out of that for free. */
+ *  site is scrollable when there is enough items found" falls out of that for free.
+ *
+ *  TODO #3: Home's own quick search bar sends you here via `searchWithQuery` — `?q=` seeds the
+ *  query and `?view=text` skips straight past the map, rather than making you retype and switch
+ *  views by hand. Opened any other way (Search's own corner button, a bare `/search`), both start
+ *  at their usual defaults. The three filters always start from Settings' `defaultSearchFilters`
+ *  (also TODO #3) regardless of entry point — read once at mount, the same as `gridSize`; Search
+ *  doesn't need to notice a Settings change made while it's already open. */
 export function SearchPage() {
   const navigate = useNavigate()
-  const { gridSize } = useSettings()
-  const [view, setView] = useState<SearchView>('map')
-  const [query, setQuery] = useState('')
-  const [kindFilter, setKindFilter] = useState<KindFilter>('all')
-  const [maxDistanceKm, setMaxDistanceKm] = useState(MAX_DISTANCE_KM)
-  const [minRating, setMinRating] = useState(0)
+  const [searchParams] = useSearchParams()
+  const { gridSize, defaultSearchFilters } = useSettings()
+  const [view, setView] = useState<SearchView>(searchParams.get('view') === 'text' ? 'text' : 'map')
+  const [query, setQuery] = useState(searchParams.get('q') ?? '')
+  const [kindFilter, setKindFilter] = useState<KindFilter>(defaultSearchFilters.kindFilter)
+  const [maxDistanceKm, setMaxDistanceKm] = useState(defaultSearchFilters.maxDistanceKm)
+  const [minRating, setMinRating] = useState(defaultSearchFilters.minRating)
 
   const matches = findMatches(query, kindFilter, maxDistanceKm, minRating)
   const gridOffers = view === 'map' ? [...matches].sort(byDistance) : matches

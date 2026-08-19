@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_SEARCH_FILTERS } from '../../../data/searchFilters'
 import { SettingsProvider } from '../../../settings/SettingsContext'
 import { StepCustomize } from '../../../pages/onboarding/StepCustomize'
 
@@ -29,6 +30,7 @@ describe('StepCustomize', () => {
     expect(JSON.parse(window.localStorage.getItem('h-ours:settings') ?? '{}')).toEqual({
       colorTheme: 'dark',
       gridSize: 4,
+      defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
     })
   })
 

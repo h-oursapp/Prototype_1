@@ -109,20 +109,3 @@
   font-size: clamp(8px, 8cqw, 12px);
   color: var(--text-muted);
 }
-
-/* TODO #13: "show the rating ... in the upper right corner as for example: 5*". .square-tile is
- * already `position: relative`, so this just pins to its corner rather than sharing the bottom
- * overlay strip the name would otherwise use. */
-.search-page__result-rating {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  padding: 1px 5px;
-  font-size: clamp(8px, 8cqw, 11px);
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--brand-primary-deep);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}

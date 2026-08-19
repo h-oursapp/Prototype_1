@@ -22,6 +22,13 @@ describe('fittingRows', () => {
   it('falls back to minRows for a nonsensical column count instead of dividing by zero', () => {
     expect(fittingRows(390, 500, 0, 1)).toBe(1)
   })
+
+  it('fits more rows when reserveBottomPx is dropped to 0, for a caller with no pager to leave room for (TODO #3)', () => {
+    const withPagerAllowance = fittingRows(390, 921, 3, 1)
+    const withoutPagerAllowance = fittingRows(390, 921, 3, 1, 0)
+
+    expect(withoutPagerAllowance).toBeGreaterThan(withPagerAllowance)
+  })
 })
 
 /** A tiny harness so useFittingRows' own state/effect wiring — not just the pure math above — gets

@@ -7,6 +7,25 @@
 /* The page heading and back button now come from PageShell, so the header styles that used to
  * live here are gone. */
 
+.settings-page__section {
+  margin-top: 20px;
+}
+
+.settings-page__range-field {
+  display: block;
+  margin: 12px 0;
+}
+
+.settings-page__range-field span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.settings-page__range-field input {
+  width: 100%;
+}
+
 .settings-page__link {
   display: block;
   width: 100%;
