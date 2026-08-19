@@ -1,0 +1,35 @@
+/* Moved here from SearchPage.css when Inventory (TODO #9) started wanting the same bar — see
+ * SearchBar.tsx's own comment. */
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.search-bar__field {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.search-bar__submit {
+  flex-shrink: 0;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--brand-primary);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.search-bar__submit:hover {
+  background: var(--brand-tint);
+}

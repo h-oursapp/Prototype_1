@@ -29,18 +29,18 @@ describe('InventoryPage', () => {
     renderInventoryPage()
 
     expect(screen.getByRole('heading', { name: 'Inventory' })).toBeInTheDocument()
-    // Default grid size is 3 (settings/types.ts), so a 3x3 page has 9 cells — all 8 mock items
-    // fit on the first page, padded with one visibly empty cell (PagedGrid's `fill`/padding).
+    // Default grid size is 3 (settings/types.ts), so a 3x3 page has 9 cells — with 20 mock items
+    // now, the first page fills exactly (no empty padding cell; that only shows up on page 3).
     expect(grid().getByRole('button', { name: 'Acoustic guitar' })).toBeInTheDocument()
     expect(grid().getByRole('button', { name: 'Bread tin' })).toBeInTheDocument()
     expect(grid().getAllByRole('listitem')).toHaveLength(9)
-    expect(grid().getAllByRole('button', { name: /^[A-Z]/ })).toHaveLength(8)
+    expect(grid().getAllByRole('button', { name: /^[A-Z]/ })).toHaveLength(9)
   })
 
   it('says how much of the inventory a trading partner can see', () => {
     renderInventoryPage()
 
-    expect(screen.getByText(/6 of 8 items are visible to a trading partner/)).toBeInTheDocument()
+    expect(screen.getByText(/16 of 20 items are visible to a trading partner/)).toBeInTheDocument()
   })
 
   it('New shelf is a fully inert header icon, not a shelf-creation form', () => {
@@ -191,6 +191,79 @@ describe('InventoryPage', () => {
     expect(screen.queryByRole('group', { name: 'Your offer for this trade' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Back to trading' })).toBeNull()
+  })
+
+  describe('search bar and visibility filter (TODO #9)', () => {
+    it('narrows the grid to items whose name matches the search bar', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage()
+
+      await user.type(screen.getByLabelText('Search your inventory'), 'guitar')
+
+      expect(grid().getByRole('button', { name: 'Acoustic guitar' })).toBeInTheDocument()
+      expect(grid().queryByRole('button', { name: 'Bread tin' })).not.toBeInTheDocument()
+    })
+
+    it('narrows the grid to public or private items from the visibility filter panel', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage()
+
+      await user.click(screen.getByRole('button', { name: 'All' }))
+      await user.click(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: 'Private' }))
+
+      expect(grid().getByRole('button', { name: 'Camera' })).toBeInTheDocument()
+      expect(grid().queryByRole('button', { name: 'Acoustic guitar' })).not.toBeInTheDocument()
+      // Picking an option closes the panel — the trigger itself now reads "Private".
+      expect(screen.queryByRole('group', { name: 'Show' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Private' })).toHaveClass('is-active')
+    })
+
+    it('says so when no item matches, instead of showing an all-empty grid', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage()
+
+      await user.type(screen.getByLabelText('Search your inventory'), 'submarine')
+
+      expect(screen.getByText('No items match your search.')).toBeInTheDocument()
+      expect(screen.queryByRole('list', { name: 'Your inventory' })).not.toBeInTheDocument()
+    })
+
+    it('keeps an already-offered item in the transfer box even once a search hides its tile', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?trade=trade-1')
+
+      await user.click(grid().getByRole('button', { name: 'Add Acoustic guitar to your offer' }))
+      await user.type(screen.getByLabelText('Search your inventory'), 'bread')
+
+      expect(grid().queryByRole('button', { name: /Acoustic guitar/ })).not.toBeInTheDocument()
+      expect(offer().getByText('Acoustic guitar')).toBeInTheDocument()
+    })
+  })
+
+  describe('the grid fills the space it is given (TODO #9)', () => {
+    it('shows only a gridSize x gridSize page before any real layout exists, as in jsdom', () => {
+      renderInventoryPage()
+
+      // Same assertion as the very first test above, spelled out here to make the *contrast*
+      // with the next test obvious: this is the fallback, not a hardcoded page size.
+      expect(grid().getAllByRole('listitem')).toHaveLength(9)
+    })
+
+    it('fits more rows onto the page once the grid area actually measures taller than that', () => {
+      const original = HTMLElement.prototype.getBoundingClientRect
+      HTMLElement.prototype.getBoundingClientRect = () => ({ width: 390, height: 900 }) as DOMRect
+
+      try {
+        renderInventoryPage()
+        // 3 columns (the default grid size) x 6 rows fit a 390x900 box — see
+        // useFittingRows.test.tsx for the arithmetic this mirrors. 20 mock items is more than
+        // the 18 cells that makes, so every one of them is a real tile, not a padding slot.
+        expect(grid().getAllByRole('listitem')).toHaveLength(18)
+        expect(grid().getAllByRole('button', { name: /^[A-Z]/ })).toHaveLength(18)
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = original
+      }
+    })
   })
 
   describe('picking an item for a new ad (TODO #8)', () => {

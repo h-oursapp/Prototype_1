@@ -27,6 +27,20 @@
   color: var(--text-muted);
 }
 
+/* ---------- Search + filter (TODO #9) ---------- */
+
+/* The search bar itself is components/SearchBar — nothing page-specific to style here. This row
+ * just gives its own single FilterChip somewhere to anchor its floating panel: `position: relative`
+ * for that, and (per FilterChip.tsx's own comment) never `overflow-x`/`overflow-y`, which would
+ * silently clip the panel instead of letting it float over the grid below. */
+.inventory-page__filters {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
 /* ---------- Trading context ---------- */
 
 /* Tinted rather than plain, so it is obvious at a glance that the page is in its trading mode. */

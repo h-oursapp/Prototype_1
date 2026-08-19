@@ -4,6 +4,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { LoginPage } from '../../pages/LoginPage'
 
 describe('LoginPage', () => {
+  // TODO #14: the wordmark image is the page's h1 now, not a separate text heading next to a
+  // small badge icon — its alt text is what has to carry the accessible name.
+  it('names the page with the h_OURs wordmark as its heading', () => {
+    render(<LoginPage onLogin={vi.fn()} />)
+
+    expect(screen.getByRole('heading', { name: 'h_OURs' })).toBeInTheDocument()
+  })
+
   it('calls onLogin when the log in button is pressed', async () => {
     const user = userEvent.setup()
     const onLogin = vi.fn()

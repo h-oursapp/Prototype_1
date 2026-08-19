@@ -1,17 +1,49 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { FilterChip } from '../components/FilterChip'
+import { OptionGroup } from '../components/OptionGroup'
 import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
+import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
 import { TransferBox } from '../components/TransferBox'
 import type { InventoryItem } from '../data/mockInventory'
 import { MOCK_YOUR_INVENTORY, publicItems } from '../data/mockInventory'
 import type { Trade } from '../data/mockTrades'
 import { findTrade } from '../data/mockTrades'
+import { useFittingRows } from '../hooks/useFittingRows'
 import { ROUTES, adCreateWithItem, itemDetail, trading } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import { useTradeDraft } from '../trading/useTradeDraft'
 import './InventoryPage.css'
+
+/** Appkarte §6 has no notion of skills in Inventory (it's items only), so unlike Search's
+ *  skill/item/all split, the one filter here is about visibility — the concept this page already
+ *  cares about (public vs private, the "X of Y visible to a trading partner" line). */
+type VisibilityFilter = 'all' | 'public' | 'private'
+
+const VISIBILITY_FILTER_OPTIONS: { value: VisibilityFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'public', label: 'Public' },
+  { value: 'private', label: 'Private' },
+]
+
+function matchesQuery(item: InventoryItem, query: string): boolean {
+  return item.name.toLowerCase().includes(query.trim().toLowerCase())
+}
+
+function matchesVisibility(item: InventoryItem, visibilityFilter: VisibilityFilter): boolean {
+  if (visibilityFilter === 'all') return true
+  return visibilityFilter === 'public' ? item.isPublic : !item.isPublic
+}
+
+function findMatches(items: InventoryItem[], query: string, visibilityFilter: VisibilityFilter): InventoryItem[] {
+  return items.filter((item) => matchesQuery(item, query) && matchesVisibility(item, visibilityFilter))
+}
+
+function visibilityFilterLabel(visibilityFilter: VisibilityFilter): string {
+  return VISIBILITY_FILTER_OPTIONS.find((option) => option.value === visibilityFilter)?.label ?? 'All'
+}
 
 /** Inventory (Appkarte §6, reworked by TODO #9) — "start from almost the beginning": a
  *  non-scrollable, paged grid of your items, plus the transfer box the card asks for when you
@@ -47,9 +79,16 @@ import './InventoryPage.css'
  *    the URL instead (`adCreateWithItem`), the same way SkillsPage's ad-picking mode does.
  *  - Uploading is left out, as before — TODO #9 says what the grid looks like, not how items get
  *    into it.
- *  - PagedGrid always sizes its grid to the largest square that fits the space it's given, so on
- *    this screen (where the grid is the only thing there) it naturally uses most of the frame —
- *    and a short last page pads out with visibly empty slots instead of a lopsided partial row. */
+ *  - The search bar and its one filter (TODO #9: "no skills are here" — Search's skill/item split
+ *    doesn't apply, so visibility is the only thing worth narrowing by) only narrow which items the
+ *    grid *shows*; they never touch `items` itself, so an already-offered item stays in the
+ *    transfer box even if a search typed afterwards would hide its tile.
+ *  - "Make the grid fill up the rest of the page. columns by the setting and rows as many as fits"
+ *    (TODO #9) is `useFittingRows`: columns still comes straight from the grid-size setting, same
+ *    as before, but rows is now measured from the actual space left under the search bar and
+ *    filter row instead of reusing that same setting — a tall phone gets more rows per page, not
+ *    just narrower ones. PagedGrid still sizes each cell to the largest square that fits
+ *    `columns × rows`, and a short last page still pads out with visibly empty slots. */
 export function InventoryPage() {
   const [searchParams] = useSearchParams()
   const trade = findTrade(searchParams.get('trade') ?? undefined)
@@ -71,6 +110,14 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
   // it's capped at one, so toggling it is always "select this one, or clear it" rather than
   // appending, unlike a trade's item list below.
   const [adPickedIds, setAdPickedIds] = useState<string[]>([])
+
+  const [query, setQuery] = useState('')
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>('all')
+  const [isVisibilityFilterOpen, setIsVisibilityFilterOpen] = useState(false)
+  const matches = findMatches(items, query, visibilityFilter)
+  // The setting still drives columns; rows is measured from whatever height is actually left
+  // under the search bar and filter row once they're on the page — see the file banner comment.
+  const { containerRef: gridAreaRef, rows } = useFittingRows(gridSize)
 
   // Shared with TradingPage via TradeDraftContext, keyed by trade id — items picked here need to
   // survive the "Back to trading" round trip, unlike everything else on this page (hooks can't be
@@ -162,23 +209,48 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
           {publicItems(items).length} of {items.length} items are visible to a trading partner.
         </p>
 
-        <div className="inventory-page__grid-area">
-          <PagedGrid
-            items={items}
-            getKey={(item) => item.id}
-            columns={gridSize}
-            rows={gridSize}
-            gridLabel="Your inventory"
-            renderTile={(item) => (
-              <ItemTile
-                item={item}
-                isOffered={offeredIds.includes(item.id)}
-                onOpen={() => navigate(itemDetail(item.id))}
-                onToggleOffered={isPicking ? () => toggleOffered(item.id) : undefined}
-                pickingContext={trade ? 'trade' : 'ad'}
-              />
-            )}
-          />
+        <SearchBar value={query} onChange={setQuery} placeholder="Search your inventory" ariaLabel="Search your inventory" />
+
+        <div className="inventory-page__filters">
+          <FilterChip
+            label={visibilityFilterLabel(visibilityFilter)}
+            isActive={visibilityFilter !== 'all'}
+            isOpen={isVisibilityFilterOpen}
+            onToggle={() => setIsVisibilityFilterOpen((isOpen) => !isOpen)}
+          >
+            <OptionGroup
+              legend="Show"
+              options={VISIBILITY_FILTER_OPTIONS}
+              selected={visibilityFilter}
+              onSelect={(value) => {
+                setVisibilityFilter(value)
+                setIsVisibilityFilterOpen(false)
+              }}
+            />
+          </FilterChip>
+        </div>
+
+        <div className="inventory-page__grid-area" ref={gridAreaRef}>
+          {matches.length === 0 ? (
+            <p className="page-note">No items match your search.</p>
+          ) : (
+            <PagedGrid
+              items={matches}
+              getKey={(item) => item.id}
+              columns={gridSize}
+              rows={rows}
+              gridLabel="Your inventory"
+              renderTile={(item) => (
+                <ItemTile
+                  item={item}
+                  isOffered={offeredIds.includes(item.id)}
+                  onOpen={() => navigate(itemDetail(item.id))}
+                  onToggleOffered={isPicking ? () => toggleOffered(item.id) : undefined}
+                  pickingContext={trade ? 'trade' : 'ad'}
+                />
+              )}
+            />
+          )}
         </div>
 
         {trade && (

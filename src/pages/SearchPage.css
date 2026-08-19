@@ -7,34 +7,27 @@
   width: 100%;
 }
 
-.search-page__controls {
+/* TODO #13: the view changer used to live here as its own OptionGroup row; it now renders in
+ * PageShell's header via headerAction (see ViewToggle in SearchPage.tsx), so this wrapper just
+ * pairs the two icon buttons the same 4px apart that OptionGroup uses between its own buttons. */
+.search-page__view-toggle {
   display: flex;
-  flex-direction: column;
+  gap: 4px;
+}
+
+/* The search bar itself (field + small submit button) moved to components/SearchBar.css when
+ * Inventory (TODO #9) started wanting the same bar. */
+
+/* TODO #13's filter row: three small buttons that always fit on one line — the trigger/panel/done
+ * styling itself moved to components/FilterChip.css when Inventory (TODO #9) started wanting the
+ * same shell for its own filter. `position: relative` is what lets a FilterChip's panel anchor to
+ * this row instead of the whole page; see FilterChip.tsx's comment for why this row must also
+ * never set `overflow-x`/`overflow-y`. */
+.search-page__filters {
+  position: relative;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-}
-
-/* OptionGroup carries its own bottom margin for stacked settings forms; here the flex gap already
- * spaces the rows. */
-.search-page__controls .option-group {
-  margin-bottom: 0;
-}
-
-.search-page__search {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-weight: 600;
-}
-
-.search-page__field {
-  width: 100%;
-  padding: 10px 12px;
-  font: inherit;
-  font-weight: 400;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
 }
 
 .search-page__count {
@@ -43,63 +36,16 @@
   color: var(--text-muted);
 }
 
-/* §4: roughly half the space is the map, the other half the nearby hits. */
-.search-page__map-view {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  min-height: 280px;
-}
-
-.search-page__nearby,
-.search-page__map {
-  flex: 1 1 50%;
-  min-width: 0;
-}
-
-.search-page__nearby-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.search-page__hit {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  padding: 10px;
-  text-align: left;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-.search-page__hit:hover {
-  background: var(--surface-alt);
-}
-
-.search-page__hit-title {
-  font-size: 14px;
-}
-
-.search-page__hit-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
 /* Dashed edge plus faux grid lines: reads as a map panel at a glance, and as unfinished on a
- * second look. */
+ * second look. TODO #13.1 puts this above the results grid rather than beside a separate list, so
+ * it's a fixed-height banner now instead of a 50%-width flex half. */
 .search-page__map {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-height: 160px;
   padding: 12px;
   text-align: center;
   border: 1px dashed var(--border);
@@ -162,4 +108,21 @@
 .search-page__result-meta {
   font-size: clamp(8px, 8cqw, 12px);
   color: var(--text-muted);
+}
+
+/* TODO #13: "show the rating ... in the upper right corner as for example: 5*". .square-tile is
+ * already `position: relative`, so this just pins to its corner rather than sharing the bottom
+ * overlay strip the name would otherwise use. */
+.search-page__result-rating {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 1px 5px;
+  font-size: clamp(8px, 8cqw, 11px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--brand-primary-deep);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
 }

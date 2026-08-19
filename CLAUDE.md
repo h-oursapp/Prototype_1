@@ -8,8 +8,9 @@
 - Create a new git branch every new session where you make any modification.
 - Dont commit to git until I say so.
 - Befor commiting get rid of commented out sections.
-- before commiting run /compact and create save it in the HANDOFF.md
+- before commiting run make the HANDOFF.md
 - TODO.md is a list I am writing while waiting for my session to reset. I will specify which parts we tackle at the beging of the session.
 - At the begining of the session ask me wich todo point are we working on.
 - When commited mark done TODO items.
 - When commited create a push requiest.
+- Skipp visual testing. Except when told spesificly.

@@ -2,8 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- TODO #14: the h_OURs logo (public/hours-logo-source.png) only exists as a raster export,
+         so there's no vector favicon to point a `type="image/svg+xml"` link at anymore — a browser
+         that wants more than favicon.ico's 48x48 falls back to the manifest's own icons list
+         (vite.config.ts) instead, same as any site that never had an SVG favicon in the first
+         place. -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#863bff" />

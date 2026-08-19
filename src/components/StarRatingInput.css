@@ -1,0 +1,60 @@
+/* Reset the browser's fieldset chrome — the legend and the star row carry the grouping visually. */
+.star-rating-input {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.star-rating-input legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.star-rating-input__stars {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* The radio itself covers the star and is invisible: the browser keeps the keyboard and grouping
+ * behaviour, while the star underneath does the looks. */
+.star-rating-input__star {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+  cursor: pointer;
+}
+
+.star-rating-input__star input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Every star up to the picked one lights up, so the rating reads as a level, not a single pick. */
+.star-rating-input__star.is-active {
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+}
+
+.star-rating-input__star:has(input:focus-visible) {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+.star-rating-input__value {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
