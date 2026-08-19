@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -39,7 +39,7 @@ function renderTradingPageAndTrackNavigation(tradeId = 'trade-1') {
 }
 
 /** A plain probe button that reaches into the same TradeDraftContext InventoryPage would write to
- *  in the real app — standing in for "you picked an item on Inventory's page and came back",
+ *  in the real app — standing in for "you picked an item on Inventory's own page and came back",
  *  without actually mounting InventoryPage in a TradingPage test. */
 function TradeDraftToggle({ tradeId, itemId }: { tradeId: string; itemId: string }) {
   const { toggleItem } = useTradeDraft()
@@ -47,16 +47,20 @@ function TradeDraftToggle({ tradeId, itemId }: { tradeId: string; itemId: string
 }
 
 describe('TradingPage', () => {
-  it('renders your skills, the action buttons, the trading table and the chat', () => {
+  it('renders the trading table, the respond row and the bottom bar', () => {
     renderTradingPage()
 
     expect(screen.getByRole('heading', { name: 'Trading with Lena K.' })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Your skills' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Add items' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Your side of the trading table' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: "Open Lena K.'s inventory" })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: "Lena K.'s skills" })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Chat' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Respond to this offer' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Final review' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open chat' })).toBeInTheDocument()
+  })
+
+  it('shows the h_OURs mark in the header', () => {
+    renderTradingPage()
+
+    expect(screen.getByRole('img', { name: 'h_OURs' })).toBeInTheDocument()
   })
 
   it('gives the Trading title a smaller, compact treatment', () => {
@@ -67,47 +71,57 @@ describe('TradingPage', () => {
     )
   })
 
-  it('opens Inventory in trading mode from the Add items button', async () => {
+  it("opens your inventory from your grid's own first tile", async () => {
     const user = userEvent.setup()
     renderTradingPageAndTrackNavigation()
 
-    await user.click(screen.getByRole('button', { name: 'Add items' }))
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: 'Open your inventory' }))
 
     expect(screen.getByTestId('location')).toHaveTextContent('/inventory?trade=trade-1')
   })
 
-  it('opens the partner’s inventory from the Open her inventory button', async () => {
+  it("opens the partner's inventory from their grid's own first tile", async () => {
     const user = userEvent.setup()
     renderTradingPageAndTrackNavigation()
 
-    await user.click(screen.getByRole('button', { name: "Open Lena K.'s inventory" }))
+    const partnerTable = screen.getByRole('list', { name: "Lena K.'s offer on the table" })
+    await user.click(within(partnerTable).getByRole('button', { name: "Open Lena K.'s inventory" }))
 
     expect(screen.getByTestId('location')).toHaveTextContent('/inventory/partner?trade=trade-1')
   })
 
-  it('opens your full skills for this trade from the grid’s last cell', async () => {
-    const user = userEvent.setup()
-    renderTradingPageAndTrackNavigation()
-
-    // The row is a "best skills" preview capped to one page (see TradingPage.tsx), so the "open
-    // full" tile is always visible without paging to reach it.
-    const yours = screen.getByRole('group', { name: 'Your skills' })
-    await user.click(within(yours).getByRole('button', { name: 'Open your full skills' }))
-
-    expect(screen.getByTestId('location')).toHaveTextContent('/skills')
-  })
-
-  it('shows only your highest-rated skills in the preview row, not every skill', () => {
+  it('fills the rest of each grid with non-interactive suggestion tiles', () => {
     renderTradingPage()
 
-    const yours = screen.getByRole('group', { name: 'Your skills' })
-    // MOCK_SKILLS ratings: Web design 5, Piano 4, Cooking 3, Gardening 3, Photography 2 — the row
-    // is capped to 3 real skills (+ the "open full" tile), so the two lowest-rated drop out.
-    expect(within(yours).getByRole('button', { name: 'Add Web design to the table' })).toBeInTheDocument()
-    expect(within(yours).getByRole('button', { name: 'Add Piano to the table' })).toBeInTheDocument()
-    expect(within(yours).getByRole('button', { name: 'Add Cooking to the table' })).toBeInTheDocument()
-    expect(within(yours).queryByRole('button', { name: 'Add Photography to the table' })).toBeNull()
-    expect(within(yours).queryByRole('button', { name: 'Next page' })).toBeNull()
+    // 3×2 = 6 slots a side; the inventory-opener + one Time tile are real on both sides, so 4
+    // slots are left over for mock suggestions.
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).getAllByRole('img', { name: /^Suggested:/ })).toHaveLength(4)
+
+    const partnerTable = screen.getByRole('list', { name: "Lena K.'s offer on the table" })
+    expect(within(partnerTable).getAllByRole('img', { name: /^Suggested:/ })).toHaveLength(4)
+  })
+
+  it("excludes an item from its own suggestion tray once it's actually offered", async () => {
+    const user = userEvent.setup()
+    // item-17 ("Garden hose") is one of trade-1's own first four suggested slots by default.
+    renderWithRouter(
+      <>
+        <TradingPage />
+        <TradeDraftToggle tradeId="trade-1" itemId="item-17" />
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).getByRole('img', { name: /^Suggested: Garden hose/ })).toBeInTheDocument()
+    expect(within(yourTable).queryByRole('img', { name: 'Garden hose' })).toBeNull()
+
+    await user.click(screen.getByText('toggle item-17'))
+
+    expect(within(yourTable).getByRole('img', { name: 'Garden hose' })).toBeInTheDocument()
+    expect(within(yourTable).queryByRole('img', { name: /^Suggested: Garden hose/ })).toBeNull()
   })
 
   it("shows an item added via the shared trade draft (Inventory's own picking) on the table", async () => {
@@ -121,21 +135,11 @@ describe('TradingPage', () => {
     )
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).queryByText('Acoustic guitar')).toBeNull()
+    expect(within(yourTable).queryByRole('img', { name: 'Acoustic guitar' })).toBeNull()
 
     await user.click(screen.getByText('toggle item-1'))
 
-    expect(within(yourTable).getByText('Acoustic guitar')).toBeInTheDocument()
-  })
-
-  it('puts a skill on the table by tapping its tile', async () => {
-    const user = userEvent.setup()
-    renderTradingPage()
-
-    await user.click(screen.getByRole('button', { name: 'Add Piano to the table' }))
-
-    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).getByText('Piano')).toBeInTheDocument()
+    expect(within(yourTable).getByRole('img', { name: 'Acoustic guitar' })).toBeInTheDocument()
   })
 
   it('shows a Time tile on both sides of the table, and adjusts yours via the stepper', async () => {
@@ -155,6 +159,25 @@ describe('TradingPage', () => {
     await user.click(within(stepper).getByRole('button', { name: 'Offer one hour more' }))
     expect(within(stepper).getByText('3 h')).toBeInTheDocument()
     expect(within(yourTable).getByText('3 h')).toBeInTheDocument()
+  })
+
+  it('removes the time tile entirely, and offers a way to add it back', async () => {
+    const user = userEvent.setup()
+    renderTradingPage()
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
+    await user.click(screen.getByRole('button', { name: 'Remove time from the table' }))
+
+    // The tile itself is gone, not just zeroed — "delete it entirely," not "step down to 0h".
+    expect(within(yourTable).queryByText(/h$/)).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Your offered hours' })).toBeNull()
+    const addTimeTile = within(yourTable).getByRole('button', { name: 'Add a time offer' })
+    expect(addTimeTile).toBeInTheDocument()
+
+    await user.click(addTimeTile)
+    expect(screen.getByRole('group', { name: 'Your offered hours' })).toBeInTheDocument()
+    expect(within(yourTable).getByText('2 h')).toBeInTheDocument() // back to trade-1's yourHours
   })
 
   it('accepts an open trade with the checkmark button, and then hides it', async () => {
@@ -186,88 +209,118 @@ describe('TradingPage', () => {
 
     await user.click(screen.getByText('toggle item-1'))
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).getByText('Acoustic guitar')).toBeInTheDocument()
+    expect(within(yourTable).getByRole('img', { name: 'Acoustic guitar' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Decline offer' }))
 
-    expect(within(yourTable).queryByText('Acoustic guitar')).toBeNull()
+    expect(within(yourTable).queryByRole('img', { name: 'Acoustic guitar' })).toBeNull()
     expect(screen.getByText('Offer declined — build a new one above.')).toBeInTheDocument()
     // The trade stays open — Accept/Decline are both still available for the next offer.
     expect(screen.getByRole('button', { name: 'Accept trade' })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Add Piano to the table' }))
+    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
+    const stepper = screen.getByRole('group', { name: 'Your offered hours' })
+    await user.click(within(stepper).getByRole('button', { name: 'Offer one hour more' }))
     expect(screen.queryByText('Offer declined — build a new one above.')).toBeNull()
   })
 
-  it('links to final review, next to the respond buttons', () => {
-    renderTradingPage()
+  it('keeps the generosity meter visible even once there is nothing left to respond to', () => {
+    renderTradingPage('trade-3') // agreed — no Accept/Decline, but the meter still applies.
 
     const respond = screen.getByRole('group', { name: 'Respond to this offer' })
-    expect(within(respond).getByRole('link', { name: 'Final review' })).toHaveAttribute(
-      'href',
-      '/trades/trade-1/review',
-    )
+    expect(within(respond).queryByRole('button', { name: 'Accept trade' })).toBeNull()
+    expect(within(respond).queryByRole('button', { name: 'Decline offer' })).toBeNull()
+    expect(within(respond).getByRole('meter', { name: 'Generosity meter' })).toBeInTheDocument()
   })
 
-  it('keeps final review reachable even once there is nothing left to respond to', () => {
-    renderTradingPage('trade-3') // agreed — no Accept/Decline, but review is exactly what's next.
+  it('keeps Final review disabled outside the agreed status', () => {
+    renderTradingPage() // trade-1 is 'open'
 
-    const respond = screen.getByRole('group', { name: 'Respond to this offer' })
-    expect(within(respond).getByRole('link', { name: 'Final review' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Final review' })).toBeDisabled()
   })
 
-  it('reveals the final-review notes behind the info toggle, closed by default', async () => {
+  it('keeps Final review disabled for an already-closed trade too', () => {
+    renderTradingPage('trade-5') // closed
+
+    expect(screen.getByRole('button', { name: 'Final review' })).toBeDisabled()
+  })
+
+  it('enables Final review the moment you accept an open trade', async () => {
+    const user = userEvent.setup()
+    renderTradingPage() // trade-1 is 'open'
+
+    expect(screen.getByRole('button', { name: 'Final review' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Accept trade' }))
+
+    expect(screen.getByRole('button', { name: 'Final review' })).toBeEnabled()
+  })
+
+  it('navigates to Final review once it is enabled', async () => {
+    const user = userEvent.setup()
+    renderTradingPageAndTrackNavigation('trade-3') // already agreed
+
+    await user.click(screen.getByRole('button', { name: 'Final review' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/trades/trade-3/review')
+  })
+
+  it('shows a fair-trade generosity message when the two sides are close', () => {
+    renderTradingPage() // trade-1: 2h offered vs Lena's 3h
+
+    const meter = screen.getByRole('meter', { name: 'Generosity meter' })
+    expect(meter).toHaveAttribute('aria-valuetext', "That's a fair trade!")
+    expect(screen.getByText("That's a fair trade!")).toBeInTheDocument()
+  })
+
+  it('shows an extremely-generous generosity message once you offer far more than the partner', () => {
+    // trade-1's partner offers 3h; 10h is more than three times that.
+    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?quick=1&hours=10', path: '/trading/:tradeId' })
+
+    expect(screen.getByText('You are extremely generous!')).toBeInTheDocument()
+  })
+
+  it('shows a too-good-to-be-true generosity message once your time is removed entirely', async () => {
     const user = userEvent.setup()
     renderTradingPage()
 
-    expect(screen.queryByText(/officially closes it/)).toBeNull()
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
+    await user.click(screen.getByRole('button', { name: 'Remove time from the table' }))
 
-    await user.click(screen.getByRole('button', { name: 'About final review' }))
-    expect(screen.getByText(/officially closes it/)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'About final review' }))
-    expect(screen.queryByText(/officially closes it/)).toBeNull()
+    expect(screen.getByText('This is too good to be true.')).toBeInTheDocument()
   })
 
-  it('shows the trade’s last message and toggles the chat between inline and full screen', async () => {
+  it('hides the chat completely by default', () => {
+    renderTradingPage()
+
+    expect(screen.queryByRole('heading', { name: 'Chat' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Open chat' })).toBeInTheDocument()
+  })
+
+  it('opens and closes the chat from the bottom bar', async () => {
     const user = userEvent.setup()
     renderTradingPage()
 
-    // Collapsed, only the peek's pinned-to-bottom message is expected to be visible content-wise —
-    // jsdom doesn't compute real scroll heights, so this only asserts the last message renders.
-    expect(screen.getByText(/I put my amp on the table too\./)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Expand chat to full screen' }))
-    const collapse = screen.getByRole('button', { name: 'Collapse chat' })
-    expect(collapse).toHaveAttribute('aria-expanded', 'true')
+    await user.click(screen.getByRole('button', { name: 'Open chat' }))
+    expect(screen.getByRole('heading', { name: 'Chat' })).toBeInTheDocument()
     expect(screen.getByText('Hi! Would two hours a week work for you?')).toBeInTheDocument()
 
-    await user.click(collapse)
-    expect(screen.getByRole('button', { name: 'Expand chat to full screen' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
+    await user.click(screen.getByRole('button', { name: 'Close chat' }))
+    expect(screen.queryByRole('heading', { name: 'Chat' })).toBeNull()
   })
 
-  it('expands the chat when the collapsed peek is scrolled away from its pinned bottom', () => {
-    renderTradingPage()
+  it('starts the chat already open for a quick offer (TODO #13), and hidden otherwise', () => {
+    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?quick=1', path: '/trading/:tradeId' })
 
-    const messages = screen.getByRole('list', { name: 'Latest message' })
-    // jsdom reports 0 for scroll metrics by default — stub them to simulate a peek that has more
-    // content above the visible area, then scroll away from the bottom.
-    Object.defineProperty(messages, 'scrollHeight', { value: 200, configurable: true })
-    Object.defineProperty(messages, 'clientHeight', { value: 50, configurable: true })
-    Object.defineProperty(messages, 'scrollTop', { value: 100, configurable: true })
-
-    fireEvent.scroll(messages)
-
-    expect(screen.getByRole('button', { name: 'Collapse chat' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close chat' })).toBeInTheDocument()
   })
 
   it('appends a sent message to the chat and clears the input', async () => {
     const user = userEvent.setup()
     renderTradingPage()
 
+    await user.click(screen.getByRole('button', { name: 'Open chat' }))
     const input = screen.getByLabelText('Message')
     await user.type(input, 'Tuesday works for me.')
     await user.click(screen.getByRole('button', { name: 'Send' }))
@@ -280,18 +333,13 @@ describe('TradingPage', () => {
     const user = userEvent.setup()
     renderTradingPage()
 
+    await user.click(screen.getByRole('button', { name: 'Open chat' }))
     const chat = screen.getByRole('region', { name: 'Chat with Lena K.' })
     const messagesBefore = within(chat).getAllByRole('listitem').length
 
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
     expect(within(chat).getAllByRole('listitem')).toHaveLength(messagesBefore)
-  })
-
-  it('starts the chat already expanded for a quick offer (TODO #13), and normally collapsed otherwise', () => {
-    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?quick=1', path: '/trading/:tradeId' })
-
-    expect(screen.getByRole('button', { name: 'Collapse chat' })).toBeInTheDocument()
   })
 
   it("preloads the offered hours from the ad's listed price on a quick offer (TODO #8)", () => {

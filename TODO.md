@@ -42,12 +42,11 @@
     -make it scrollable page
     -get 2 buttons one for the skills and one for the items/skills.
     -skills are opening a seperate view within the inventory to reveal the skills.
-    -the skills stored separtly.
 
 10.Item:
 
-11.Trading: 
-    
+11.Trading: DONE
+    -ask for the image about the trading page.
 
 12.Trades:
     -filter beautification like in the search
@@ -78,3 +77,6 @@
     -put the add offer option into the first square of the grid.
     -if the page is not full still show the empty grid spaces.
     -keep the paging
+
+17.Colors:
+    -introduce the company colors 

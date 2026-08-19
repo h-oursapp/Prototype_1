@@ -19,6 +19,12 @@
    * purple. */
   --status-success: #2f9e44;
   --status-success-tint: #e6f6ea;
+  /* Added for the Trading page's generosity meter (TODO #11) — the same "its own signal" reasoning
+   * as --status-success above, just for the meter's other two zones. */
+  --status-warning: #f08c00;
+  --status-warning-tint: #fdf1e0;
+  --status-danger: #e03131;
+  --status-danger-tint: #fbe4e4;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --corner-cut: 8px;
@@ -74,6 +80,10 @@
   --shadow: rgba(0, 0, 0, 0.4);
   --status-success: #51cf66;
   --status-success-tint: #1c3324;
+  --status-warning: #ffb84d;
+  --status-warning-tint: #3a2d1a;
+  --status-danger: #ff6b6b;
+  --status-danger-tint: #3a1f1f;
 }
 
 * {

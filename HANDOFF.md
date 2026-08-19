@@ -71,11 +71,48 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        53 files, 405 tests, all passing
+npm run test        53 files, 411 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-19, branch `todo-11-trading`** reworked **TODO #11** (Trading) yet again — this time from
+a real whiteboard sketch Márk drew and photographed (`wireframes/trading.png`), then a follow-up
+sketch on top of feedback (`wireframes/trading2.png`), across three full feedback rounds in total:
+
+- **Round 1 (`wireframes/trading.png`)**: available hours shown above the table; the trading grid
+  became 3×2 on both sides; Time became a tile you can remove entirely and add back (not just step
+  to 0h); "Tradeables" replaced "Open {partner}'s inventory"; and a collapsible favorites rail (your
+  best skills + first few items + an inventory shortcut) replaced the old always-visible skill rows —
+  first built with Accept/Decline inside that rail, corrected on direct feedback to sit beside Final
+  review instead, the rail made to render nothing but its own toggle handle while collapsed, and the
+  chat/table-row flex ratio rebalanced (3:2) after a fixed-height chat next to an always-growing
+  table row turned out to be the actual cause of a reported "big empty hole." A real CSS bug (missing
+  `flex-direction: column` on the rail) was only found by actually screenshotting the expanded state
+  — see §8's subsection for the full account, including the Playwright-driven visual-verification
+  setup used to catch it (this app's unit tests run in jsdom, which has no real layout).
+- **Round 2 (`wireframes/trading2.png`)**: the favorites rail is gone — its two jobs moved into the
+  grids directly (each side's own first tile now opens that side's inventory) — and the rest of each
+  grid fills with muted, non-interactive "suggestion" placeholder tiles instead of blank cells;
+  Accept/Decline moved again, out to their own row *between* the two grids, beside a brand-new
+  generosity meter (Márk's own concept — how balanced the offer looks, computed from each side's
+  hours alone); and chat moved into a collapsible side window, hidden by default except during Quick
+  Buy. Two more screenshot-only bugs surfaced here: a "50% white opacity" suggestion tile that was
+  literally invisible against a white tile in light mode, and — after switching to plain opacity — a
+  second, subtler version of the same problem (`--surface`/`--surface-alt` are too close in
+  lightness for opacity alone to read as "faded"), fixed by adding `filter: grayscale(70%)`.
+- **Round 3 (direct feedback, same session)**: the "N h available" line is gone entirely; the
+  generosity meter became one solid, chamfered, button-styled bar (colour = the current zone, text
+  inside it) instead of a 5-segment strip with a caption; Final review became a real `<button
+  disabled>` — actually unclickable, not just dimmed — enabled only once the trade is `'agreed'`;
+  and the chat rail's own floating toggle is gone too, replaced by a small button next to Final
+  review in a new bottom bar. This last change shipped with its own screenshot-only bug: the open
+  chat overlay initially covered that exact button, trapping the user with no way to close it short
+  of reloading — fixed by having the overlay stop above the bottom bar, not just above the nav bar.
+
+See §8's own subsection for the generosity-meter band math, the now-unreachable skill-offering gap
+this round exposed (flagged, not fixed), and the full list of screenshot-only bugs.
 
 **2026-08-18, branch `todo-3-home`** reworked **TODO #3** (Home) across four rounds of direct
 feedback, each landing on top of the last:
@@ -1170,6 +1207,76 @@ All of it lives in `src/data/`. No component invents its own.
 **Adding a required field to `Offer`, `Skill`, or `Trade` breaks test factories.** They build objects
 by hand. `tsc --noEmit` will tell you exactly where.
 
+### TODO #11 rework, round 2/3 — trading2.png and direct feedback (this session, branch `todo-11-trading`)
+
+**Every visual bug in this round was found by actually taking a screenshot, never by reading the
+CSS** — jsdom (what the unit tests run in) has no real layout, so a claim like "this looks faded"
+or "this button is reachable" can pass every test and still be wrong on screen. `chromium-cli`
+wasn't available in this environment; the fallback was a raw Playwright script (`chromium.launch`
++ manual in-app clicks through login → onboarding → Trades → a trade, since `isSignedIn` is
+in-memory `useState` and any `page.goto` bounces back to `/login`), same pattern
+`examples/playwright.md`'s own fallback section documents.
+
+1. **A "50% white opacity" suggestion tile was invisible in light mode.** First attempt: a
+   `rgba(255,255,255,0.5)` overlay via `::after`. `SquareTile`'s own background is already
+   `var(--surface)` (white in light mode) — white-on-white at any opacity is still white. Second
+   attempt, plain `opacity: 0.5` on the whole tile: still barely visible, because `--surface` and
+   `--surface-alt` (the tile's background and the panel behind it) are close enough in lightness
+   that fading toward one from the other reads as almost no change at all. Fixed by adding `filter:
+   grayscale(70%)` alongside the opacity — desaturating is what actually reads as "muted," regardless
+   of how close the two surfaces happen to be in either theme.
+2. **The open chat overlay covered its own close button.** Once the chat rail's own floating toggle
+   was removed (direct feedback: "hide the chat completely") and its open/close control moved into
+   the new bottom bar instead, the fixed overlay (`bottom: var(--nav-bar-height)`) covered that
+   entire bottom bar while open — including the one button that closes it. Only visible by actually
+   opening the chat and looking; every unit test that clicks "Open chat" then "Close chat" passed
+   throughout, because jsdom doesn't know the button was geometrically hidden underneath another
+   element. Fixed by giving `.trading-page__bottom-row` a fixed height and having the overlay's
+   `bottom` clear it too (`calc(var(--nav-bar-height) + 56px)`), not just the nav bar.
+3. **(Round 1) A missing `flex-direction: column`** on the then-favorites-rail's expanded state laid
+   its toggle button and content side by side instead of stacked — invisible while collapsed (only
+   one child), only visible once actually expanded and screenshotted.
+
+**The generosity meter's band math is a deliberate placeholder, not a real valuation model — "the
+exact math is out of scope now" (Márk's own words) is taken literally.** `computeGenerosity` only
+ever looks at the two Time tiles' hours; an offered item or skill sits on the table without moving
+the meter at all, because assigning it a real number of hours is exactly the kind of math that line
+rules out. The band constants (`GENEROSITY_FAIR_BAND = 1.6`, `GENEROSITY_EXTREME_BAND = 3`) were
+reverse-engineered from Márk's three worked examples (offering 100h against 5h back → "extremely
+generous"; against 50h+10h → "generous"; against 70h → "a fair trade") rather than derived from any
+principled model — the other side's two zones fall out for free by symmetry (reciprocal ratios),
+which is more a happy consequence of picking round numbers than a designed property. Expect these
+constants to need retuning the moment real item/skill valuation becomes in scope.
+
+**Removing the favorites rail also removed the only working way to add a *skill* to the trading
+table — flagged, not fixed, since this round never asked for skill-offering back.** Checked before
+assuming this was fine: `SkillsPage` does read a `?trade=` query param and has its own
+`TransferBox`-driven picking UI (mirroring `InventoryPage`'s), but it only ever writes to a local
+`useState` — never to `TradeDraftContext` (which only ever supported items, per its own file
+comment) — and nothing in the app actually navigates there via the `skillsForTrade` route builder
+that exists for exactly this (`grep -rn skillsForTrade src/` finds only its own definition). So the
+favorites rail wasn't a redundant convenience being removed; it was the *only* live path, and
+Trading's own `offeredSkillIds`/`toggleSkill` state was deleted along with it rather than left as
+dead code nothing could ever call. Wiring `SkillsPage` into a shared draft context the same way
+`InventoryPage` already is would fix this properly — that's a real gap, not a design decision.
+
+**The suggestion tiles' filler is a deterministic rotation, not `Math.random()`.**
+`suggestionEntries`/`rotated`/`seedFromString` in `TradingPage.tsx` sum a seed string's char codes
+and rotate each side's own catalogue by that amount — stable across re-renders (so the grid doesn't
+reshuffle itself every time the hour stepper changes) and predictable in tests (a suggestion tile's
+exact contents for a given trade id can be computed by hand, which is how
+`TradingPage.test.tsx`'s exclusion test picks `item-17` specifically — it's one of trade-1's real
+first four suggested slots, verified with a throwaway Node script before writing the assertion).
+
+**The generosity bar's on-fill text colour is `var(--surface)`, not a new token, and that's not a
+coincidence.** Light mode's status colours (`--status-danger`/`-warning`/`-success`) are all
+dark/saturated enough for white text to read on them; dark mode's are deliberately brighter/paler
+(see index.css) so a dark `--surface` (its dark-mode value is a dark plum, not white) reads well on
+those instead. The same token happens to flip to the right contrast in both themes because the app's
+existing light/dark token pairing and this round's status-colour choices both lean the same
+direction — worth re-checking by eye if either palette changes later rather than assuming it still
+holds.
+
 ---
 
 ## 10. Testing
@@ -1305,6 +1412,19 @@ built and wired:
   and Skills, with Accept behaviour that now differs between them on purpose (see §8).
 - **Item as a first-class page** exists (`ItemPage.tsx`, TODO #10), reached from Inventory's tiles
   and its own "New item" button.
+
+**TODO #11's rework is done** (this session, branch `todo-11-trading`) — the "Trading reworked to
+non-scrollable (twice)" line above is now three rounds further on, following a real whiteboard
+sketch Márk drew and photographed, a follow-up sketch on top of feedback, then a third round of
+direct feedback on top of that. Available hours above the table came and went again; the favorites
+rail that briefly replaced the old skill rows is gone, its two jobs folded into each grid's own
+first tile (an inventory shortcut) plus muted non-interactive suggestion filler for the rest;
+Accept/Decline now sit between the two grids beside a new generosity meter (a solid, chamfered,
+button-styled bar — Márk's own concept for how balanced an offer looks, computed from hours alone);
+Final review is a real disabled-until-agreed button, not a link; and chat is a side overlay, hidden
+by default except during Quick Buy, opened from a small button beside Final review. See §2's dated
+entry and §8's own subsection for the full three-round account, including every screenshot-only bug
+found along the way and the skill-offering gap this round exposed.
 
 **TODO #8 is done** (branch `todo-8-ad-offer`): both ratings for a skill offer / condition-only for
 an item offer at `AdDetailPage`; a brand-new offer's picture area shows Skill/Item picker buttons
