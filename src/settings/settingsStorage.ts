@@ -1,3 +1,4 @@
+import { DEFAULT_SEARCH_FILTERS, isSearchFilters } from '../data/searchFilters'
 import { DEFAULT_GRID_SIZE, GRID_SIZE_OPTIONS, type AppSettings, type ColorTheme, type GridSize } from './types'
 
 const STORAGE_KEY = 'h-ours:settings'
@@ -29,7 +30,16 @@ export function loadSettings(): AppSettings | null {
   try {
     const parsed = JSON.parse(raw) as Partial<AppSettings>
     if (!isColorTheme(parsed.colorTheme) || !isGridSize(parsed.gridSize)) return null
-    return { colorTheme: parsed.colorTheme, gridSize: parsed.gridSize }
+    return {
+      colorTheme: parsed.colorTheme,
+      gridSize: parsed.gridSize,
+      // Falls back on its own rather than invalidating the whole blob (unlike the two fields
+      // above): this field didn't exist before TODO #3, so anyone's already-saved settings won't
+      // have it, and that shouldn't cost them their theme and grid size too.
+      defaultSearchFilters: isSearchFilters(parsed.defaultSearchFilters)
+        ? parsed.defaultSearchFilters
+        : DEFAULT_SEARCH_FILTERS,
+    }
   } catch {
     return null
   }
@@ -45,5 +55,11 @@ export function saveSettings(settings: AppSettings): void {
 }
 
 export function loadSettingsOrDefault(): AppSettings {
-  return loadSettings() ?? { colorTheme: getSystemColorTheme(), gridSize: DEFAULT_GRID_SIZE }
+  return (
+    loadSettings() ?? {
+      colorTheme: getSystemColorTheme(),
+      gridSize: DEFAULT_GRID_SIZE,
+      defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
+    }
+  )
 }

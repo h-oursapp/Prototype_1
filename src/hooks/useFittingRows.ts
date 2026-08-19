@@ -19,14 +19,24 @@ const PAGER_ALLOWANCE_PX = 40
  *  spilling past its bottom edge. `columns` is a fixed setting (the grid-size picker); rows is the
  *  one this solves for — see useFittingRows below for why that split exists.
  *
+ *  `reserveBottomPx` defaults to PagedGrid's own pager allowance, since that's who this was
+ *  written for — a caller whose grid never pages (Home's Ads grid, TODO #3) has no such row to
+ *  reserve and passes 0 instead, recovering every pixel a pager would otherwise have sat in.
+ *
  *  Exported on its own (rather than folded into the hook) so the arithmetic can be tested directly
  *  with plain numbers, no DOM or ResizeObserver involved. */
-export function fittingRows(width: number, height: number, columns: number, minRows: number): number {
+export function fittingRows(
+  width: number,
+  height: number,
+  columns: number,
+  minRows: number,
+  reserveBottomPx: number = PAGER_ALLOWANCE_PX,
+): number {
   if (width <= 0 || height <= 0 || columns <= 0) return minRows
 
   const gap = gapForWidth(width)
   const cell = (width - (columns - 1) * gap) / columns
-  const usableHeight = height - PAGER_ALLOWANCE_PX
+  const usableHeight = height - reserveBottomPx
   const rows = Math.floor((usableHeight + gap) / (cell + gap))
 
   return Math.max(minRows, rows)
@@ -42,8 +52,14 @@ export function fittingRows(width: number, height: number, columns: number, minR
  *  `minRows`. Defaulting `minRows` to `columns` itself means that fallback is exactly today's old
  *  N×N behaviour, not an arbitrary single row — a reasonable guess for the one frame before layout
  *  is known, and the reason existing Inventory tests don't need any DOM-geometry stubbing to keep
- *  seeing a 3×3 page at the default grid size. */
-export function useFittingRows(columns: number, minRows: number = columns) {
+ *  seeing a 3×3 page at the default grid size.
+ *
+ *  `reserveBottomPx` passes straight through to `fittingRows` — see its own doc comment. */
+export function useFittingRows(
+  columns: number,
+  minRows: number = columns,
+  reserveBottomPx: number = PAGER_ALLOWANCE_PX,
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [rows, setRows] = useState(minRows)
 
@@ -53,14 +69,14 @@ export function useFittingRows(columns: number, minRows: number = columns) {
 
     const measure = () => {
       const { width, height } = element.getBoundingClientRect()
-      setRows(fittingRows(width, height, columns, minRows))
+      setRows(fittingRows(width, height, columns, minRows, reserveBottomPx))
     }
 
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
     return () => observer.disconnect()
-  }, [columns, minRows])
+  }, [columns, minRows, reserveBottomPx])
 
   return { containerRef, rows }
 }

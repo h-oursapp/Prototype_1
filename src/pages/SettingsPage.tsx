@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { OptionGroup } from '../components/OptionGroup'
 import { PageShell } from '../components/PageShell'
+import { StarRatingInput } from '../components/StarRatingInput'
+import { KIND_FILTER_OPTIONS, MAX_DISTANCE_KM, distanceFilterLabel } from '../data/searchFilters'
 import { ROUTES } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import { GRID_SIZE_OPTIONS, type ColorTheme, type GridSize } from '../settings/types'
@@ -16,7 +18,8 @@ const COLOR_THEME_OPTIONS: { value: ColorTheme; label: string }[] = [
  *  rather than buttons that do nothing. */
 export function SettingsPage() {
   const navigate = useNavigate()
-  const { colorTheme, gridSize, setColorTheme, setGridSize } = useSettings()
+  const { colorTheme, gridSize, defaultSearchFilters, setColorTheme, setGridSize, setDefaultSearchFilters } =
+    useSettings()
 
   return (
     <PageShell title="Settings">
@@ -33,6 +36,40 @@ export function SettingsPage() {
           selected={colorTheme}
           onSelect={setColorTheme}
         />
+
+        <section className="settings-page__section">
+          <h2 className="page-section__heading">Default search filters</h2>
+          <p className="settings-page__note">
+            Search opens with these already applied — including a search you start from Home's own
+            search bar (TODO #3).
+          </p>
+
+          <OptionGroup
+            legend="Kind"
+            options={KIND_FILTER_OPTIONS}
+            selected={defaultSearchFilters.kindFilter}
+            onSelect={(kindFilter) => setDefaultSearchFilters({ kindFilter })}
+          />
+
+          <label className="settings-page__range-field">
+            <span>Distance: {distanceFilterLabel(defaultSearchFilters.maxDistanceKm)}</span>
+            <input
+              type="range"
+              min={1}
+              max={MAX_DISTANCE_KM}
+              step={1}
+              value={defaultSearchFilters.maxDistanceKm}
+              onChange={(event) => setDefaultSearchFilters({ maxDistanceKm: Number(event.target.value) })}
+            />
+          </label>
+
+          <StarRatingInput
+            label="Minimum rating"
+            name="default-min-rating"
+            value={defaultSearchFilters.minRating}
+            onChange={(minRating) => setDefaultSearchFilters({ minRating })}
+          />
+        </section>
 
         <button type="button" className="settings-page__link" onClick={() => navigate(ROUTES.legal)}>
           Legal

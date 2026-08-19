@@ -17,208 +17,69 @@ function makeOffers(count: number): Offer[] {
 
 describe('GridSection', () => {
   it('shows a single tile in a 1x1 grid at grid size 1', () => {
-    render(
-      <GridSection
-        heading="Ads"
-        offers={makeOffers(5)}
-        gridSize={1}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
-      />,
-    )
+    render(<GridSection heading="Ads" offers={makeOffers(5)} gridSize={1} onSelectOffer={() => {}} />)
 
-    expect(screen.getAllByRole('button', { name: /Offer \d/ })).toHaveLength(1)
-    const grid = document.querySelector('.grid-section__grid') as HTMLElement
-    expect(grid.style.gridTemplateColumns).toBe('repeat(1, 1fr)')
-    expect(grid.style.gridTemplateRows).toBe('repeat(1, 1fr)')
+    expect(screen.getAllByRole('button', { name: /^Offer \d,/ })).toHaveLength(1)
   })
 
-  it('shows an N x N grid of tiles, capped at N*N even with more offers available', () => {
-    render(
-      <GridSection
-        heading="Ads"
-        offers={makeOffers(10)}
-        gridSize={3}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
-      />,
-    )
+  // jsdom never lays anything out, so useFittingRows falls back to its minRows default (gridSize
+  // itself) here — see useFittingRows.test.tsx for the real measured-height arithmetic.
+  it('caps at N x N tiles at grid size N, before any real layout exists (TODO #3)', () => {
+    render(<GridSection heading="Ads" offers={makeOffers(10)} gridSize={3} onSelectOffer={() => {}} />)
 
-    const grid = document.querySelector('.grid-section__grid') as HTMLElement
-    expect(grid.style.gridTemplateColumns).toBe('repeat(3, 1fr)')
-    expect(grid.style.gridTemplateRows).toBe('repeat(3, 1fr)')
-    expect(screen.getAllByRole('button', { name: /Offer \d/ })).toHaveLength(9)
+    expect(screen.getAllByRole('button', { name: /^Offer \d,/ })).toHaveLength(9)
   })
 
-  it('keeps the full N x N grid frame (same locked cell size/spacing) even with too few offers to fill it', () => {
-    render(
-      <GridSection
-        heading="Ads"
-        offers={makeOffers(2)}
-        gridSize={3}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
-      />,
-    )
+  it('shows every offer, not just a full page of them, when there are too few to fill the grid', () => {
+    render(<GridSection heading="Ads" offers={makeOffers(2)} gridSize={3} onSelectOffer={() => {}} />)
 
-    expect(screen.getAllByRole('button', { name: /Offer \d/ })).toHaveLength(2)
-    const grid = document.querySelector('.grid-section__grid') as HTMLElement
-    // Rows stay locked to grid size, not reduced to fit fewer offers — cells stay the same size.
-    expect(grid.style.gridTemplateRows).toBe('repeat(3, 1fr)')
+    expect(screen.getAllByRole('button', { name: /^Offer \d,/ })).toHaveLength(2)
   })
 
-  it('scales to a 4x4 grid at grid size 4', () => {
-    render(
-      <GridSection
-        heading="Ads"
-        offers={makeOffers(16)}
-        gridSize={4}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
-      />,
-    )
+  it('fits more rows onto the page once the grid area actually measures taller than the fallback', () => {
+    const original = HTMLElement.prototype.getBoundingClientRect
+    HTMLElement.prototype.getBoundingClientRect = () => ({ width: 390, height: 900 }) as DOMRect
 
-    expect(screen.getAllByRole('button', { name: /Offer \d+/ })).toHaveLength(16)
-  })
+    try {
+      // 3 columns (the given grid size) x 6 rows fit a 390x900 box with no pager to reserve room
+      // for (GridSection passes reserveBottomPx={0}) — see useFittingRows.test.tsx for the
+      // arithmetic this mirrors. 20 offers is more than the 18 cells that makes.
+      render(<GridSection heading="Ads" offers={makeOffers(20)} gridSize={3} onSelectOffer={() => {}} />)
 
-  it('calls onOpenFull when the corner arrow is pressed', async () => {
-    const user = userEvent.setup()
-    const onOpenFull = vi.fn()
-    render(
-      <GridSection
-        heading="Ads"
-        offers={makeOffers(4)}
-        gridSize={2}
-        openFullLabel="Open search"
-        onOpenFull={onOpenFull}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
-      />,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'Open search' }))
-    expect(onOpenFull).toHaveBeenCalledTimes(1)
+      expect(screen.getAllByRole('button', { name: /^Offer \d+,/ })).toHaveLength(18)
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original
+    }
   })
 
   it('calls onSelectOffer with the tapped offer', async () => {
     const user = userEvent.setup()
     const onSelectOffer = vi.fn()
     const offers = makeOffers(4)
-    render(
-      <GridSection
-        heading="Ads"
-        offers={offers}
-        gridSize={2}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={onSelectOffer}
-        arrowSide="right"
-      />,
-    )
+    render(<GridSection heading="Ads" offers={offers} gridSize={2} onSelectOffer={onSelectOffer} />)
 
-    await user.click(screen.getByRole('button', { name: 'Offer 1' }))
+    await user.click(screen.getByRole('button', { name: /^Offer 1,/ }))
     expect(onSelectOffer).toHaveBeenCalledWith(offers[1])
   })
 
-  it('overlays each tile with the offer name and star rating (TODO #3)', () => {
+  it('shows the offer name and a compact "N★" rating badge, not a full star row (TODO #3)', () => {
     render(
       <GridSection
         heading="Ads"
         offers={[{ id: '1', title: 'Guitar lessons', icon: '🎸', kind: 'skill', hours: 2, rating: 4 }]}
         gridSize={2}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
+        onSelectOffer={() => {}}
       />,
     )
 
     expect(screen.getByText('Guitar lessons')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: "Guitar lessons's rating: rated 4 out of 5" })).toBeInTheDocument()
+    expect(screen.getByText('4★')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Guitar lessons, rated 4 out of 5' })).toBeInTheDocument()
   })
 
-  it('puts the corner arrow on the given side and always centers the heading (TODO #3)', () => {
-    render(
-      <GridSection
-        heading="Your offers"
-        offers={[]}
-        gridSize={2}
-        openFullLabel="Open your offers"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="left"
-      />,
-    )
+  it('names the grid after its heading for assistive tech', () => {
+    render(<GridSection heading="Ads" offers={makeOffers(2)} gridSize={2} onSelectOffer={() => {}} />)
 
-    const header = screen.getByText('Your offers').closest('header') as HTMLElement
-    expect(header).toHaveClass('grid-section__header--arrow-left')
-    expect(within(header).getByText('←')).toBeInTheDocument()
-  })
-
-  it('reserves the grid\'s last cell for a create-new tile when there is room to spare', () => {
-    render(
-      <GridSection
-        heading="Your offers"
-        offers={makeOffers(3)}
-        gridSize={2}
-        openFullLabel="Open your offers"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="left"
-        onCreateNew={vi.fn()}
-        createLabel="Create new offer"
-      />,
-    )
-
-    // gridSize 2 -> 4 cells, one reserved for the create tile -> all 3 offers still fit.
-    expect(screen.getAllByRole('button', { name: /Offer \d/ })).toHaveLength(3)
-    expect(screen.getByRole('button', { name: 'Create new offer' })).toBeInTheDocument()
-  })
-
-  it('drops the last offer in favor of the create-new tile once the grid is already full', async () => {
-    const user = userEvent.setup()
-    const onCreateNew = vi.fn()
-    render(
-      <GridSection
-        heading="Your offers"
-        offers={makeOffers(4)}
-        gridSize={2}
-        openFullLabel="Open your offers"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="left"
-        onCreateNew={onCreateNew}
-        createLabel="Create new offer"
-      />,
-    )
-
-    expect(screen.getAllByRole('button', { name: /Offer \d/ })).toHaveLength(3)
-
-    await user.click(screen.getByRole('button', { name: 'Create new offer' }))
-    expect(onCreateNew).toHaveBeenCalledTimes(1)
-  })
-
-  it('has no create-new tile when onCreateNew is omitted (Ads has nothing to create)', () => {
-    render(
-      <GridSection
-        heading="Ads"
-        offers={makeOffers(4)}
-        gridSize={2}
-        openFullLabel="Open search"
-        onOpenFull={vi.fn()}
-        onSelectOffer={vi.fn()}
-        arrowSide="right"
-      />,
-    )
-
-    expect(screen.queryByRole('button', { name: /create/i })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: 'Ads' })).getAllByRole('listitem')).toHaveLength(4)
   })
 })

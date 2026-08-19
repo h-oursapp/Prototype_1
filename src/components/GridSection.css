@@ -7,70 +7,19 @@
   padding: 8px 16px;
 }
 
-/* Three columns — arrow slot, heading, arrow slot — so the heading always lands dead center
- * (TODO #3: "make the ads, your offers [headings] to the middle") no matter which side's slot the
- * arrow actually occupies. Only one of the two arrow slots is ever filled at once (arrowSide). */
-.grid-section__header {
-  flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 28px 1fr 28px;
-  align-items: center;
-  column-gap: 8px;
-  margin-bottom: 6px;
-}
-
-.grid-section__header h2 {
-  grid-column: 2;
-  text-align: center;
-  font-size: 15px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.grid-section__header--arrow-left .grid-section__corner-arrow {
-  grid-column: 1;
-}
-
-.grid-section__header--arrow-right .grid-section__corner-arrow {
-  grid-column: 3;
-}
-
-.grid-section__corner-arrow {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
-  background: var(--surface);
-  color: var(--brand-primary);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Centers the grid frame, giving .grid-section__grid a fixed square box to size itself against
- * via cqw/cqh — the largest square that fits whatever space is left in the section. */
-.grid-section__frame {
+/* Sized by the flex layout above, then measured by useFittingRows (TODO #3) — PagedGrid fills
+ * whatever box it's given, same as Inventory's own grid area. */
+.grid-section__area {
   flex: 1;
   min-height: 0;
-  container-type: size;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.grid-section__grid {
-  width: min(100%, 100cqh);
-  aspect-ratio: 1;
-  display: grid;
-  /* Gap scales a little with the frame's own size, but is always the same horizontally and
-   * vertically — offers stay evenly, uniformly spaced. */
-  gap: clamp(2px, 2cqw, 12px);
-}
-
-/* Name and rating overlaid on the tile's picture (TODO #3), the same convention SkillsPage uses
- * for its own tiles — see SquareTile's `overlay` prop. */
+/* Name overlaid on the tile's picture, the same convention SkillsPage uses for its own tiles —
+ * see SquareTile's `overlay` prop. The rating moved to RatingBadge's corner pin (TODO #3), so
+ * this is name-only now. */
 .grid-section__tile-name {
   display: block;
   font-size: 12px;
@@ -78,8 +27,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.grid-section__grid .square-tile__overlay .star-rating {
-  font-size: 10px;
 }

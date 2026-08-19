@@ -41,4 +41,26 @@ describe('SearchBar', () => {
 
     expect(screen.getByLabelText('Search your inventory')).toBeInTheDocument()
   })
+
+  it('calls onSubmit when given one, for the one caller that needs submitting to do something (TODO #3)', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    render(<SearchBar value="guitar" onChange={() => {}} placeholder="Search" onSubmit={onSubmit} />)
+
+    await user.click(screen.getByRole('button', { name: 'Submit search' }))
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+  })
+
+  it('adds a compact modifier class when asked, for Home\'s topbar (TODO #3)', () => {
+    const { container } = render(<SearchBar value="" onChange={() => {}} placeholder="Search" compact />)
+
+    expect(container.querySelector('form')).toHaveClass('search-bar', 'search-bar--compact')
+  })
+
+  it('has no compact modifier class by default', () => {
+    const { container } = render(<SearchBar value="" onChange={() => {}} placeholder="Search" />)
+
+    expect(container.querySelector('form')).not.toHaveClass('search-bar--compact')
+  })
 })

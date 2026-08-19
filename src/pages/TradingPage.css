@@ -1,15 +1,14 @@
-/* Trading (§6, reworked by TODO #11, reshaped again on direct feedback): a non-scrollable page —
- * a skills row, the trading table, another skills row and the chat all fit inside PageShell's
- * content area at once. Colours come only from the theme tokens in index.css, and corners are cut
+/* Trading (§6, reworked by TODO #11 several times — see TradingPage.tsx's file banner comment for
+ * the fullest account). The layout is now about as simple as this page gets: the table zone (the
+ * page's one growing element) and a fixed-height bottom bar underneath it. Chat isn't a flex
+ * sibling at all any more — it's a fixed overlay that mounts on top of everything else only while
+ * open (see .trading-page__chat-overlay) — so the table zone can take flex: 1 and use whatever the
+ * whole page leaves it. Colours come only from the theme tokens in index.css, and corners are cut
  * with clip-path — never border-radius.
  *
  * `.trading-page` gets a *definite* height (100%, not min-height — see index.css's #root comment
  * and InventoryPage.css's own version of this same note) so the table zone's PagedGrid has
- * something real to size its square cells against. Unlike the first cut of this page (three equal
- * thirds), only the trading table now flexes (`flex: 1`) — the skills rows and action-button rows
- * are fixed, content-sized rows, since a single tile row or a button needs far less height than a
- * grid-sized zone did. The chat keeps its own natural (small, collapsed) height too, so collapsing
- * it gives the table more room rather than leaving the chat oversized. */
+ * something real to size its square cells against. */
 
 .trading-page {
   height: 100%;
@@ -17,6 +16,14 @@
   flex-direction: column;
   overflow: hidden;
   gap: 4px;
+}
+
+/* The h_OURs mark in the header (from the first sketch) — Trading-specific, not a PageShell
+ * default; every other page's header stays back+title only. */
+.trading-page__logo {
+  flex-shrink: 0;
+  height: 22px;
+  width: auto;
 }
 
 .trading-page__panel-title {
@@ -50,58 +57,18 @@
   background: var(--brand-tint);
 }
 
-/* ---------- Skills rows ---------- */
-
-/* One fixed-height row per side (TODO feedback) — no longer paired side-by-side the way the first
- * cut's "Skills" zone had them. `--pg-aspect` needs a real height to size a single row of square
- * cells against, so this stays a definite height rather than min-height, same rule the page's own
- * height:100% follows. */
-.trading-page__row {
-  flex-shrink: 0;
-  height: 92px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ---------- Action-button rows (Add items / Open her inventory) ---------- */
-
-/* Replaces the first cut's live item grids — see TradingPage.tsx's file banner comment. A plain
- * centered button — compact rather than the near-full-width, larger button this started as, to
- * match the scale of everything else on this height-constrained page. */
-.trading-page__action-row {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  padding: 2px 0;
-}
-
-.trading-page__action-button {
-  max-width: 220px;
-  padding: 6px 14px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand-primary-deep);
-  background: var(--surface);
-  border: 1px solid var(--brand-primary);
-  clip-path: var(--chamfer);
-}
-
-.trading-page__action-button:hover {
-  background: var(--brand-tint);
-}
-
 /* ---------- Shared zone/panel shape (the trading table) ---------- */
 
-/* The table is the page's one growing zone now — see the file banner comment. No heading labels
- * it any more (direct feedback: decluttering pass) — --surface-alt marks out its extent instead:
- * a background that reads as *darker* than the page in light mode and *lighter* than the page in
- * dark mode (see index.css's token values), so it stands out as its own surface in both themes
- * without needing a theme-specific override here. */
+/* The table is the page's one growing zone — direct feedback: "make both grids bigger, fill up all
+ * the available space". No heading labels on it (a decluttering pass from the previous round,
+ * still true here) — --surface-alt marks out its extent instead: a background that reads as
+ * *darker* than the page in light mode and *lighter* than the page in dark mode (see index.css's
+ * token values), so it stands out as its own surface in both themes without needing a
+ * theme-specific override here. */
 .trading-page__zone {
   position: relative;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -111,37 +78,20 @@
   clip-path: var(--chamfer);
 }
 
-/* The two standing prototype-notes behind the "ⓘ" toggle (TradingPage.tsx) — an overlay rather
- * than a normal-flow sibling of .trading-page__table-stack. Both are flex:1 children competing
- * for the same shrinkable space in this zone; a sibling with real text content is exactly what
- * squeezed the interactive table down to nothing the first time this bug showed up, so the notes
- * are pulled out of that flow entirely instead of just being made smaller. */
-.trading-page__info-popover {
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  bottom: 6px;
-  z-index: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 6px 8px;
-  clip-path: var(--chamfer);
-}
-
-/* Your table row above Lena K.'s, with Accept/Decline in between — a column stack rather than the
- * side-by-side layout this used to be. Not just a visual choice: each `.trading-page__side` still
- * needs a real (not auto/content) height for PagedGrid's square-cell math to work at all (see
- * index.css's #root comment on this same container-query chain) — `flex: 1` along this stack's
- * vertical main axis is what gives it one, the column-layout equivalent of what align-items:
- * stretch did for the old row layout. */
+/* Your grid, the respond row, then the partner's grid — a column stack. Each `.trading-page__side`
+ * still needs a real (not auto/content) height for PagedGrid's square-cell math to work at all
+ * (see index.css's #root comment on this same container-query chain) — flex-grow along this
+ * stack's vertical main axis is what gives it one. */
 .trading-page__table-stack {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
+/* Equal split — both sides are 3×2 (direct feedback, previous round: "both sides should have 6
+ * items"), so there's no reason for one to claim more of the stack's height than the other. */
 .trading-page__side {
   flex: 1;
   min-width: 0;
@@ -150,7 +100,7 @@
   flex-direction: column;
 }
 
-/* ---------- Tile overlays (items, skills, the Time tile) ---------- */
+/* ---------- Tile overlays (items, the Time tile, inventory shortcuts, suggestions) ---------- */
 
 .trading-page__tile-name {
   display: block;
@@ -161,16 +111,22 @@
   white-space: nowrap;
 }
 
-.trading-page__tile-flag {
-  display: block;
-  font-size: 9px;
-  color: var(--brand-primary-deep);
-}
-
-/* Two star rows would not fit at this tile size, unlike SkillsPage's larger grid — one rating
- * only, sized down to match. */
-.trading-page__row .star-rating {
-  font-size: 9px;
+/* "For the rest of the items show random mock items or skills with a 50% white opacity" (Márk) —
+ * plain element opacity, not a white wash: a white overlay tried first here was invisible against
+ * SquareTile's own white background in light mode (opacity stacked on white is still white) — the
+ * bug only showed up once actually screenshotted, not from reading the CSS. Plain opacity alone
+ * turned out to have a second version of the same problem, also only visible once screenshotted:
+ * --surface and --surface-alt (the tile's own background and the panel behind it) are close enough
+ * in lightness that fading toward it barely reads as "faded" either. Desaturating alongside the
+ * 50% opacity is what actually makes a suggestion tile look muted at a glance, regardless of how
+ * close the two surfaces happen to be in either theme. A plain wrapper div, not a SquareTile prop:
+ * SquareTile has no className hook of its own (see its own file), and this only ever needs to
+ * affect the one tile kind that opts into it. */
+.trading-page__suggestion-tile {
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+  filter: grayscale(70%);
 }
 
 /* ---------- Trading table extras ---------- */
@@ -178,6 +134,7 @@
 .trading-page__stepper {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
@@ -208,17 +165,53 @@
   font-weight: 600;
 }
 
-/* TODO #11/#13: Accept (a green checkmark) and Decline, side by side, in the row between the two
- * stacked tables. flex-shrink: 0 keeps it at its own compact content height, rather than sharing
- * in the table-stack's flex:1 split the way the two .trading-page__side rows do. */
+/* "Delete it entirely" (Márk) — a separate action from the −/+ steps above, so it reads as
+ * distinct from "stepping down to 0h" rather than a fourth, easily-mistaken stepper button. */
+.trading-page__stepper-remove {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  clip-path: var(--chamfer);
+}
+
+.trading-page__stepper-remove:hover {
+  color: var(--text);
+  background: var(--surface-alt);
+}
+
+/* ---------- Respond row (Accept/Decline + the generosity meter) ---------- */
+
+/* "Put the accept and reject button to the middle in between the two grids to the right [of them,
+ * add] a generosity bar" (Márk) — see TradingPage.tsx's OfferRespondRow. Its own flex column (not
+ * just the row itself) so the status/declined notes below can sit outside the row's own
+ * align-items: center without needing a separate wrapper element for them. */
 .trading-page__respond {
   flex-shrink: 0;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+}
+
+.trading-page__respond-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 10px;
+}
+
+.trading-page__respond-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  /* Holds its footprint even with nothing inside (an already-agreed/closed trade has no
+   * Accept/Decline to show) — otherwise the generosity meter beside it would jump left. */
+  min-height: 44px;
+}
+
+.trading-page__respond-note {
+  margin: 0;
 }
 
 .trading-page__accept,
@@ -259,50 +252,141 @@
   clip-path: var(--chamfer);
 }
 
-/* The two standing prototype-notes behind the "ⓘ" toggle next to Accept/Decline — compact, since
- * they render inside the already tight .trading-page__zone panel when open. */
-.trading-page__zone .page-note {
-  flex-shrink: 0;
-  margin: 4px 0 0;
-  font-size: 11px;
-}
+/* ---------- The generosity meter ---------- */
 
-/* ---------- Chat ---------- */
-
-.trading-page__chat {
-  flex-shrink: 0;
+/* "Full of the current color... similar style as the buttons, with border and chamfer, have the
+ * text inside" (Márk) — a single solid, chamfered bar (same border+chamfer shape as
+ * .trading-page__accept/__decline beside it), not the 5-segment strip-plus-caption this started
+ * as. The neutral (no-zone-yet) look is the base rule below; each `.is-*` modifier below it
+ * overrides both the fill and the text colour together. Fills whatever width the accept/decline
+ * buttons beside it don't use. */
+.trading-page__generosity {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 2px solid var(--border);
   clip-path: var(--chamfer);
 }
 
-/* The expanded state genuinely covers the screen, header and nav bar included (§6). */
-.trading-page__chat.is-expanded {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  margin: 0;
-  padding: 12px;
-  background: var(--bg);
-  border: none;
-  clip-path: none;
+/* Text colour is --surface on purpose, not a fixed light/dark value: light mode's fill colours are
+ * dark/saturated (white text reads well), dark mode's are pale (see index.css) and --surface there
+ * is a dark plum — the same token flips to the right contrast in both themes for free. */
+.trading-page__generosity.is-red {
+  color: var(--surface);
+  background: var(--status-danger);
+  border-color: var(--status-danger);
 }
 
-.trading-page__chat-header {
+.trading-page__generosity.is-yellow {
+  color: var(--surface);
+  background: var(--status-warning);
+  border-color: var(--status-warning);
+}
+
+.trading-page__generosity.is-green {
+  color: var(--surface);
+  background: var(--status-success);
+  border-color: var(--status-success);
+}
+
+/* ---------- Bottom bar: final review + the chat toggle ---------- */
+
+/* "Most of the space should be for the final review [button, with] the extension button next to
+ * [it], on the right" (Márk) — flex: 1 on the review button does that; the chat toggle beside it
+ * keeps its own fixed square footprint, matching the accept/decline buttons' size above. */
+.trading-page__bottom-row {
+  flex-shrink: 0;
+  height: 44px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }
 
-/* Explicitly smaller than the app's usual page-section__heading (TODO feedback: "make the chat
- * window header much smaller") — this is a slim bar labelling a collapsed peek, not a section of
- * the page in its own right. */
+/* A real disabled button, not a styled link — "only enabled when the deal is agreed on" needs
+ * actual disabled semantics (unclickable, announced to assistive tech), not just a dimmed link a
+ * determined tap could still follow. */
+.trading-page__final-review {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--surface);
+  background: var(--brand-primary);
+  border: 2px solid var(--brand-primary);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__final-review:hover:enabled {
+  background: var(--brand-primary-deep);
+  border-color: var(--brand-primary-deep);
+}
+
+.trading-page__final-review:disabled {
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+.trading-page__chat-toggle {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary-deep);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.trading-page__chat-toggle:hover {
+  background: var(--brand-tint);
+}
+
+/* ---------- The chat overlay ---------- */
+
+/* "Move the chat to the side window, completely hidden by default... hide the chat completely"
+ * (Márk) — a fixed overlay, not a wider flex sibling, for the same "don't let a toggled panel steal
+ * a flex sibling's space" reason this page has already shipped that exact bug once (HANDOFF.md
+ * §8). There's no collapsed visual state to style at all any more: closed, TradingPage.tsx renders
+ * this as nothing (not even a toggle handle — that control moved into .trading-page__chat-toggle
+ * above), so every rule here only ever applies while it's open. */
+.trading-page__chat-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  /* Stops above .trading-page__bottom-row, not just the nav bar — a first pass covered the bottom
+   * row entirely, hiding the one button (.trading-page__chat-toggle) that closes this panel behind
+   * it, only caught by actually opening the overlay and looking (jsdom has no real layout to catch
+   * this in a test). 56px is the bottom row's own 44px button height plus a little breathing room. */
+  bottom: calc(var(--nav-bar-height) + 56px);
+  z-index: 20;
+  width: min(75vw, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -2px 0 12px var(--shadow);
+  padding: 12px;
+}
+
+/* Explicitly small (TODO feedback, previous round: "make the chat window header much smaller") —
+ * this labels a side panel, not a section of the page in its own right. */
 .trading-page__chat-heading {
+  flex-shrink: 0;
   margin: 0;
   font-size: 11px;
   font-weight: 600;
@@ -311,28 +395,16 @@
   color: var(--text-muted);
 }
 
-.trading-page__chat-header .trading-page__button {
-  padding: 2px 6px;
-  font-size: 11px;
-}
-
-/* Collapsed, this is a peek pinned to the bottom (TODO #11's "showing only the last message") —
- * short enough that only the latest message is visible, but still a real scrollable area so
- * scrolling it away from that pinned position can expand the chat (see TradingPage.tsx). */
 .trading-page__messages {
+  flex: 1;
+  min-height: 0;
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 52px;
   overflow-y: auto;
-}
-
-.trading-page__chat.is-expanded .trading-page__messages {
-  flex: 1;
-  max-height: none;
 }
 
 .trading-page__message {

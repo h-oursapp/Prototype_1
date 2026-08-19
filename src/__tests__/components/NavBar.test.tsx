@@ -15,11 +15,12 @@ function renderNavBar({ collapsible = false, route = '/' } = {}) {
 }
 
 describe('NavBar', () => {
-  it('renders all six nav items and marks the one matching the current URL', () => {
+  it('renders all seven nav items and marks the one matching the current URL', () => {
     renderNavBar({ route: '/' })
 
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Profile' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Offers' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Hours balance: 12h, open wallet' })).toBeInTheDocument()
   })
 

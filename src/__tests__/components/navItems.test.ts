@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { NAV_ITEMS, activeNavKey } from '../../components/navItems'
 
 describe('NAV_ITEMS', () => {
-  it('lists the nav bar buttons with Home in the middle and Settings off the bar (TODO #4)', () => {
+  it('lists the nav bar buttons with Home in the middle, Offers beside it, and Settings off the bar (TODO #4/#3)', () => {
     expect(NAV_ITEMS.map((item) => item.key)).toEqual([
       'wallet',
       'profile',
       'home',
+      'offers',
       'community',
       'trades',
       'inventory',
@@ -23,6 +24,7 @@ describe('activeNavKey', () => {
   it('matches a nav item on its own path', () => {
     expect(activeNavKey('/wallet')).toBe('wallet')
     expect(activeNavKey('/trades')).toBe('trades')
+    expect(activeNavKey('/offers')).toBe('offers')
   })
 
   it('keeps the section lit on a sub-page', () => {
