@@ -12,8 +12,17 @@ import {
 } from '../../pages/skillDraft'
 
 const EXISTING_SKILLS: Skill[] = [
-  { id: 'skill-1', name: 'Web design', icon: '💻', rating: 5, reviewRating: 5 },
-  { id: 'skill-2', name: 'Piano', icon: '🎹', rating: 4, reviewRating: 4, proof: 'Conservatory certificate', isCustom: true },
+  { id: 'skill-1', name: 'Web design', icon: '💻', rating: 5, reviewRating: 5, isPublic: true },
+  {
+    id: 'skill-2',
+    name: 'Piano',
+    icon: '🎹',
+    rating: 4,
+    reviewRating: 4,
+    proof: 'Conservatory certificate',
+    isCustom: true,
+    isPublic: true,
+  },
 ]
 
 describe('needsProof', () => {
@@ -30,7 +39,15 @@ describe('needsProof', () => {
 describe('catalogDraft', () => {
   it('starts from a catalogue entry, not editable as custom, at the default rating', () => {
     const draft = catalogDraft({ name: 'Guitar', icon: '🎸' })
-    expect(draft).toEqual({ isCustom: false, name: 'Guitar', icon: '🎸', description: '', rating: 3, proof: '' })
+    expect(draft).toEqual({
+      isCustom: false,
+      name: 'Guitar',
+      icon: '🎸',
+      description: '',
+      rating: 3,
+      proof: '',
+      isPublic: true,
+    })
   })
 })
 
@@ -54,6 +71,7 @@ describe('draftFromSkill', () => {
       reviewRating: 4,
       proof: 'Ran a supper club',
       isCustom: true,
+      isPublic: false,
     }
 
     expect(draftFromSkill(skill)).toEqual({
@@ -63,6 +81,7 @@ describe('draftFromSkill', () => {
       description: 'Home-style meals',
       rating: 4,
       proof: 'Ran a supper club',
+      isPublic: false,
     })
   })
 })
@@ -127,6 +146,7 @@ describe('toSkill', () => {
       reviewRating: 0,
       proof: undefined,
       isCustom: true,
+      isPublic: true,
     })
   })
 

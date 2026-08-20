@@ -109,6 +109,65 @@ describe('PagedGrid', () => {
     expect(screen.getAllByRole('button', { name: /Item \d/ })).toHaveLength(2)
   })
 
+  it("shows a dot per page instead of the buttons row when pagerVariant is 'floating-dots'", () => {
+    render(
+      <PagedGrid
+        items={makeItems(9)}
+        getKey={(item) => item.id}
+        renderTile={(item) => <span>{item.label}</span>}
+        columns={2}
+        rows={2}
+        gridLabel="Items"
+        pagerVariant="floating-dots"
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Previous page' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Page \d of \d/)).not.toBeInTheDocument()
+    const dots = screen.getAllByRole('button', { name: /^Page \d of 3$/ })
+    expect(dots).toHaveLength(3)
+    expect(screen.getByRole('button', { name: 'Page 1 of 3' })).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('still shows a single dot when everything fits on one page (direct feedback)', () => {
+    render(
+      <PagedGrid
+        items={makeItems(3)}
+        getKey={(item) => item.id}
+        renderTile={(item) => <span>{item.label}</span>}
+        columns={2}
+        rows={2}
+        gridLabel="Items"
+        pagerVariant="floating-dots"
+      />,
+    )
+
+    const dots = screen.getAllByRole('button', { name: /^Page \d of 1$/ })
+    expect(dots).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Page 1 of 1' })).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('jumps straight to the tapped dot, no need to step through pages in between', async () => {
+    const user = userEvent.setup()
+    render(
+      <PagedGrid
+        items={makeItems(9)}
+        getKey={(item) => item.id}
+        renderTile={(item) => <span>{item.label}</span>}
+        columns={2}
+        rows={2}
+        gridLabel="Items"
+        pagerVariant="floating-dots"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Page 3 of 3' }))
+
+    expect(screen.getByText('Item 8')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Page 3 of 3' })).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByRole('button', { name: 'Page 1 of 3' })).not.toHaveAttribute('aria-current')
+  })
+
   it('keeps empty padding cells out of the accessibility tree', () => {
     render(
       <PagedGrid

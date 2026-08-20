@@ -13,13 +13,26 @@ const COLOR_THEME_OPTIONS: { value: ColorTheme; label: string }[] = [
   { value: 'dark', label: 'Dark' },
 ]
 
+const INVENTORY_SCROLLABLE_OPTIONS: { value: boolean; label: string }[] = [
+  { value: false, label: 'No' },
+  { value: true, label: 'Yes' },
+]
+
 /** Appkarte §9. Only the settings that actually persist are shown as controls — swipe-up
  *  reassignment and notifications are listed in the card but not built, so they stay a note
  *  rather than buttons that do nothing. */
 export function SettingsPage() {
   const navigate = useNavigate()
-  const { colorTheme, gridSize, defaultSearchFilters, setColorTheme, setGridSize, setDefaultSearchFilters } =
-    useSettings()
+  const {
+    colorTheme,
+    gridSize,
+    defaultSearchFilters,
+    inventoryScrollable,
+    setColorTheme,
+    setGridSize,
+    setDefaultSearchFilters,
+    setInventoryScrollable,
+  } = useSettings()
 
   return (
     <PageShell title="Settings">
@@ -36,6 +49,20 @@ export function SettingsPage() {
           selected={colorTheme}
           onSelect={setColorTheme}
         />
+
+        <section className="settings-page__section">
+          <h2 className="page-section__heading">Inventory</h2>
+          <p className="settings-page__note">
+            TODO #9: scrollable shows every item at once and grows the page instead of paging
+            through a fixed grid.
+          </p>
+          <OptionGroup
+            legend="Inventory scrollable"
+            options={INVENTORY_SCROLLABLE_OPTIONS}
+            selected={inventoryScrollable}
+            onSelect={setInventoryScrollable}
+          />
+        </section>
 
         <section className="settings-page__section">
           <h2 className="page-section__heading">Default search filters</h2>

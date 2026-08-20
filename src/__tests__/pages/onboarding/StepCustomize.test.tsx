@@ -31,6 +31,7 @@ describe('StepCustomize', () => {
       colorTheme: 'dark',
       gridSize: 4,
       defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
+      inventoryScrollable: false,
     })
   })
 

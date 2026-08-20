@@ -25,4 +25,25 @@ describe('OptionGroup', () => {
     await user.click(screen.getByRole('button', { name: '3 per row' }))
     expect(onSelect).toHaveBeenCalledWith(3)
   })
+
+  it('also works with plain boolean options (TODO #9\'s "inventory scrollable: yes / no")', async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    render(
+      <OptionGroup
+        legend="Inventory scrollable"
+        options={[
+          { value: false, label: 'No' },
+          { value: true, label: 'Yes' },
+        ]}
+        selected={false}
+        onSelect={onSelect}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'No' })).toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(screen.getByRole('button', { name: 'Yes' }))
+    expect(onSelect).toHaveBeenCalledWith(true)
+  })
 })

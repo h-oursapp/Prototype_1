@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { PartnerInventoryPage } from '../../pages/PartnerInventoryPage'
 import { renderWithRouter, stubMatchMedia } from '../helpers/renderWithRouter'
@@ -31,8 +31,16 @@ describe('PartnerInventoryPage', () => {
   it('renders tiles as read-only — no click affordance on any of them', () => {
     renderPartnerInventoryPage()
 
-    expect(screen.queryByRole('button', { name: 'Amplifier' })).toBeNull()
-    expect(screen.getByRole('img', { name: 'Amplifier' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Amplifier/ })).toBeNull()
+    expect(screen.getByRole('img', { name: /^Amplifier/ })).toBeInTheDocument()
+  })
+
+  it('shows a single "N★" rating badge on each tile, same as your own Inventory (direct feedback)', () => {
+    renderPartnerInventoryPage()
+
+    // Amplifier (p-item-1, mockInventory.ts) is rated 4.
+    const tile = screen.getByRole('img', { name: 'Amplifier, rated 4 out of 5' })
+    expect(within(tile).getByText('4★')).toBeInTheDocument()
   })
 
   it('links back to the trade it was opened from', () => {

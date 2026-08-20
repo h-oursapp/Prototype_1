@@ -1,158 +1,117 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
+import { PagedGrid } from '../components/PagedGrid'
+import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
-import type { Offer, OfferKind } from '../data/mockOffers'
+import type { Offer } from '../data/mockOffers'
 import { MOCK_YOUR_OFFERS } from '../data/mockOffers'
+import { useFittingRows } from '../hooks/useFittingRows'
 import { ROUTES, adDetail } from '../routes'
-import type { GridSize } from '../settings/types'
 import { useSettings } from '../settings/useSettings'
 import './OffersPage.css'
 
-/** §4 assumes a section holds 6 boxes. Two rows times the Settings grid density (default 3 per
- *  row) reproduces that exactly at the default, and keeps the page honoring the user's density
- *  setting at every other value. §10 still lists the exact grid tuning as open. */
-const ROWS_PER_PAGE = 2
+/** One slot of the Offers grid: either the add-more prompt or one of your actual offers. A
+ *  discriminated union rather than a sentinel `Offer` keeps the prompt distinct from real data
+ *  instead of a fake id string that could collide with one. */
+type OfferSlot = { kind: 'add' } | { kind: 'offer'; offer: Offer }
 
-function offersOfKind(kind: OfferKind): Offer[] {
-  return MOCK_YOUR_OFFERS.filter((offer) => offer.kind === kind)
+function slotKey(slot: OfferSlot): string {
+  return slot.kind === 'add' ? 'add-prompt' : slot.offer.id
 }
 
-interface OfferSectionProps {
-  heading: string
-  offers: Offer[]
-  /** Label of the box that prompts you to add more — also its accessible name. */
-  addPromptLabel: string
-  columns: GridSize
-  onSelectOffer: (offer: Offer) => void
-  onAddMore: () => void
+/** Same substring-on-title match Inventory's own search bar uses (TODO #9) — simple by design,
+ *  nothing fancier asked for here. */
+function matchesQuery(offer: Offer, query: string): boolean {
+  return offer.title.toLowerCase().includes(query.trim().toLowerCase())
 }
 
-/** One page-flipped section of the Offers page (skill offers or item offers).
+/** Offers page (Appkarte §4, reworked by TODO #16): your own listings, skill and item offers
+ *  mixed into one grid instead of split into a skill section and an item section — TODO #16's
+ *  "remove the one of the skill offers section" / "make the item offers fill up the screen, mix
+ *  it with skill offers" — so `MOCK_YOUR_OFFERS` is handed over exactly as it already comes
+ *  (mixed kinds, no filtering by `OfferKind`), and the old "Item offers" heading is gone with it.
  *
- *  Each section owns its own page index, so flipping one doesn't move the other.
+ *  Reuses the fill-the-page-then-page-the-rest machinery Home/Inventory already use
+ *  (`useFittingRows` + `PagedGrid`, TODO #3/#9) instead of the fixed N×2-per-section grid this
+ *  page used to hand-roll: columns come from the grid-size setting, rows from whatever height is
+ *  actually left under the header, and a short last page still pads out with visibly empty
+ *  slots for free — TODO #16's "if the page is not full still show the empty grid spaces".
+ *  Paging itself ("keep the paging") is still PagedGrid's own pager, just its 'floating-dots'
+ *  variant: small dots pinned to the bottom of the viewport instead of a "← Page N of M →" row
+ *  after the grid, per direct feedback. Since that pager no longer sits in-flow after the grid,
+ *  `useFittingRows` is told there's no in-flow pager row to leave room for (`reserveBottomPx={0}`,
+ *  the same argument Home's GridSection passes for the same reason) — the dots instead land in
+ *  the bottom padding every page already reserves for the floating nav bar (PageShell.css), which
+ *  is otherwise empty whenever the nav bar itself is collapsed to its corner button.
  *
- *  §4's "with fewer than 6 entries, one grid box becomes a prompt to add more" is implemented by
- *  treating that prompt as the last entry of the section's sequence: it drops into the first free
- *  box on the last page, and gets a page of its own if the offers happen to fill every page
- *  exactly — so the prompt is always reachable rather than disappearing once you have enough
- *  offers. With fewer entries than one page holds, that is exactly what the card describes. */
-function OfferSection({ heading, offers, addPromptLabel, columns, onSelectOffer, onAddMore }: OfferSectionProps) {
-  const [requestedPage, setRequestedPage] = useState(0)
-
-  const pageSize = columns * ROWS_PER_PAGE
-  // The +1 is the add-more prompt, which occupies a box like any offer does.
-  const pageCount = Math.ceil((offers.length + 1) / pageSize)
-  // Clamped rather than stored back, so changing the grid density in Settings can't strand the
-  // section on a page that no longer exists.
-  const pageIndex = Math.min(requestedPage, pageCount - 1)
-  const firstOnPage = pageIndex * pageSize
-  const pageOffers = offers.slice(firstOnPage, firstOnPage + pageSize)
-  // A free box on this page means the prompt's slot in the sequence falls here.
-  const showsAddPrompt = pageOffers.length < pageSize
-
-  return (
-    <section className="page-section offers-page__section">
-      <h2 className="page-section__heading">{heading}</h2>
-
-      <ul className="offers-page__grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
-        {pageOffers.map((offer) => (
-          <li key={offer.id} className="offers-page__cell">
-            <SquareTile label={`${offer.title}, ${offer.hours} hours`} onClick={() => onSelectOffer(offer)}>
-              <span className="offers-page__tile">
-                <span className="offers-page__tile-icon" aria-hidden="true">
-                  {offer.icon}
-                </span>
-                <span className="offers-page__tile-title">{offer.title}</span>
-                <span className="offers-page__tile-hours">{offer.hours} h</span>
-              </span>
-            </SquareTile>
-          </li>
-        ))}
-
-        {showsAddPrompt && (
-          <li className="offers-page__cell">
-            <SquareTile label={addPromptLabel} onClick={onAddMore}>
-              <span className="offers-page__tile offers-page__tile--add">
-                <span className="offers-page__tile-icon" aria-hidden="true">
-                  +
-                </span>
-                <span className="offers-page__tile-title">{addPromptLabel}</span>
-              </span>
-            </SquareTile>
-          </li>
-        )}
-      </ul>
-
-      <div className="offers-page__pager">
-        <button
-          type="button"
-          className="offers-page__flip"
-          onClick={() => setRequestedPage(pageIndex - 1)}
-          disabled={pageIndex === 0}
-          aria-label={`Previous page of ${heading.toLowerCase()}`}
-        >
-          <span aria-hidden="true">←</span>
-        </button>
-
-        <p className="offers-page__page-indicator" aria-live="polite">
-          Page {pageIndex + 1} of {pageCount}
-        </p>
-
-        <button
-          type="button"
-          className="offers-page__flip"
-          onClick={() => setRequestedPage(pageIndex + 1)}
-          disabled={pageIndex === pageCount - 1}
-          aria-label={`Next page of ${heading.toLowerCase()}`}
-        >
-          <span aria-hidden="true">→</span>
-        </button>
-      </div>
-    </section>
-  )
-}
-
-/** Offers page (Appkarte §4): your own listings, split into skill offers and item offers, each
- *  section flipped a page at a time rather than scrolled continuously.
+ *  The add-more prompt moved from "the last free box on the last page" to "the grid's very first
+ *  slot, always on page 1" (TODO #16: "put the add offer option into the first square of the
+ *  grid") — done by making it entry 0 of the sequence handed to PagedGrid, rather than something
+ *  bolted on after real offers run out.
  *
- *  Home's GridSection is deliberately not reused here: it is Home's fixed N×N section with a
- *  corner arrow that opens *this* page, and it caps itself at one screenful. This page needs
- *  paged N×2 grids and an extra prompt box, so it composes SquareTile — the shared box — itself.
- *
- *  Page-flipping is real local state (see OfferSection); only the pictures are stand-ins, since
- *  the mock offers carry an emoji rather than an uploaded photo. */
+ *  A plain text search sits above the grid, narrowing which offers fill it — the add-more prompt
+ *  stays put through a search rather than being just another thing that can match or not, since
+ *  it isn't one of your offers to begin with. */
 export function OffersPage() {
   const navigate = useNavigate()
   const { gridSize } = useSettings()
+  const { containerRef, rows } = useFittingRows(gridSize, gridSize, 0)
+  const [query, setQuery] = useState('')
 
   const openAdDetail = (offer: Offer) => navigate(adDetail(offer.id))
   const openAdCreate = () => navigate(ROUTES.adCreate)
 
+  const matches = MOCK_YOUR_OFFERS.filter((offer) => matchesQuery(offer, query))
+  const slots: OfferSlot[] = [{ kind: 'add' }, ...matches.map((offer) => ({ kind: 'offer' as const, offer }))]
+
   return (
     <PageShell title="Your offers">
       <div className="offers-page">
-        <OfferSection
-          heading="Skill offers"
-          offers={offersOfKind('skill')}
-          addPromptLabel="Add more skill offers"
-          columns={gridSize}
-          onSelectOffer={openAdDetail}
-          onAddMore={openAdCreate}
-        />
-        <OfferSection
-          heading="Item offers"
-          offers={offersOfKind('item')}
-          addPromptLabel="Add more item offers"
-          columns={gridSize}
-          onSelectOffer={openAdDetail}
-          onAddMore={openAdCreate}
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          placeholder="Search your offers"
+          ariaLabel="Search your offers"
         />
 
-        <p className="page-note">
-          A page holds {gridSize * ROWS_PER_PAGE} boxes, following the grid density in Settings.
-          §10 lists the exact grid tuning as still open, so this is not a final number.
-        </p>
+        {query.trim() !== '' && matches.length === 0 && <p className="page-note">No offers match your search.</p>}
+
+        <div className="offers-page__grid-area" ref={containerRef}>
+          <PagedGrid
+            items={slots}
+            getKey={slotKey}
+            columns={gridSize}
+            rows={rows}
+            gridLabel="Your offers"
+            pagerVariant="floating-dots"
+            renderTile={(slot) =>
+              slot.kind === 'add' ? (
+                <SquareTile label="Add a new offer" onClick={openAdCreate}>
+                  <span className="offers-page__tile offers-page__tile--add">
+                    <span className="offers-page__tile-icon" aria-hidden="true">
+                      +
+                    </span>
+                    <span className="offers-page__tile-title">Add a new offer</span>
+                  </span>
+                </SquareTile>
+              ) : (
+                <SquareTile
+                  label={`${slot.offer.title}, ${slot.offer.hours} hours`}
+                  onClick={() => openAdDetail(slot.offer)}
+                >
+                  <span className="offers-page__tile">
+                    <span className="offers-page__tile-icon" aria-hidden="true">
+                      {slot.offer.icon}
+                    </span>
+                    <span className="offers-page__tile-title">{slot.offer.title}</span>
+                    <span className="offers-page__tile-hours">{slot.offer.hours} h</span>
+                  </span>
+                </SquareTile>
+              )
+            }
+          />
+        </div>
       </div>
     </PageShell>
   )

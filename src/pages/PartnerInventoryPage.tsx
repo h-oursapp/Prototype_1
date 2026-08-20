@@ -1,7 +1,9 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
+import { RatingBadge } from '../components/RatingBadge'
 import { SquareTile } from '../components/SquareTile'
+import { MAX_STARS } from '../components/StarRating'
 import { MOCK_PARTNER_INVENTORY, publicItems } from '../data/mockInventory'
 import { findTrade } from '../data/mockTrades'
 import { ROUTES, trading } from '../routes'
@@ -19,7 +21,9 @@ import './PartnerInventoryPage.css'
  *    display name and the "Back to trading" link both come from the trade, not from the route.
  *  - There is nothing to pick here: unlike your own Inventory page, tiles have no onClick at all.
  *    What the partner puts on the table isn't modelled in this prototype (TradingTableZone's own
- *    comment already says so) — browsing her items is for looking, not offering. */
+ *    comment already says so) — browsing her items is for looking, not offering.
+ *  - Tiles show the same "N★" `RatingBadge` your own Inventory's item tiles do (direct feedback:
+ *    this page was the one place items still had a `rating` but nothing on screen showed it). */
 export function PartnerInventoryPage() {
   const [searchParams] = useSearchParams()
   const trade = findTrade(searchParams.get('trade') ?? undefined)
@@ -63,12 +67,13 @@ export function PartnerInventoryPage() {
             gridLabel={`${trade.partner}'s inventory`}
             renderTile={(item) => (
               <SquareTile
-                label={item.name}
+                label={`${item.name}, rated ${item.rating} out of ${MAX_STARS}`}
                 overlay={<span className="partner-inventory-page__tile-name">{item.name}</span>}
               >
                 <span className="square-tile__icon" aria-hidden="true">
                   {item.icon}
                 </span>
+                <RatingBadge value={item.rating} />
               </SquareTile>
             )}
           />

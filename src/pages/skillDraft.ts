@@ -35,10 +35,22 @@ export interface SkillDraft {
   description: string
   rating: number
   proof: string
+  /** No editing control for this yet (TODO #7's own "add private/public property" is still
+   *  open) — every draft just carries the default/existing value through so `toSkill` below has
+   *  something real to set, the same way `description`/`proof` do before anyone's touched them. */
+  isPublic: boolean
 }
 
 export function catalogDraft(entry: CatalogEntry): SkillDraft {
-  return { isCustom: false, name: entry.name, icon: entry.icon, description: '', rating: DEFAULT_RATING, proof: '' }
+  return {
+    isCustom: false,
+    name: entry.name,
+    icon: entry.icon,
+    description: '',
+    rating: DEFAULT_RATING,
+    proof: '',
+    isPublic: true,
+  }
 }
 
 export function customDraft(): SkillDraft {
@@ -49,6 +61,7 @@ export function customDraft(): SkillDraft {
     description: '',
     rating: DEFAULT_RATING,
     proof: '',
+    isPublic: true,
   }
 }
 
@@ -60,6 +73,7 @@ export function draftFromSkill(skill: Skill): SkillDraft {
     description: skill.description ?? '',
     rating: skill.rating,
     proof: skill.proof ?? '',
+    isPublic: skill.isPublic,
   }
 }
 
@@ -112,5 +126,6 @@ export function toSkill(draft: SkillDraft, id: string): Skill {
     reviewRating: 0,
     proof: draft.proof.trim() === '' ? undefined : draft.proof.trim(),
     isCustom: draft.isCustom,
+    isPublic: draft.isPublic,
   }
 }

@@ -18,6 +18,7 @@
    
 4.Nav bar: 
      -make the time on the navbar bigger but still fitting the existing space.
+     -make the nav bar always on insted of the nav button, on pages that are not scrollable
 5.Profile: 
     -show your best skills only in a grid. only one row. follow the setting for the number of columns
     -only show the review ratings and do that in the upper right corner similar to the search page.
@@ -37,9 +38,9 @@
 
 8.Ad: 
 
-9.Inventory:
+9.Inventory: DONE
     -make the grid fill up the rest of the page. columns by the setting.
-    -make it scrollable page
+    -make a version of the page that is scrollable. add the option to the settings. - inventory scrollable: yes / no
     -get 2 buttons one for the skills and one for the items/skills.
     -skills are opening a seperate view within the inventory to reveal the skills.
 
@@ -70,7 +71,7 @@
 15.Settings: (not for prototype)
     -clean up data x days
 
-16.Offers:
+16.Offers: DONE
     -remove the one of the skill offers section.
     -make the item offers fill up the screen, mix it with skill offers.
     -remove text "item offers" 
@@ -80,3 +81,10 @@
 
 17.Colors:
     -introduce the company colors 
+
+18.Tooltips:
+    -create a small circular button with an i in it. Its goal to provide short description for the give element / page.
+    -when opened it should open in front of the page the info text. the background of the info text should be 30% opaque. 
+    -have a close tooltip button in the left corner of the page.
+    -have in the settings an option of hide tooltips.
+    -if needed can be scrollable.

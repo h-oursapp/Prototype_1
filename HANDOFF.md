@@ -71,11 +71,49 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        53 files, 411 tests, all passing
+npm run test        53 files, 446 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-20, branch `todo-16-offers`** built **TODO #16** (Offers) and then reworked **TODO #9**
+(Inventory) a second time, both on the one branch and both driven by many rounds of direct feedback
+in a single long session — the same "one branch, several TODO points, check in between" shape the
+2026-08-17 `todo-13-search` run took (TODO #13, the first TODO #9 rework, and TODO #14 all landed on
+that one branch too).
+
+- **Offers (TODO #16)**: the page's old two-section layout (a "Skill offers" heading/grid, then an
+  "Item offers" heading/grid) is gone — one flat, paged grid mixes both kinds, with the "Add a new
+  offer" prompt always occupying the grid's first slot (a sentinel `{kind: 'add'}` entry prepended
+  to the slot list, not special-cased position logic). Reuses `PagedGrid`/`useFittingRows` rather
+  than hand-rolling new fill/pad/paging logic, and gained a `SearchBar` above the grid (filtering by
+  title, add-prompt exempt). The pager was reworked twice more on top of that, both direct feedback:
+  first from "← Page N of M →" text to a dot-per-page strip pinned to the viewport's own bottom edge
+  (`PagedGrid`'s new `pagerVariant="floating-dots"`, opt-in so Inventory's/Trading's own
+  bottom-anchored controls don't collide with a fixed dot strip), then aligned to sit exactly on the
+  collapsed nav bar's reopen-button's own vertical centre — see §8 for the shared-CSS-variable trick
+  that took, versus the magic-number `bottom` guess that didn't.
+- **Inventory (TODO #9), reworked again**: a new Settings toggle ("inventory scrollable: yes/no",
+  default no) switches the whole page between today's fixed-page-plus-pager grid and a flowing,
+  ungapped, always-scrolling one (the shape standalone `SkillsPage` already uses) — applies
+  uniformly to whichever of the two views (see next point) is currently showing, after starting out
+  Items-only. A second view was added for browsing your skills read-only from inside Inventory,
+  reached via a single sliding two-label toggle (`ViewSwitch`) that replaced first a two-button
+  `OptionGroup`, then a single header button, before landing on its current shape (both option names
+  always visible, a highlight sliding between them) per successive rounds of direct feedback. The
+  shared visibility filter (`All`/`Public`/`Private`) now covers both views — `Skill` gained its own
+  `isPublic` for this (TODO #7's own line, done narrowly). Both grids' tiles show a single "N★"
+  `RatingBadge`, matching Home's own Ads tiles, rather than the two-stacked-star-row look
+  `SkillsPage`'s own tiles use — `InventoryItem` gained a matching self-`rating` field for this,
+  which also surfaced (and fixed) a second copy of the same tile missing it entirely, on
+  `PartnerInventoryPage`. Skills paging now uses the same `floating-dots` pager Offers grew above;
+  `PagedGrid`'s dots variant changed to always show at least one dot even on a single page (Skills'
+  5 mock entries otherwise always fit on one page at any real grid size, making "add the paging"
+  invisible). See §8 for the full account of every round, including a real CSS bug (a bigger visual
+  gap on Items than Skills, traced to `PagedGrid`'s own frame vertically centering leftover space)
+  fixed with a page-scoped override rather than touching the shared component everyone else relies
+  on centering.
 
 **2026-08-19, branch `todo-11-trading`** reworked **TODO #11** (Trading) yet again — this time from
 a real whiteboard sketch Márk drew and photographed (`wireframes/trading.png`), then a follow-up
@@ -398,17 +436,25 @@ src/
                            rendering, with rows sized by useFittingRows instead of a locked square
                            frame. Links away to Search on overflow rather than paging in place —
                            see §8 for how that squares with also using PagedGrid
-    PagedGrid.tsx/.css     a non-scrollable, *paged* grid: Inventory's item grid, every row on
-                           Trading (skills, the trading table), and (TODO #3) GridSection's own
-                           rendering — see §8
+    PagedGrid.tsx/.css     a non-scrollable, *paged* grid: Inventory's item and Skills-view grids,
+                           Offers (TODO #16), every row on Trading (skills, the trading table), and
+                           (TODO #3) GridSection's own rendering — see §8. `pagerVariant` is
+                           `'buttons'` (the "← Page N of M →" row, hidden on a single page) or
+                           `'floating-dots'` (a dot-per-page strip pinned to the viewport's own
+                           bottom edge, TODO #16 — always shows *at least one* dot even on a single
+                           page, TODO #9's second rework, see §8)
     RatingBadge.tsx/.css   the compact "N★" corner badge (TODO #13), reused by Home's grid tiles
-                           (TODO #3) once there were two real callers — see §8
+                           (TODO #3), then Inventory's item *and* Skills-view tiles plus
+                           PartnerInventoryPage's (TODO #9's second rework) once there were real
+                           callers each time — see §8
     SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
     StarRating.tsx         ★★★☆☆ *display* — unrelated to StarRatingInput below, see §8
     StarRatingInput.tsx/.css   the star-picker *input* (radio-group fieldset) — Final Review's own
                            rating control, moved here once Search's minimum-rating filter (TODO
                            #13) needed the identical thing, not a lookalike — see §8
-    OptionGroup.tsx        segmented control (used by Settings)
+    OptionGroup.tsx        segmented control (Settings, onboarding, filter panels) — generic type
+                           widened to accept `boolean` options too (TODO #9's second rework: the new
+                           "inventory scrollable" yes/no toggle), not just string/number
     TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills, in both a
                            trade context and (TODO #8) picking a new ad's one subject — see §8
     SearchBar.tsx/.css     a text field + small submit button — Search's own search bar (TODO #13),
@@ -417,7 +463,12 @@ src/
                            caller ignores it) and `compact` (shrinks it for Home's topbar) — see §8
     FilterChip.tsx/.css    a button that opens a floating panel underneath it — the shell Search's
                            filter row (TODO #13) and Inventory's one filter (TODO #9) both use; only
-                           the shell is shared, panel content is always the caller's own — see §8
+                           the shell is shared, panel content is always the caller's own — see §8.
+                           Runs ~30% smaller than a typical control everywhere it appears (TODO #9's
+                           second rework, direct feedback) — the shrink is scoped to this component
+                           and to `.filter-chip__panel`'s own descendants, not to `OptionGroup`/
+                           `StarRatingInput` themselves, which stay full-size on Settings/onboarding/
+                           Final Review
 
   hooks/
     useFittingRows.ts      how many square, N-wide cells fit a measured container — Inventory's
@@ -457,8 +508,8 @@ src/
                            helpers, shared by SearchPage and (now) SettingsPage's default-filter
                            picker rather than living only inside SearchPage.tsx
 
-  settings/                theme + grid-size + (TODO #3) default search filters, persisted to
-                           localStorage
+  settings/                theme + grid-size + (TODO #3) default search filters + (TODO #9)
+                           inventoryScrollable, persisted to localStorage
 
   trading/                 TradeDraftContext + useTradeDraft — see §8. The *only* piece of
                            cross-page state in this prototype; everything else is page-local
@@ -624,15 +675,15 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). The h_OURs wordmark image is the page's `<h1>` (TODO #14). Method is `[OFFEN]` |
 | `/onboarding` | OnboardingPage | §2 | Six steps, most skippable. Skills (#2.1), friends (#2.2), verify (#2.3), and profile picture (#2.5) are all real; only #2.4's video is still a static illustration |
 | `/` | MainPage | §3 | One fixed Ads grid, no scroll (Your offers' own grid is gone, TODO #3). Topbar: bigger left-aligned logo, a quick search bar (→ Search's text view), a location-pin button (→ map view, same query) — Offers moved to the nav bar. Not in PageShell |
-| `/offers` | OffersPage | §4 | **Your** offers |
+| `/offers` | OffersPage | §4 | **Your** offers, TODO #16: one flat paged grid mixing skill and item offers (no more separate sections), the add-offer prompt pinned to the grid's first slot, a search bar, and a floating dot-per-page pager pinned above the nav bar's own reopen button |
 | `/search` | SearchPage | §4 | One-row filter bar opening floating panels (TODO #13), now seeded from Settings' configurable default filter (TODO #3) rather than always "show everything"; `?q=`/`?view=` seed the query and force a view for Home's two entry points; map view shows the placeholder map above the same results grid the text view uses |
 | `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
 | `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
 | `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8) |
-| `/inventory` | InventoryPage | §6 | Non-scrollable paged grid, now with a search bar + visibility filter and rows sized to fill the page (TODO #9); `?trade=<id>` adds a transfer box, `?forAd=new` picks one item for a new ad (TODO #8) |
+| `/inventory` | InventoryPage | §6 | Search bar + visibility filter (now shared with the Skills view too) and rows sized to fill the page (TODO #9); paged by default with a floating dot pager, or flowing/scrolling if Settings' "inventory scrollable" is on; a sliding `ViewSwitch` toggle swaps between browsing items and read-only browsing your skills; `?trade=<id>` adds a transfer box, `?forAd=new` picks one item for a new ad (TODO #8) |
 | `/inventory/:itemId` | ItemPage | — | View/edit an item (TODO #10) |
 | `/inventory/new` | ItemPage `mode="create"` | — | Same component as above |
-| `/inventory/partner?trade=<id>` | PartnerInventoryPage | §6 | A trading partner's public items, read-only — see §8 |
+| `/inventory/partner?trade=<id>` | PartnerInventoryPage | §6 | A trading partner's public items, read-only — now shows the same "N★" `RatingBadge` your own Inventory's item tiles do — see §8 |
 | `/wallet` | WalletPage | §7 | Charity/Foundation are `[OFFEN]` |
 | `/profile` | ProfilePage | §7 | Best skills show both ratings and open the Skill page; a button opens Trades pre-filtered to already-reviewed |
 | `/skills` | SkillsPage | §7 | Grid columns follow the Settings grid-size setting, rows uncapped; tiles open the Skill page; last tile is "+ Add skill"; transfer box at `?trade=<id>` or (TODO #8) `?forAd=new` |
@@ -641,7 +692,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/trades` | TradesPage | §8 | Status: open / agreed / closed. `?status=closed` (optionally `&skill=<id>`) filters to already-reviewed trades |
 | `/trades/:tradeId/review` | FinalReviewPage | §8 | Star **input**, not display |
 | `/community` | CommunityPage | §9 | Out of prototype scope |
-| `/settings` | SettingsPage | §9 | Theme + grid size, plus (TODO #3) Search's default kind/distance/rating filter — all actually work |
+| `/settings` | SettingsPage | §9 | Theme + grid size, (TODO #3) Search's default kind/distance/rating filter, and (TODO #9) Inventory's "scrollable" yes/no toggle — all actually work |
 | `/legal` | LegalPage | §9 | Out of scope — **see the warning below** |
 
 ### The Legal page contains no legal text, on purpose
@@ -1199,9 +1250,9 @@ All of it lives in `src/data/`. No component invents its own.
 | File | Holds |
 | --- | --- |
 | `mockOffers.ts` | `Offer` (`kind: 'skill' \| 'item'`, `hours`, `distanceKm`, `rating`, now `reviewRating?` for skills and `conditionRating?` for items — TODO #8), `MOCK_ADS` (26), `MOCK_YOUR_OFFERS` (24), `findOffer`, `isYourOffer` |
-| `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill` (now incl. `description`, `reviewRating`), `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `findSkill`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS`, `reviewsForSkill()` |
+| `mockUser.ts` | `MOCK_HOURS_BALANCE`, `MOCK_WALLET`, `Skill` (now incl. `description`, `reviewRating`, and `isPublic` — TODO #9's second rework, narrowly done for TODO #7's own line, see §8), `MOCK_SKILLS`, `MOCK_PARTNER_SKILLS`, `findSkill`, `SKILL_CATALOG`, `CUSTOM_SKILL_CAP`, `MOCK_PROFILE`, `Review`, `MOCK_REVIEWS`, `reviewsForSkill()` |
 | `mockTrades.ts` | `TradeStatus`, `Trade` (incl. `partnerHours`, `skillId?`, now `lastInteractionAt` — a real ISO date, `lastInteraction` stays as display prose — and `hasUnreadMessage?`), `ChatMessage`, `MOCK_TRADES` (6), `findTrade`, `canRespondToOffer()`, `statusAfterAccept()` — the TODO #13 status-pipeline helpers |
-| `mockInventory.ts` | `InventoryItem` (`isPublic`, `description?` — **`shelf` is gone, see §8**), yours (20) + partner's (12, two private), `publicItems()`, `findItem()` |
+| `mockInventory.ts` | `InventoryItem` (`isPublic`, `description?`, and `rating` — TODO #9's second rework, see §8 — `shelf` is gone, see §8), yours (20) + partner's (12, two private), `publicItems()`, `findItem()` |
 | `mockCommunity.ts` | `Friend` (7), `BlockedPerson` (2), `BoardPost` (4), `MOCK_INVITE_LINK` (TODO #2.2) |
 
 **Adding a required field to `Offer`, `Skill`, or `Trade` breaks test factories.** They build objects
@@ -1276,6 +1327,146 @@ those instead. The same token happens to flip to the right contrast in both them
 existing light/dark token pairing and this round's status-colour choices both lean the same
 direction — worth re-checking by eye if either palette changes later rather than assuming it still
 holds.
+
+### TODO #16 — Offers (this session, branch `todo-16-offers`)
+
+**One flat, paged grid instead of two sections, using a sentinel entry rather than special-cased
+position logic.** `OffersPage`'s old "Skill offers" heading/grid and "Item offers" heading/grid are
+gone; a discriminated union (`type OfferSlot = {kind: 'add'} | {kind: 'offer'; offer: Offer}`) is
+built by prepending one `{kind: 'add'}` sentinel to the mapped list of matching offers, so "the
+add-prompt is always the grid's very first slot" falls out of array order rather than an `index ===
+0` check scattered through the render. Reuses `PagedGrid`/`useFittingRows` exactly as Inventory
+does — no new fill/pad/paging logic was written for this page.
+
+**The dot pager (`PagedGrid`'s new `pagerVariant="floating-dots"`) is opt-in, not the new shared
+default.** It only makes sense on a page with nothing else anchored to its own bottom edge —
+Inventory's transfer box and Trading's Accept/Decline bar would both collide with a pager fixed
+there. `z-index: 5`, below the nav bar's own `10` (`NavBar.css`) on purpose: the nav bar spends most
+of its time collapsed into a small corner button (`useAutoCollapse`), so the dots are visible almost
+always, and it's fine for the nav bar to draw over them the few seconds it's expanded.
+
+**Aligning the dots to the collapsed nav bar's own reopen button needed two new shared CSS
+variables, not a magic-number `bottom` guess.** The first attempt (`bottom: 12px`) happened to look
+close but wasn't actually centred on anything. The fix: the reopen button's size and margin
+(`NavBar.css`'s `.nav-bar__reopen`, previously hardcoded `44px`/`8px`) moved into
+`--nav-bar-reopen-size`/`--nav-bar-reopen-margin` in `index.css`, the same "one place, two files
+both read it" reasoning `--nav-bar-height` already exists for — `PagedGrid.css`'s `.paged-grid__dots`
+now gives itself the *exact* same vertical footprint (`bottom`/`height`) as that button, so
+`align-items: center` centres both on the same point by construction. If the button ever resizes,
+the dots follow automatically instead of needing a second manual fix.
+
+### TODO #9 rework, round 2 — Inventory (this session, same branch)
+
+Márk's own `TODO.md` wording for this round (added between sessions, replacing the previous "search
+bar + filter, grid fills the page" entry once that had already shipped) asked for four things: the
+grid filling the page (already done, previous rework), a Settings "inventory scrollable: yes/no"
+toggle, "2 buttons, one for skills and one for items", and skills opening "a separate view within
+the inventory." Direct feedback reshaped the last two considerably after the first cut.
+
+**"Inventory scrollable" swaps which grid component renders, not a CSS overflow flag.** Off (the
+default) keeps `useFittingRows` + `PagedGrid` — a fixed page, a pager. On renders through a small
+local `FlowGrid` component instead (square tiles in a `columns`-wide CSS grid, no row cap — the same
+shape standalone `SkillsPage`'s own grid already uses) and lets the page grow into
+`PageShell.tsx`'s own already-`overflow-y: auto` content area, which the page normally opts out of
+via a modifier class (`.inventory-page--scrollable` undoes just the `height`/`overflow` properties
+that lock it to one screenful). `AppSettings` gained `inventoryScrollable: boolean`
+(`settingsStorage.ts` falls back to `false` for an already-saved blob missing it, the same
+backward-compatible pattern `defaultSearchFilters` set — see the TODO #3-rework entry above).
+**Direct feedback made this setting govern the Skills view the same way, not Items-only** — it
+started out with Skills always flowing regardless of the setting; see below.
+
+**"2 buttons" went through three shapes before landing on one sliding toggle, each a direct response
+to feedback on the last:**
+1. First cut: a literal two-button `OptionGroup` ("Items"/"Skills") sitting over the grid, matching
+   the TODO's own wording most literally.
+2. Feedback: move it into the title row, and make it *one* button — implemented as a single
+   `page-shell__action--text` toggle (the same shape `AdDetailPage`'s "View only" and
+   `CommunityPage`'s "Blocked persons" already use), labelled with whichever view tapping it would
+   switch *to* ("Skills" while browsing items, "Items" while browsing skills).
+3. Feedback again — the current shape: move it back down to where the small view caption sat (not
+   the title row), and make it "a sliding toggle button" that shows *both* option names at once with
+   a highlight sliding between them, not a label that only ever names one side. `ViewSwitch`
+   (`InventoryPage.tsx`) is one `<button>` (one click target, one tab stop) containing two
+   `aria-hidden` decorative label spans plus a sliding highlight `<span>` positioned via
+   `transform: translateX(0%|100%)` — real semantics live in the button's own `aria-label`
+   ("Switch to Skills view"/"Switch to Items view") and `aria-pressed`, not the visible text. Built
+   from the app's usual button materials (border, `--chamfer`, `--brand-tint`) rather than a native
+   rounded pill switch, per "stick to the style of other buttons" — this app's "no border-radius,
+   only chamfer" rule applies even to a control that visually reads as a slide toggle elsewhere.
+
+**Skills gained its own read-only browsing view, not a picking flow.** `view` state
+(`'items' | 'skills'`) swaps the grid beneath the toggle; the header, search bar, and both
+`TransferBox`es stay exactly where they are. Tapping a skill tile opens the Skill page — there is no
+"add to offer" affordance here, on purpose: skills already have their own picking flow
+(`/skills?trade=`, `/skills?forAd=new`, TODO #8), so this page doesn't grow a second one. Unifying
+item/skill picking into one flow is the rest of TODO #7 ("items and skills have to be similar"), not
+this round.
+
+**The shared visibility filter needed `Skill` to grow its own `isPublic` — TODO #7's own line, done
+narrowly for this.** Direct feedback asked for Inventory's existing `All`/`Public`/`Private`
+`FilterChip` to also narrow the Skills view, which meant `Skill` (`mockUser.ts`) needed a real
+`isPublic: boolean` to filter on (mirroring `InventoryItem.isPublic`). Kept deliberately narrow:
+there's still no editing control for it anywhere (`SkillPage`, onboarding's "Add your skills" step)
+— every skill created through `skillDraft.ts`'s `toSkill` just defaults to public, the same way
+`ItemPage`'s own draft defaults `isPublic: true`. Giving it a real toggle is the rest of TODO #7, not
+this one. `MOCK_SKILLS`' one private entry (Photography) was picked to match its own existing
+description ("still building a portfolio") — same narrative trick `mockInventory.ts`'s private
+Camera already uses.
+
+**Skill and item tiles both dropped their own rating display in favour of Home's own "N★"
+`RatingBadge` convention — twice, once per type, each exposing a gap in the other.** Direct feedback:
+"skills should be represented similarly as... the offers are represented on the homepage." Skill
+tiles used to show two full star rows (self-rating + review rating, `SkillsPage`'s own convention);
+`InventorySkillTile` now shows exactly what `GridSection`'s Ads tiles show — icon, name overlaid at
+the bottom, one `RatingBadge` pinned to the corner — self-rating only. This isn't an oversight: every
+existing `RatingBadge` caller (Home, Search) already shows exactly one number regardless of kind
+(`mockOffers.ts`'s own comment on `Offer.rating`), and there's no precedent anywhere for stacking two
+of them on one corner; the review rating isn't lost, just not repeated here — still a tap away on
+the Skill page. The very next round of feedback ("make the star rating visible for the items as
+well") found that `InventoryItem` had no rating field to show at all — added one (a self-assessed
+condition rating, mirroring `Skill.rating`) and gave `ItemTile` the identical `RatingBadge`
+treatment. That, in turn, surfaced a **second** tile with the same gap: `PartnerInventoryPage.tsx`
+renders items with its own, separate `SquareTile` usage (not `InventoryPage`'s `ItemTile`), and had
+never shown a rating either — fixed the same way once found. Both changes fold the rating into the
+tile's own accessible name too (`"Acoustic guitar, rated 4 out of 5"`), matching `RatingBadge`'s own
+doc comment on why that has to happen (it's purely decorative/`aria-hidden`, so without this a
+screen reader would see the badge but never be told the number).
+
+**Skills gained paging, and `PagedGrid`'s dots gained a "show one even on a single page" rule —
+the second one is what makes the first one visible at all.** Direct feedback: "add the paging to the
+skills," using the same `floating-dots` pager Offers (TODO #16, above) already has, plus its own
+independent `useFittingRows` call (not shared with Items' — the two grid-area boxes are mutually
+exclusive, and `useFittingRows`' `ResizeObserver` is only ever attached once per element, so sharing
+one ref between them would leave whichever wasn't measured first stuck with a stale row count after
+a view switch). But `MOCK_SKILLS` only has 5 entries, which fit on one page at almost any real grid
+size — under the old rule ("hide the pager entirely once there's only one page"), Skills would
+*never* show a pager despite genuinely paging now. Fixed in `PagedGrid.tsx` itself: the
+`floating-dots` variant now always renders at least one dot, even on a single page; the classic
+"← Page N of M →" button pager (unused anywhere in Inventory now, but still elsewhere) keeps its old
+single-page-hides-entirely behaviour.
+
+**A real, shipped CSS bug: Items and Skills read as different-sized gaps between the filter row and
+the grid, traced to `PagedGrid`'s own frame centering leftover space.** `useFittingRows` floors its
+row count, so there's often a little unused height left in the grid-area box; `.paged-grid__frame`'s
+own `align-items: center` (`PagedGrid.css`) splits that leftover space evenly above and below the
+grid — which read as "Items has a bigger gap" the moment Skills was still a plain flowing grid with
+no such centering box around it. Once both views shared the exact same `PagedGrid`-in-a-grid-area
+shape (previous point), both inherited the same gap, making the mismatch a genuine visible bug worth
+fixing rather than a one-sided quirk. Fixed with a page-scoped override —
+`.inventory-page__grid-area .paged-grid__frame { align-items: flex-start }` in `InventoryPage.css` —
+rather than touching `PagedGrid.css` itself: Home's `GridSection`, Offers, and
+`PartnerInventoryPage` all still want that centering, and none of them reported the same complaint.
+
+**Filters run about 30% smaller everywhere they appear, on request — scoped to the filter panel,
+not to `OptionGroup`/`StarRatingInput` themselves.** "Make the search filters ~30% smaller
+everywhere they show up" meant `FilterChip`'s own trigger/panel/control/done styling (shared by
+Search's Kind/Distance/Rating filters and Inventory's visibility filter — both shrink together,
+since it's the same component), plus new `.filter-chip__panel .option-group__option`/
+`.filter-chip__panel .star-rating-input__star` etc. overrides scoped to *inside* a filter panel.
+Deliberately not a change to `OptionGroup.css`/`StarRatingInput.css` directly: those two components
+are also used full-size on the Settings page (grid size, colour theme, default search filters),
+onboarding's customize step, and Final Review's actual rating input — none of which are "search
+filters," and none of which were asked to shrink.
 
 ---
 
@@ -1450,6 +1641,22 @@ icon, and the login page's wordmark all show the real h_OURs logo now, not the p
 mark from the PWA session before this one. See §8 for both — the icon swap in particular has a
 near-miss worth reading (design files handed over inside the gitignored `dist/` folder) before it
 happens again.
+
+**TODO #16 is done** (branch `todo-16-offers`, 2026-08-20): Offers is one flat, paged grid mixing
+skill and item offers (no more separate sections), the add-offer prompt always in the grid's first
+slot, a search bar above it, and a floating dot-per-page pager aligned to the collapsed nav bar's
+own reopen button. See §2's dated entry and §8's own subsection.
+
+**TODO #9's *second* rework is done** (same branch, same day — Márk rewrote this TODO point's
+wording between sessions once the first rework above had already shipped): Settings gained an
+"inventory scrollable" yes/no toggle; a new `ViewSwitch` sliding toggle lets you browse your skills
+read-only from inside Inventory, sharing the existing visibility filter and the same paged/flowing
+grid behaviour as the items view; both items' and skills' tiles now show a single "N★" rating badge
+matching Home's own tiles (which also meant giving `InventoryItem` a `rating` field, and fixing the
+same missing badge on `PartnerInventoryPage`); and Skills paging uses the same floating-dots pager
+TODO #16 built, with a "show one dot even on a single page" rule added so that pager is actually
+visible for a list as short as the 5 mock skills. See §2's dated entry and §8's own subsection for
+every round of feedback this went through.
 
 ---
 

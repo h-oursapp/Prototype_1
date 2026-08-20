@@ -26,6 +26,18 @@ interface PagedGridProps<T> {
   rows: number
   /** Names the grid for assistive tech, and prefixes the pager's own group label. */
   gridLabel: string
+  /** The pager's own look: 'buttons' (default) is the "← Page N of M →" row every existing caller
+   *  (Inventory, Trading) already shows, flowing right after the grid — hidden entirely on a
+   *  single page, since there's nothing to page through. 'floating-dots' is a small dot-per-page
+   *  strip pinned to the bottom of the viewport instead — TODO #16's Offers page asked for it, and
+   *  it's opt-in rather than the shared default because it only makes sense on a page with nothing
+   *  else anchored to its own bottom edge; Inventory's transfer box and Trading's Accept/Decline
+   *  bar would both collide with a pager fixed there. Tapping a dot jumps straight to that page —
+   *  the only way to change pages at all once the prev/next buttons are gone. Unlike the buttons
+   *  variant, a single dot still shows even on a single page (direct feedback, Inventory's Skills
+   *  view): it's the one visible sign that this grid pages at all, which a page that always fits
+   *  on one page (few skills, a small grid size) would otherwise never show. */
+  pagerVariant?: 'buttons' | 'floating-dots'
 }
 
 /** A non-scrollable, paged grid: one page of `columns × rows` tiles at a time, every page always
@@ -48,7 +60,15 @@ interface PagedGridProps<T> {
  *  case. Whichever dimension the frame is "generous" in is left over as even margin around the
  *  grid (via the frame's own centering) — that's an unavoidable consequence of staying square, not
  *  a bug. */
-export function PagedGrid<T>({ items, getKey, renderTile, columns, rows, gridLabel }: PagedGridProps<T>) {
+export function PagedGrid<T>({
+  items,
+  getKey,
+  renderTile,
+  columns,
+  rows,
+  gridLabel,
+  pagerVariant = 'buttons',
+}: PagedGridProps<T>) {
   const perPage = columns * rows
   const totalPages = Math.max(1, Math.ceil(items.length / perPage))
   const [page, setPage] = useState(0)
@@ -81,30 +101,47 @@ export function PagedGrid<T>({ items, getKey, renderTile, columns, rows, gridLab
         </ul>
       </div>
 
-      {totalPages > 1 && (
-        <div className="paged-grid__pager" role="group" aria-label={`${gridLabel} pages`}>
-          <button
-            type="button"
-            className="paged-grid__pager-button"
-            aria-label="Previous page"
-            disabled={currentPage === 0}
-            onClick={() => setPage(currentPage - 1)}
-          >
-            <span aria-hidden="true">←</span>
-          </button>
-          <span className="paged-grid__pager-label" aria-live="polite">
-            Page {currentPage + 1} of {totalPages}
-          </span>
-          <button
-            type="button"
-            className="paged-grid__pager-button"
-            aria-label="Next page"
-            disabled={currentPage >= totalPages - 1}
-            onClick={() => setPage(currentPage + 1)}
-          >
-            <span aria-hidden="true">→</span>
-          </button>
+      {pagerVariant === 'floating-dots' ? (
+        // No `totalPages > 1` gate here (unlike the buttons variant below) — see this prop's own
+        // doc comment: a single dot on a single page is the point, not a bug.
+        <div className="paged-grid__dots" role="group" aria-label={`${gridLabel} pages`}>
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index}
+              type="button"
+              className={`paged-grid__dot ${index === currentPage ? 'is-active' : ''}`}
+              aria-label={`Page ${index + 1} of ${totalPages}`}
+              aria-current={index === currentPage ? 'true' : undefined}
+              onClick={() => setPage(index)}
+            />
+          ))}
         </div>
+      ) : (
+        totalPages > 1 && (
+          <div className="paged-grid__pager" role="group" aria-label={`${gridLabel} pages`}>
+            <button
+              type="button"
+              className="paged-grid__pager-button"
+              aria-label="Previous page"
+              disabled={currentPage === 0}
+              onClick={() => setPage(currentPage - 1)}
+            >
+              <span aria-hidden="true">←</span>
+            </button>
+            <span className="paged-grid__pager-label" aria-live="polite">
+              Page {currentPage + 1} of {totalPages}
+            </span>
+            <button
+              type="button"
+              className="paged-grid__pager-button"
+              aria-label="Next page"
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => setPage(currentPage + 1)}
+            >
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        )
       )}
     </div>
   )

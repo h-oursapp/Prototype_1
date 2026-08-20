@@ -1,5 +1,12 @@
 import { DEFAULT_SEARCH_FILTERS, isSearchFilters } from '../data/searchFilters'
-import { DEFAULT_GRID_SIZE, GRID_SIZE_OPTIONS, type AppSettings, type ColorTheme, type GridSize } from './types'
+import {
+  DEFAULT_GRID_SIZE,
+  DEFAULT_INVENTORY_SCROLLABLE,
+  GRID_SIZE_OPTIONS,
+  type AppSettings,
+  type ColorTheme,
+  type GridSize,
+} from './types'
 
 const STORAGE_KEY = 'h-ours:settings'
 
@@ -39,6 +46,9 @@ export function loadSettings(): AppSettings | null {
       defaultSearchFilters: isSearchFilters(parsed.defaultSearchFilters)
         ? parsed.defaultSearchFilters
         : DEFAULT_SEARCH_FILTERS,
+      // Same reasoning, same pattern — didn't exist before TODO #9 either.
+      inventoryScrollable:
+        typeof parsed.inventoryScrollable === 'boolean' ? parsed.inventoryScrollable : DEFAULT_INVENTORY_SCROLLABLE,
     }
   } catch {
     return null
@@ -60,6 +70,7 @@ export function loadSettingsOrDefault(): AppSettings {
       colorTheme: getSystemColorTheme(),
       gridSize: DEFAULT_GRID_SIZE,
       defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
+      inventoryScrollable: DEFAULT_INVENTORY_SCROLLABLE,
     }
   )
 }
