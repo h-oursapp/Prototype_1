@@ -32,6 +32,12 @@
    * how much bottom space each page reserves by hand instead — kept in one place since the bar's
    * own CSS and every page that pads around it both need the same number. */
   --nav-bar-height: 64px;
+  /* The collapsed nav bar's own floating corner button (NavBar.css's `.nav-bar__reopen`) — pulled
+   * out because Offers' floating-dots pager (PagedGrid.css) needs to line its own vertical center
+   * up with this button's, so both files read the same two numbers instead of one silently
+   * drifting out of sync with the other. */
+  --nav-bar-reopen-size: 44px;
+  --nav-bar-reopen-margin: 8px;
   /* Shared chamfer shapes: a small straight cut on every corner, or on just the top two (for
    * elements anchored to the bottom edge, like the nav bar). Referenced via clip-path, not
    * border-radius, everywhere in the app that wants this look. */

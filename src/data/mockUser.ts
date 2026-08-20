@@ -28,6 +28,13 @@ export interface Skill {
   proof?: string
   /** Custom skills are user-created and capped per user (§7). */
   isCustom?: boolean
+  /** TODO #7's "add private/public property", added narrowly for Inventory's visibility filter
+   *  (TODO #9 direct feedback) to also cover the Skills view there — mirrors InventoryItem's own
+   *  `isPublic` (mockInventory.ts). There's no editing control for it yet (SkillPage, the
+   *  onboarding "Add your skills" step): every skill created through `skillDraft.ts`'s `toSkill`
+   *  defaults to public, the same way ItemPage's own draft defaults `isPublic: true`. Giving this
+   *  a real toggle is the rest of TODO #7 ("items and skills have to be similar"), not this one. */
+  isPublic: boolean
 }
 
 export const MOCK_SKILLS: Skill[] = [
@@ -39,6 +46,7 @@ export const MOCK_SKILLS: Skill[] = [
     rating: 5,
     reviewRating: 5, // matches review-1 (Lena K.)
     proof: 'Portfolio: 12 client sites',
+    isPublic: true,
   },
   {
     id: 'skill-2',
@@ -48,6 +56,7 @@ export const MOCK_SKILLS: Skill[] = [
     rating: 4,
     reviewRating: 4, // matches review-2 (Tomas R.)
     proof: 'Conservatory certificate, 2019',
+    isPublic: true,
   },
   {
     id: 'skill-3',
@@ -56,6 +65,7 @@ export const MOCK_SKILLS: Skill[] = [
     description: 'Home-style meals, mostly Central European.',
     rating: 3,
     reviewRating: 4, // matches review-3 (Aisha M.)
+    isPublic: true,
   },
   {
     id: 'skill-4',
@@ -64,6 +74,7 @@ export const MOCK_SKILLS: Skill[] = [
     description: 'Beds, pruning, and general upkeep.',
     rating: 3,
     reviewRating: 0, // no reviews yet
+    isPublic: true,
   },
   {
     id: 'skill-5',
@@ -73,6 +84,9 @@ export const MOCK_SKILLS: Skill[] = [
     rating: 2,
     reviewRating: 0, // no reviews yet
     isCustom: true,
+    // Kept private for now — matches its own description: still building a portfolio, not ready
+    // to show yet. Same narrative mockInventory.ts uses for the Camera item.
+    isPublic: false,
   },
 ]
 
@@ -87,6 +101,7 @@ export const MOCK_PARTNER_SKILLS: Skill[] = [
     rating: 5,
     reviewRating: 5,
     proof: 'Ten years teaching, references on file',
+    isPublic: true,
   },
   {
     id: 'p-skill-2',
@@ -96,6 +111,7 @@ export const MOCK_PARTNER_SKILLS: Skill[] = [
     rating: 4,
     reviewRating: 4,
     proof: 'Worked at a bike shop, 2021–2024',
+    isPublic: true,
   },
   {
     id: 'p-skill-3',
@@ -104,6 +120,7 @@ export const MOCK_PARTNER_SKILLS: Skill[] = [
     description: 'Repairs and simple alterations.',
     rating: 3,
     reviewRating: 0,
+    isPublic: true,
   },
 ]
 

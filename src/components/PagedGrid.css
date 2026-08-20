@@ -92,3 +92,49 @@
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* 'floating-dots' variant (TODO #16, Offers): pinned to the viewport's own bottom edge rather
+ * than flowing after the grid, so it stays in the same spot regardless of how tall the grid's own
+ * frame is. `z-index` sits below the nav bar's (10, NavBar.css) on purpose — the nav bar is
+ * collapsed into a small corner button most of the time (useAutoCollapse), so this is visible
+ * almost always, and it's fine for the nav bar to draw over it the few seconds it's expanded.
+ * The strip itself ignores pointer events so its transparent left/right margins never block taps
+ * on whatever is underneath; only the dots opt back in.
+ *
+ * Its vertical footprint (`bottom`/`height`) is deliberately the exact same box as the collapsed
+ * nav bar's own reopen button (`--nav-bar-reopen-size`/`-margin`, shared via index.css) — that's
+ * what centers the dots on the button's own middle rather than just guessing a `bottom` offset
+ * that happens to look right. */
+.paged-grid__dots {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--nav-bar-reopen-margin);
+  height: var(--nav-bar-reopen-size);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.paged-grid__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  opacity: 0.6;
+  pointer-events: auto;
+}
+
+.paged-grid__dot:hover {
+  opacity: 0.8;
+}
+
+.paged-grid__dot.is-active {
+  background: var(--brand-primary);
+  opacity: 1;
+}

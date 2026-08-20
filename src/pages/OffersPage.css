@@ -1,22 +1,32 @@
+/* Offers (§4, reworked by TODO #16): one mixed grid of your skill and item offers, filling
+ * whatever height PageShell's content area leaves under the header — the same "definite height,
+ * not min-height" chain Inventory's own grid area relies on so PagedGrid's container-query sizing
+ * has something real to measure (see InventoryPage.css's file banner for why that distinction
+ * matters). */
 .offers-page {
+  height: 100%;
   max-width: 640px;
   margin: 0 auto;
   width: 100%;
-}
-
-.offers-page__grid {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  overflow: hidden;
 }
 
-/* Squares the box without giving it a pixel height, so SquareTile's height:100% still resolves
- * and every box stays the same size as the page flips. */
-.offers-page__cell {
-  aspect-ratio: 1;
-  min-width: 0;
+/* Search sits above the grid and keeps its natural height — same "everything but the grid area
+ * stays put, the grid is the one thing that yields" split InventoryPage.css uses. */
+.offers-page > .search-bar,
+.offers-page > .page-note {
+  flex-shrink: 0;
+}
+
+.offers-page__grid-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .offers-page__tile {
@@ -31,8 +41,7 @@
   text-align: center;
 }
 
-/* Smaller than Home's picture-only tiles: these boxes carry a title and a price as well.
- * Sized against SquareTile's own container, which is a size container. */
+/* Sized against SquareTile's own container, which is a size container. */
 .offers-page__tile-icon {
   font-size: clamp(14px, 26cqw, 30px);
   line-height: 1;
@@ -56,40 +65,5 @@
 
 .offers-page__tile-hours {
   font-size: clamp(8px, 8cqw, 12px);
-  color: var(--text-muted);
-}
-
-.offers-page__pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.offers-page__flip {
-  width: 40px;
-  height: 32px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--brand-primary);
-  clip-path: var(--chamfer);
-}
-
-.offers-page__flip:hover:not(:disabled) {
-  background: var(--brand-tint);
-}
-
-.offers-page__flip:disabled {
-  color: var(--text-muted);
-  background: var(--surface-alt);
-  cursor: default;
-}
-
-.offers-page__page-indicator {
-  margin: 0;
-  min-width: 92px;
-  text-align: center;
-  font-size: 13px;
   color: var(--text-muted);
 }

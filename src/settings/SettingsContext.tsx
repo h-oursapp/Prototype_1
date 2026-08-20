@@ -16,9 +16,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setGridSize = (gridSize: GridSize) => setSettings((prev) => ({ ...prev, gridSize }))
   const setDefaultSearchFilters = (patch: Partial<SearchFilters>) =>
     setSettings((prev) => ({ ...prev, defaultSearchFilters: { ...prev.defaultSearchFilters, ...patch } }))
+  const setInventoryScrollable = (inventoryScrollable: boolean) =>
+    setSettings((prev) => ({ ...prev, inventoryScrollable }))
 
   return (
-    <SettingsContext.Provider value={{ ...settings, setColorTheme, setGridSize, setDefaultSearchFilters }}>
+    <SettingsContext.Provider
+      value={{ ...settings, setColorTheme, setGridSize, setDefaultSearchFilters, setInventoryScrollable }}
+    >
       {children}
     </SettingsContext.Provider>
   )

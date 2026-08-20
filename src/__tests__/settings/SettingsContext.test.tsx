@@ -17,16 +17,26 @@ beforeEach(() => {
 })
 
 function Probe() {
-  const { colorTheme, gridSize, defaultSearchFilters, setColorTheme, setGridSize, setDefaultSearchFilters } =
-    useSettings()
+  const {
+    colorTheme,
+    gridSize,
+    defaultSearchFilters,
+    inventoryScrollable,
+    setColorTheme,
+    setGridSize,
+    setDefaultSearchFilters,
+    setInventoryScrollable,
+  } = useSettings()
   return (
     <div>
       <span data-testid="theme">{colorTheme}</span>
       <span data-testid="grid">{gridSize}</span>
       <span data-testid="default-kind">{defaultSearchFilters.kindFilter}</span>
+      <span data-testid="inventory-scrollable">{String(inventoryScrollable)}</span>
       <button onClick={() => setColorTheme('dark')}>go dark</button>
       <button onClick={() => setGridSize(4)}>grid 4</button>
       <button onClick={() => setDefaultSearchFilters({ kindFilter: 'skill' })}>default to skills</button>
+      <button onClick={() => setInventoryScrollable(true)}>make inventory scrollable</button>
     </div>
   )
 }
@@ -41,6 +51,7 @@ describe('SettingsProvider', () => {
     expect(screen.getByTestId('theme')).toHaveTextContent('light')
     expect(screen.getByTestId('grid')).toHaveTextContent('3')
     expect(screen.getByTestId('default-kind')).toHaveTextContent('all')
+    expect(screen.getByTestId('inventory-scrollable')).toHaveTextContent('false')
   })
 
   it('updates settings, persists them, and reflects the theme on <html>', async () => {
@@ -62,6 +73,23 @@ describe('SettingsProvider', () => {
       colorTheme: 'dark',
       gridSize: 4,
       defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
+      inventoryScrollable: false,
+    })
+  })
+
+  it('updates and persists inventoryScrollable (TODO #9)', async () => {
+    const user = userEvent.setup()
+    render(
+      <SettingsProvider>
+        <Probe />
+      </SettingsProvider>,
+    )
+
+    await user.click(screen.getByText('make inventory scrollable'))
+
+    expect(screen.getByTestId('inventory-scrollable')).toHaveTextContent('true')
+    expect(JSON.parse(window.localStorage.getItem('h-ours:settings') ?? '{}')).toMatchObject({
+      inventoryScrollable: true,
     })
   })
 

@@ -93,9 +93,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin: 8px;
+  width: var(--nav-bar-reopen-size);
+  height: var(--nav-bar-reopen-size);
+  margin: var(--nav-bar-reopen-margin);
   font-size: 18px;
   color: var(--brand-primary);
   background: var(--surface);

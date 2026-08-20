@@ -38,8 +38,30 @@ describe('SettingsPage', () => {
       colorTheme: 'dark',
       gridSize: 2,
       defaultSearchFilters: DEFAULT_SEARCH_FILTERS,
+      inventoryScrollable: false,
     })
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+  })
+
+  describe('inventory scrollable (TODO #9)', () => {
+    it('defaults to No, paged', () => {
+      renderSettingsPage()
+
+      expect(screen.getByRole('button', { name: 'No' })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'Yes' })).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('updates and persists the choice', async () => {
+      const user = userEvent.setup()
+      renderSettingsPage()
+
+      await user.click(screen.getByRole('button', { name: 'Yes' }))
+
+      expect(screen.getByRole('button', { name: 'Yes' })).toHaveAttribute('aria-pressed', 'true')
+      expect(JSON.parse(window.localStorage.getItem('h-ours:settings') ?? '{}')).toMatchObject({
+        inventoryScrollable: true,
+      })
+    })
   })
 
   it('links through to the Legal page', async () => {

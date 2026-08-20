@@ -8,6 +8,7 @@ export interface SettingsContextValue extends AppSettings {
   /** Patches, not replaces — a caller changing just the kind filter shouldn't have to know or
    *  repeat the other two's current values. */
   setDefaultSearchFilters: (patch: Partial<SearchFilters>) => void
+  setInventoryScrollable: (inventoryScrollable: boolean) => void
 }
 
 export const SettingsContext = createContext<SettingsContextValue | null>(null)

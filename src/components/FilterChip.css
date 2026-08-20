@@ -1,13 +1,19 @@
 /* Moved here from SearchPage.css when Inventory (TODO #9) started wanting the same shell for its
- * own filter — see FilterChip.tsx's own comment. */
+ * own filter — see FilterChip.tsx's own comment.
+ *
+ * Direct feedback: every size in this file runs about 30% smaller than a typical control
+ * elsewhere in the app (compare `.filter-chip__trigger`'s 12px/8px-12px to a plain button's usual
+ * 16px/full padding) — filters are meant to read as compact and secondary, not a full-size
+ * picker. The panel's own contents (OptionGroup, StarRatingInput) get the same treatment further
+ * down, scoped to `.filter-chip__panel` so nothing outside a filter panel shrinks with them. */
 
 .filter-chip__trigger {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 6px 8px;
+  font-size: 9px;
   white-space: nowrap;
   color: var(--text);
   background: var(--surface);
@@ -32,7 +38,7 @@
   left: 0;
   right: 0;
   z-index: 2;
-  padding: 12px;
+  padding: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   clip-path: var(--chamfer);
@@ -43,11 +49,39 @@
   margin: 0;
 }
 
+/* OptionGroup and StarRatingInput both run at their own, full size everywhere else (Settings,
+ * onboarding, FinalReviewPage) — these two rules are the ~30% shrink scoped to just this panel. */
+.filter-chip__panel .option-group legend,
+.filter-chip__panel .star-rating-input legend {
+  font-size: 11px;
+}
+
+.filter-chip__panel .option-group__option {
+  padding: 7px 11px;
+  font-size: 11px;
+}
+
+.filter-chip__panel .star-rating-input__stars {
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.filter-chip__panel .star-rating-input__star {
+  width: 28px;
+  height: 28px;
+  font-size: 15px;
+}
+
+.filter-chip__panel .star-rating-input__value {
+  margin-top: 6px;
+  font-size: 9px;
+}
+
 .filter-chip__control {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: 9px;
   color: var(--text-muted);
 }
 
@@ -58,9 +92,9 @@
 
 .filter-chip__done {
   display: block;
-  margin: 10px 0 0 auto;
-  padding: 6px 12px;
-  font-size: 12px;
+  margin: 8px 0 0 auto;
+  padding: 4px 8px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--brand-primary);
   background: var(--surface-alt);

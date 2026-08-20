@@ -1,6 +1,6 @@
-/* Inventory (§6, reworked by TODO #9): a non-scrollable, paged grid of items, plus the transfer
- * box added at the bottom in a trading context. Colours come only from the theme tokens in
- * index.css, and corners are cut with clip-path — never border-radius.
+/* Inventory (§6, reworked by TODO #9): a paged grid of items by default, plus the transfer box
+ * added at the bottom in a trading context. Colours come only from the theme tokens in index.css,
+ * and corners are cut with clip-path — never border-radius.
  *
  * `.inventory-page` is given a *definite* height (100% of PageShell's content area, not
  * min-height — see index.css's #root comment on why the distinction matters) so PagedGrid's own
@@ -8,7 +8,11 @@
  * GridSection already rely on. Everything except `.inventory-page__grid-area` keeps its natural
  * height by default (flex's automatic minimum size protects it); the grid area opts out with
  * `min-height`/`overflow: hidden`, so it's the one thing that yields if a trade's transfer box
- * needs the room — the grid shrinks before the page ever scrolls. */
+ * needs the room — the grid shrinks before the page ever scrolls.
+ *
+ * `.inventory-page--scrollable` (the Skills view, or items once the "inventory scrollable"
+ * setting is on) trades that whole arrangement for the opposite: no definite height, so the page
+ * just grows and PageShell's own scrolling content area takes over — see its own rule below. */
 
 .inventory-page {
   height: 100%;
@@ -20,11 +24,69 @@
   overflow: hidden;
 }
 
-.inventory-page__summary {
+/* The Skills view, and the items view once "inventory scrollable" is on (TODO #9, InventoryPage.tsx's
+ * file banner comment) — undoes the two properties above instead of the whole rule, so the page
+ * grows to its natural content height and PageShell's own `.page-shell__content` (already
+ * `overflow-y: auto`) scrolls it, the same way it already does for standalone SkillsPage. */
+.inventory-page--scrollable {
+  height: auto;
+  overflow: visible;
+}
+
+/* ---------- View switch (direct feedback, twice over: replaces the old "X of Y items are
+   visible to a trading partner" summary line, the two-button OptionGroup that first replaced it,
+   and the single header button that replaced *that* — see InventoryPage.tsx's ViewSwitch and its
+   own doc comment) ---------- */
+
+/* One button, sized to its own content (not stretched to the flex column's full width) — the
+ * chamfer and border are the same materials FilterChip's trigger and OptionGroup's options use,
+ * just arranged as a sliding two-segment control instead of a row of separate buttons. */
+.inventory-page__view-switch {
+  position: relative;
+  align-self: flex-start;
   flex-shrink: 0;
-  margin: 0 0 8px;
-  font-size: 13px;
+  display: flex;
+  margin: 0 0 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+/* Slides between the two halves rather than jumping — `left: 0` plus `translateX(100%)` on
+ * `.is-skills` covers exactly the second option's box, whatever its content-driven width turns
+ * out to be, with no need to keep two widths in sync by hand. */
+.inventory-page__view-switch-thumb {
+  position: absolute;
+  inset: 0 50% 0 0;
+  background: var(--brand-tint);
+  transition: transform 150ms ease;
+}
+
+.inventory-page__view-switch.is-skills .inventory-page__view-switch-thumb {
+  transform: translateX(100%);
+}
+
+.inventory-page__view-switch-option {
+  position: relative;
+  z-index: 1;
+  /* Fixed, equal to both spans (not min-width, not flex:1 — the container isn't stretched to any
+   * wider box, so flex-grow would never actually fire) — that's what keeps the thumb's 50% split
+   * lined up exactly with each half regardless of "Items" vs "Skills" having different natural
+   * text widths. box-sizing: border-box (index.css's `*` reset) means this already includes the
+   * padding below. */
+  width: 64px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.inventory-page__view-switch:not(.is-skills) .inventory-page__view-switch-option:first-child,
+.inventory-page__view-switch.is-skills .inventory-page__view-switch-option:last-child {
+  color: var(--brand-primary-deep);
 }
 
 /* ---------- Search + filter (TODO #9) ---------- */
@@ -65,7 +127,9 @@
 
 /* Three icon buttons side by side in PageShell's headerAction slot: "New shelf" (fully inert, see
  * InventoryPage.tsx), "About this page" (opens .inventory-page__info-panel below), and "New item"
- * — TODO #9's "next to the shelf button". */
+ * — TODO #9's "next to the shelf button". The Items/Skills view switch briefly lived here too
+ * (direct feedback) — it's `ViewSwitch` now, back down over the search bar where the page's own
+ * content, not its title row, is what changes. */
 .inventory-page__header-actions {
   flex-shrink: 0;
   display: flex;
@@ -106,6 +170,20 @@
   overflow: hidden;
 }
 
+/* PagedGrid's own frame vertically *centers* its grid within whatever height useFittingRows
+ * leaves it (PagedGrid.tsx's own comment: "whichever dimension the frame is generous in is left
+ * over as even margin") — useFittingRows floors its row count, so there's often some leftover
+ * height, and centering it read as a bigger gap between the filter row and the grid here than the
+ * Skills view had back when it was a plain flowing grid with no such box around it (direct
+ * feedback: "make them both same size as for the skills"). Now that both views page through this
+ * same grid-area, both get pinned to the top instead — any leftover height falls below the grid
+ * rather than being split above and below it. Scoped to this page's own grid-area rather than
+ * PagedGrid.css itself: Home, Offers and the partner's inventory page all still want that
+ * centering. */
+.inventory-page__grid-area .paged-grid__frame {
+  align-items: flex-start;
+}
+
 /* TODO #9: only the item's name overlaid on the picture — no badge, no shelf picker, nothing
  * below the tile. Editing what those used to show moved to the Item page (TODO #10). */
 .inventory-page__tile-name {
@@ -122,4 +200,28 @@
   margin-top: 2px;
   font-size: 10px;
   color: var(--brand-primary-deep);
+}
+
+/* ---------- The flowing grid (TODO #9: scrollable items, and the Skills view) ---------- */
+
+/* Same shape as SkillsPage's own grid — see FlowGrid's doc comment in InventoryPage.tsx for why
+ * it's a second, small copy rather than a shared component. */
+.inventory-page__flow-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.inventory-page__flow-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Square frame for the reused SquareTile, which fills whatever box it is given. */
+.inventory-page__flow-tile {
+  width: 100%;
+  aspect-ratio: 1;
 }
