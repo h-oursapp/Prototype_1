@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
+import { RatingBadge } from '../components/RatingBadge'
 import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
+import { MAX_STARS } from '../components/StarRating'
 import type { Offer } from '../data/mockOffers'
 import { MOCK_YOUR_OFFERS } from '../data/mockOffers'
 import { useFittingRows } from '../hooks/useFittingRows'
@@ -52,7 +54,11 @@ function matchesQuery(offer: Offer, query: string): boolean {
  *
  *  A plain text search sits above the grid, narrowing which offers fill it — the add-more prompt
  *  stays put through a search rather than being just another thing that can match or not, since
- *  it isn't one of your offers to begin with. */
+ *  it isn't one of your offers to begin with.
+ *
+ *  Small follow-up fix: each offer tile now shows its rating as a "N★" `RatingBadge` pinned to the
+ *  corner, same as Home's Ads grid (GridSection.tsx) — this page just hadn't gained one yet. The
+ *  add-more prompt is exempt, same reason it's exempt from search: it isn't a real offer. */
 export function OffersPage() {
   const navigate = useNavigate()
   const { gridSize } = useSettings()
@@ -97,7 +103,7 @@ export function OffersPage() {
                 </SquareTile>
               ) : (
                 <SquareTile
-                  label={`${slot.offer.title}, ${slot.offer.hours} hours`}
+                  label={`${slot.offer.title}, ${slot.offer.hours} hours, rated ${slot.offer.rating} out of ${MAX_STARS}`}
                   onClick={() => openAdDetail(slot.offer)}
                 >
                   <span className="offers-page__tile">
@@ -107,6 +113,7 @@ export function OffersPage() {
                     <span className="offers-page__tile-title">{slot.offer.title}</span>
                     <span className="offers-page__tile-hours">{slot.offer.hours} h</span>
                   </span>
+                  <RatingBadge value={slot.offer.rating} />
                 </SquareTile>
               )
             }

@@ -70,6 +70,15 @@ describe('OffersPage', () => {
     expect(screen.getByText('Current path: /ads/mine-1')).toBeInTheDocument()
   })
 
+  it('shows each offer\'s rating, same as Home\'s Ads grid', () => {
+    renderOffersPage()
+
+    // Web design (mine-1) is rated 5 out of 5 in the mock data.
+    expect(screen.getByRole('button', { name: 'Web design, 4 hours, rated 5 out of 5' })).toBeInTheDocument()
+    // The add-more prompt isn't a real offer, so it gets no rating.
+    expect(screen.getByRole('button', { name: 'Add a new offer' })).toBeInTheDocument()
+  })
+
   it('caps the first page at columns x rows tiles before any real layout exists, add prompt included', () => {
     renderOffersPage()
 

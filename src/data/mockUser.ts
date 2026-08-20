@@ -30,10 +30,11 @@ export interface Skill {
   isCustom?: boolean
   /** TODO #7's "add private/public property", added narrowly for Inventory's visibility filter
    *  (TODO #9 direct feedback) to also cover the Skills view there — mirrors InventoryItem's own
-   *  `isPublic` (mockInventory.ts). There's no editing control for it yet (SkillPage, the
-   *  onboarding "Add your skills" step): every skill created through `skillDraft.ts`'s `toSkill`
-   *  defaults to public, the same way ItemPage's own draft defaults `isPublic: true`. Giving this
-   *  a real toggle is the rest of TODO #7 ("items and skills have to be similar"), not this one. */
+   *  `isPublic` (mockInventory.ts). SkillPage's form now has a real Visibility toggle for it,
+   *  the same OptionGroup ItemForm's own Visibility control uses (TODO #7's "items and skills
+   *  have to be similar") — every skill still defaults to public until that toggle is touched,
+   *  same as ItemPage's own draft defaulting `isPublic: true`. The onboarding "Add your skills"
+   *  step gets the toggle for free too, since it reuses `SkillForm` directly. */
   isPublic: boolean
 }
 
