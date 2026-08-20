@@ -71,11 +71,54 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        53 files, 446 tests, all passing
+npm run test        53 files, 454 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-20, branch `todo-5-7-profile-skills-rework`** reworked **TODO #5–#7** (Profile, Skills,
+Skill) again, plus a small unrelated Offers fix Márk asked for in the same session. Branched off
+`todo-16-offers` rather than `main`, since PR #20 (`todo-16-offers`) was still open and this work
+depends on things it added — `Skill.isPublic` reaching `SkillDraft`, `RatingBadge`, and
+`InventorySkillTile` — so a PR from this branch carries #20's diff until #20 merges first.
+
+This is **not** the same ground the 2026-08-14 `todo-5-6-7-profile-skills-skill` branch covered
+(see this file's very first paragraph) — Márk's `TODO.md` grew new asks for §7 (Profile), §6
+(Skills), and §7 (Skill) since then, and this session builds *those*, superseding what the
+2026-08-14 branch shipped for the same three numbers.
+
+- **Profile (TODO #5)**: "your best skills" is now a one-row grid of square tiles — columns from
+  the Settings grid-size setting, so the row count and the column count are the same number — each
+  showing only a "N★" review-rating `RatingBadge` pinned to the corner (Search's own convention),
+  not the old icon-plus-two-star-rows list. `bestSkills()` now slices to `gridSize` rather than a
+  fixed 3. "All skills can be a button, loads all skills (with filter public/private)" was read as
+  an **inline expand, not a link to a second page**: tapping "All skills" swaps the same grid from
+  your best row to every skill, and only then does a Public/Private/All `FilterChip` appear above
+  it (mirroring Inventory's own filter) — this is the one genuinely ambiguous line in that TODO
+  entry, flagged to Márk before committing, no correction back. Collapsing back to the best-row
+  view resets the filter rather than remembering it. The "Reviews from recent trades" section and
+  its "Reviewed trades" button are gone entirely (TODO #5's "remove reviews") — `reviewedTrades()`'s
+  no-skill-id form (routes.ts) has no in-app caller left, but stays, since it's still a real, tested
+  `/trades` view and the Skill page's own `reviewedTrades(skill.id)` call is unrelated.
+- **Skills (TODO #6)**: tiles show the same single review-rating `RatingBadge` now, replacing the
+  two stacked `StarRating` rows (self-rating and review rating) they used to show — the self-rating
+  isn't gone, just moved off this tile; it's still the first thing the Skill page shows. Gained a
+  `SearchBar` above the grid, filtering by name; the "+ Add a skill" tile is exempt, same as Offers'
+  own add-prompt tile.
+- **Skill (TODO #7)**: two of its three lines ("add private/public property", "now skills can be in
+  the inventory") were already done from an earlier session's Inventory rework. The gap this session
+  closed was the third, "items and skills have to be similar": `SkillForm` gained the exact same
+  Visibility `OptionGroup` `ItemForm` has (same options, same spot — right after the identity
+  fields, before the description), and `SkillDetails`' view mode gained a matching "Visibility" fact
+  row, mirroring `ItemDetails`'. This is also the first place `Skill.isPublic` is actually editable
+  — it used to only ever carry a default value through. Falls through to onboarding's "Add your
+  skills" step for free, since it reuses `SkillForm` directly; every skill still defaults to public
+  until the toggle is touched, so onboarding's own behaviour is unchanged unless someone touches it.
+- **Offers, small fix (unrelated to TODO #5–#7, same session)**: each offer tile gained a "N★"
+  `RatingBadge`, matching Home's Ads grid — `Offer.rating` already existed and was already shown at
+  the ad's own detail page, it just never reached this tile. The add-more prompt is exempt, same
+  reason it's exempt from the search bar: it isn't a real offer.
 
 **2026-08-20, branch `todo-16-offers`** built **TODO #16** (Offers) and then reworked **TODO #9**
 (Inventory) a second time, both on the one branch and both driven by many rounds of direct feedback
@@ -675,7 +718,7 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/login` | LoginPage | §2 | Email/password fields, no functionality behind them yet (TODO #1). The h_OURs wordmark image is the page's `<h1>` (TODO #14). Method is `[OFFEN]` |
 | `/onboarding` | OnboardingPage | §2 | Six steps, most skippable. Skills (#2.1), friends (#2.2), verify (#2.3), and profile picture (#2.5) are all real; only #2.4's video is still a static illustration |
 | `/` | MainPage | §3 | One fixed Ads grid, no scroll (Your offers' own grid is gone, TODO #3). Topbar: bigger left-aligned logo, a quick search bar (→ Search's text view), a location-pin button (→ map view, same query) — Offers moved to the nav bar. Not in PageShell |
-| `/offers` | OffersPage | §4 | **Your** offers, TODO #16: one flat paged grid mixing skill and item offers (no more separate sections), the add-offer prompt pinned to the grid's first slot, a search bar, and a floating dot-per-page pager pinned above the nav bar's own reopen button |
+| `/offers` | OffersPage | §4 | **Your** offers, TODO #16: one flat paged grid mixing skill and item offers (no more separate sections), the add-offer prompt pinned to the grid's first slot, a search bar, and a floating dot-per-page pager pinned above the nav bar's own reopen button. Each offer tile now also carries a "N★" `RatingBadge`, same as Home's Ads grid (small follow-up fix, this session) |
 | `/search` | SearchPage | §4 | One-row filter bar opening floating panels (TODO #13), now seeded from Settings' configurable default filter (TODO #3) rather than always "show everything"; `?q=`/`?view=` seed the query and force a view for Home's two entry points; map view shows the placeholder map above the same results grid the text view uses |
 | `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
 | `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
@@ -685,9 +728,9 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/inventory/new` | ItemPage `mode="create"` | — | Same component as above |
 | `/inventory/partner?trade=<id>` | PartnerInventoryPage | §6 | A trading partner's public items, read-only — now shows the same "N★" `RatingBadge` your own Inventory's item tiles do — see §8 |
 | `/wallet` | WalletPage | §7 | Charity/Foundation are `[OFFEN]` |
-| `/profile` | ProfilePage | §7 | Best skills show both ratings and open the Skill page; a button opens Trades pre-filtered to already-reviewed |
-| `/skills` | SkillsPage | §7 | Grid columns follow the Settings grid-size setting, rows uncapped; tiles open the Skill page; last tile is "+ Add skill"; transfer box at `?trade=<id>` or (TODO #8) `?forAd=new` |
-| `/skills/:skillId` | SkillPage | §7 | View/edit/create in one component (AdDetailPage's pattern). Holds the proof-gated add-a-skill flow moved off SkillsPage |
+| `/profile` | ProfilePage | §7 | TODO #5 rework: your best skills (one row, columns from the grid-size setting) show only a "N★" review-rating badge and open the Skill page; "All skills" expands the same grid to everything you have, with a Public/Private/All filter; the reviews section is gone entirely |
+| `/skills` | SkillsPage | §7 | TODO #6 rework: a search bar narrows the grid; tiles show only a "N★" review-rating badge (not two star rows) and open the Skill page; grid columns follow the Settings grid-size setting, rows uncapped; last tile is "+ Add skill"; transfer box at `?trade=<id>` or (TODO #8) `?forAd=new` |
+| `/skills/:skillId` | SkillPage | §7 | View/edit/create in one component (AdDetailPage's pattern). Holds the proof-gated add-a-skill flow moved off SkillsPage. TODO #7's last line ("items and skills have to be similar"): the form now has a Visibility toggle and the view shows a Visibility fact, both matching ItemPage's own |
 | `/skills/new` | SkillPage `mode="create"` | §7 | Same component as above |
 | `/trades` | TradesPage | §8 | Status: open / agreed / closed. `?status=closed` (optionally `&skill=<id>`) filters to already-reviewed trades |
 | `/trades/:tradeId/review` | FinalReviewPage | §8 | Star **input**, not display |

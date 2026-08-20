@@ -34,6 +34,17 @@ interface IconPickerProps {
   onSelect: (icon: string) => void
 }
 
+/** The two values SkillForm's Visibility control can set — same shape as ItemPage's own
+ *  `Visibility`/`VISIBILITY_OPTIONS` (TODO #7: "items and skills have to be similar"), kept as its
+ *  own copy rather than a shared import: the two forms are otherwise unrelated, and a single small
+ *  duplicated pair of consts costs less than a cross-page dependency for it. */
+type Visibility = 'public' | 'private'
+
+const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
+  { value: 'public', label: 'Public' },
+  { value: 'private', label: 'Private' },
+]
+
 /** Not OptionGroup: each button shows a glyph and needs an accessible name of its own, and
  *  OptionGroup renders its label as the visible text — which would leave a screen reader with a
  *  bare emoji. */
@@ -164,6 +175,19 @@ export function SkillForm({ draft, onChange, problem, submitLabel, onCancel }: S
           </>
         )}
 
+        {/* TODO #7's "items and skills have to be similar": the same Visibility OptionGroup
+            ItemForm uses, in the same spot (right after the identity fields, before the
+            description). */}
+        <OptionGroup
+          legend="Visibility"
+          options={VISIBILITY_OPTIONS}
+          selected={draft.isPublic ? 'public' : 'private'}
+          onSelect={(value: Visibility) => onChange({ isPublic: value === 'public' })}
+        />
+        <p className="page-note">
+          Only public skills show up when Inventory's Skills view is filtered to Public.
+        </p>
+
         <div className="skill-page__field">
           <label className="skill-page__label" htmlFor="skill-description">
             Description
@@ -271,6 +295,12 @@ function SkillDetails({ draft, reviewRating, originalName, onEdit, onOpenReviewe
             <span>Review rating</span>
             <StarRating value={reviewRating} subject={`${draft.name}'s review rating`} />
           </p>
+          {/* TODO #7's "items and skills have to be similar": the same Visibility fact
+              ItemDetails shows for an item. */}
+          <p className="skill-page__rating-row">
+            <span>Visibility</span>
+            <span>{draft.isPublic ? 'Public' : 'Private'}</span>
+          </p>
         </div>
       </section>
 
@@ -351,7 +381,12 @@ function SkillNotFound({ skillId }: { skillId: string | undefined }) {
  *    that behaves more "really" than every other detail page.
  *  - This replaces SkillsPage's old inline "search catalogue / create custom skill" form. The
  *    validation it did (duplicate names, the 4★-needs-proof gate) moved here rather than being
- *    dropped — TODO #6 wants the button-to-a-page flow, not a weaker one. */
+ *    dropped — TODO #6 wants the button-to-a-page flow, not a weaker one.
+ *  - TODO #7's last open line, "items and skills have to be similar", is this session's addition:
+ *    a Visibility `OptionGroup` in the form (identical to ItemForm's) and a matching "Visibility"
+ *    fact in the view mode (identical to ItemDetails'). Both read/write `Skill.isPublic`, which
+ *    already existed for Inventory's own visibility filter — this is the first place that field is
+ *    actually editable. */
 export function SkillPage({ mode }: { mode?: 'create' }) {
   const { skillId } = useParams()
   const navigate = useNavigate()

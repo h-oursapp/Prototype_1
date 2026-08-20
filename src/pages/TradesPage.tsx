@@ -23,10 +23,12 @@ function isStatusFilterValue(value: string | null): value is StatusFilterValue {
   return value === 'all' || (TRADE_STATUS_ORDER as string[]).includes(value ?? '')
 }
 
-/** 'closed' is what a trade becomes once Final Review closes it — Profile's and the Skill page's
- *  "reviewed trades" buttons (TODO #5/#7) both reuse that instead of inventing a separate
- *  "reviewed" flag. Kept as its own check, distinct from the general status filter below: this
- *  one specific value is also what triggers the "Showing: reviewed trades" banner. */
+/** 'closed' is what a trade becomes once Final Review closes it — the Skill page's own "all
+ *  reviewed trades for this skill" button (TODO #7) reuses that instead of inventing a separate
+ *  "reviewed" flag. (Profile used to have a matching "Reviewed trades" button too; TODO #5's
+ *  rework removed it, along with the rest of Profile's reviews section.) Kept as its own check,
+ *  distinct from the general status filter below: this one specific value is also what triggers
+ *  the "Showing: reviewed trades" banner. */
 function isReviewedStatus(value: string | null): value is 'closed' {
   return value === 'closed'
 }
@@ -160,9 +162,9 @@ interface FilterBannerProps {
   skillName: string | null
 }
 
-/** Shown only when the page was reached via a filtered link (Profile's "Reviewed trades", or the
- *  Skill page's "All reviewed trades"), so the mode is obvious the same way InventoryPage's own
- *  TradeContextBanner makes its trading mode obvious. */
+/** Shown only when the page was reached via a filtered link (the Skill page's own "All reviewed
+ *  trades for this skill" button, or a direct `?status=closed` URL), so the mode is obvious the
+ *  same way InventoryPage's own TradeContextBanner makes its trading mode obvious. */
 function FilterBanner({ skillName }: FilterBannerProps) {
   return (
     <section className="page-card trades-page__filter-banner">

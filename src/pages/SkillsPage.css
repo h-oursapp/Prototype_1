@@ -1,4 +1,10 @@
 .skills-page {
+  display: flex;
+  flex-direction: column;
+  /* TODO #6's new search bar needs breathing room above and below it — the same flex-column-plus-
+     gap convention SearchPage/Inventory already use for their own search bars, rather than a
+     one-off margin just on `.search-bar`. */
+  gap: 12px;
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
@@ -29,8 +35,9 @@
   aspect-ratio: 1;
 }
 
-/* TODO #6: the name and both ratings sit inside the square, over the icon, rather than below it —
-   SquareTile's `overlay` prop pins this to the tile's bottom edge. */
+/* TODO #6: the name sits inside the square, over the icon, rather than below it — SquareTile's
+   `overlay` prop pins this to the tile's bottom edge. The review rating is a `RatingBadge` pinned
+   to the tile's corner instead (RatingBadge.css), not part of this overlay. */
 .skills-page__tile-name {
   display: block;
   font-size: 12px;
@@ -38,18 +45,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.skills-page__tile-ratings {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-}
-
-/* Two star rows have to fit a small square, so they run smaller than StarRating's default size. */
-.skills-page__tile-ratings .star-rating {
-  font-size: 10px;
 }
 
 .skills-page__add-to-offer {
