@@ -5,6 +5,7 @@ import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
 import { SquareTile } from '../components/SquareTile'
 import { TimeScrollPicker } from '../components/TimeScrollPicker'
+import { WorthBadge } from '../components/WorthBadge'
 import type { InventoryItem } from '../data/mockInventory'
 import { MOCK_PARTNER_INVENTORY, MOCK_YOUR_INVENTORY, publicItems } from '../data/mockInventory'
 import type { ChatMessage, Trade } from '../data/mockTrades'
@@ -95,6 +96,13 @@ import './TradingPage.css'
  *  pre-filled" behaviour untouched — see tradeDraftContextInstance.ts's file comment. Declining
  *  now resets Time to that same suggestion state too (TradeDraftContext.tsx's `resetOffer`), not
  *  back to an active default — a declined offer should look exactly like a fresh one.
+ *
+ *  "Items worth" (a later, un-numbered session): every item tile on this page now also carries a
+ *  `WorthBadge` — real offered items (`SplitItemTile`), the partner's read-only ones, and even
+ *  suggestion filler, per Márk's own "everywhere it's in a grid." No `RatingBadge` sits alongside
+ *  it here the way it does on Inventory's own tiles — this page never showed a rating at all
+ *  before worth existed either, so worth follows suit rather than introducing a new badge this
+ *  page didn't have a reason to add.
  *
  *  The page reads its own :tradeId, so it takes no props. An id that isn't in the mock data
  *  renders a "trade not found" card rather than crashing. */
@@ -362,13 +370,14 @@ function SplitItemTile({
   if (!isSplit) {
     return (
       <SquareTile
-        label={`${item.name} — tap for options`}
+        label={`${item.name} — tap for options, worth ${item.worth}h`}
         onClick={onOpenSplit}
         overlay={<span className="trading-page__tile-name">{item.name}</span>}
       >
         <span className="square-tile__icon" aria-hidden="true">
           {item.icon}
         </span>
+        <WorthBadge hours={item.worth} />
       </SquareTile>
     )
   }
@@ -409,17 +418,23 @@ function InventoryOpenerTile({ label, onOpen }: { label: string; onOpen: () => v
  *  use, so both grids always read as full even though nothing on this page actually suggests
  *  anything yet. Deliberately non-interactive (no `onClick`, so SquareTile falls back to its
  *  read-only `role="img"` shape) — Márk's own words, "these will be *later* suggestions", i.e. not
- *  yet. Which item/skill lands in which slot comes from `suggestionEntries` above. */
-function SuggestionTile({ name, icon }: { name: string; icon: string }) {
+ *  yet. Which item/skill lands in which slot comes from `suggestionEntries` above.
+ *
+ *  `worth` is optional since only an `InventoryItem` suggestion has one — a suggested `Skill` has
+ *  no `worth` field to show ("the worth should be shown everywhere ... in a grid", this session,
+ *  read as "everywhere an item's own data shows", not as inventing one for skills). */
+function SuggestionTile({ name, icon, worth }: { name: string; icon: string; worth?: number }) {
+  const worthSuffix = worth === undefined ? '' : `, worth ${worth}h`
   return (
     <div className="trading-page__suggestion-tile">
       <SquareTile
-        label={`${SUGGESTION_LABEL_PREFIX} ${name} — matching coming soon`}
+        label={`${SUGGESTION_LABEL_PREFIX} ${name} — matching coming soon${worthSuffix}`}
         overlay={<span className="trading-page__tile-name">{name}</span>}
       >
         <span className="square-tile__icon" aria-hidden="true">
           {icon}
         </span>
+        {worth !== undefined && <WorthBadge hours={worth} />}
       </SquareTile>
     </div>
   )
@@ -710,10 +725,14 @@ function TableTileView({
     // as the plain read-out that was always ItemTile's whole job before TODO #11's split.
     if (!onOpenSplitItem || !onInspectItem || !onRemoveItem) {
       return (
-        <SquareTile label={entry.item.name} overlay={<span className="trading-page__tile-name">{entry.item.name}</span>}>
+        <SquareTile
+          label={`${entry.item.name}, worth ${entry.item.worth}h`}
+          overlay={<span className="trading-page__tile-name">{entry.item.name}</span>}
+        >
           <span className="square-tile__icon" aria-hidden="true">
             {entry.item.icon}
           </span>
+          <WorthBadge hours={entry.item.worth} />
         </SquareTile>
       )
     }
@@ -731,7 +750,7 @@ function TableTileView({
     return <InventoryOpenerTile label={entry.label} onOpen={entry.onOpen} />
   }
   if (entry.kind === 'suggested-item') {
-    return <SuggestionTile name={entry.item.name} icon={entry.item.icon} />
+    return <SuggestionTile name={entry.item.name} icon={entry.item.icon} worth={entry.item.worth} />
   }
   return <SuggestionTile name={entry.skill.name} icon={entry.skill.icon} />
 }

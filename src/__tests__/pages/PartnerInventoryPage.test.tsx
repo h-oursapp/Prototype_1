@@ -38,9 +38,17 @@ describe('PartnerInventoryPage', () => {
   it('shows a single "N★" rating badge on each tile, same as your own Inventory (direct feedback)', () => {
     renderPartnerInventoryPage()
 
-    // Amplifier (p-item-1, mockInventory.ts) is rated 4.
-    const tile = screen.getByRole('img', { name: 'Amplifier, rated 4 out of 5' })
+    // Amplifier (p-item-1, mockInventory.ts) is rated 4, worth 5 hours.
+    const tile = screen.getByRole('img', { name: 'Amplifier, rated 4 out of 5, worth 5h' })
     expect(within(tile).getByText('4★')).toBeInTheDocument()
+  })
+
+  it('shows a "Nh" worth badge on each tile ("Items worth")', () => {
+    renderPartnerInventoryPage()
+
+    // Amplifier (p-item-1, mockInventory.ts) is worth 5 hours.
+    const tile = screen.getByRole('img', { name: 'Amplifier, rated 4 out of 5, worth 5h' })
+    expect(within(tile).getByText('5h')).toBeInTheDocument()
   })
 
   it('links back to the trade it was opened from', () => {

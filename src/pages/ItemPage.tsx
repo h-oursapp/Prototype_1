@@ -17,6 +17,11 @@ interface ItemDraft {
   /** Appkarte §6: only public items are visible to a trading partner — the "plus public/private
    *  switch" TODO #10 asks for. */
   isPublic: boolean
+  /** The item's worth in hours ("Items worth", this session — see mockInventory.ts's own doc
+   *  comment on `InventoryItem.worth` for how these numbers are derived). A plain number field, not
+   *  a picker: Márk's own call — worth doesn't need a scroll-and-snap control the way Trading's Time
+   *  tile does, just something to type a number into. */
+  worth: number
 }
 
 /** §10: items pick their icon from a small predefined set rather than uploading a photo — the
@@ -33,7 +38,7 @@ const ITEM_ICONS = [
   { icon: '📚', name: 'Books' },
 ]
 
-const EMPTY_DRAFT: ItemDraft = { name: '', icon: ITEM_ICONS[0].icon, description: '', isPublic: true }
+const EMPTY_DRAFT: ItemDraft = { name: '', icon: ITEM_ICONS[0].icon, description: '', isPublic: true, worth: 0 }
 
 type Visibility = 'public' | 'private'
 
@@ -43,7 +48,13 @@ const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
 ]
 
 function toDraft(item: InventoryItem): ItemDraft {
-  return { name: item.name, icon: item.icon, description: item.description ?? '', isPublic: item.isPublic }
+  return {
+    name: item.name,
+    icon: item.icon,
+    description: item.description ?? '',
+    isPublic: item.isPublic,
+    worth: item.worth,
+  }
 }
 
 interface ItemGalleryProps {
@@ -104,6 +115,10 @@ function ItemDetails({ draft }: { draft: ItemDraft }) {
             <dt className="item-page__fact-label">Visibility</dt>
             <dd className="item-page__fact-value">{draft.isPublic ? 'Public' : 'Private'}</dd>
           </div>
+          <div className="item-page__fact">
+            <dt className="item-page__fact-label">Worth</dt>
+            <dd className="item-page__fact-value">{draft.worth}h</dd>
+          </div>
         </dl>
 
         <p className="item-page__description">
@@ -142,6 +157,19 @@ function ItemForm({ draft, onChange }: ItemFormProps) {
           onSelect={(value: Visibility) => onChange({ isPublic: value === 'public' })}
         />
         <p className="page-note">§6: only public items are visible to a trading partner.</p>
+
+        <label className="item-page__field">
+          <span className="item-page__label">Worth</span>
+          <input
+            type="number"
+            className="item-page__input"
+            min={0}
+            step={0.25}
+            value={draft.worth}
+            onChange={(event) => onChange({ worth: Number(event.target.value) })}
+          />
+        </label>
+        <p className="page-note">Stored in hours only — h_OURs' own currency (§1).</p>
 
         <label className="item-page__field">
           <span className="item-page__label">Description</span>
@@ -239,7 +267,12 @@ function ItemNotFound({ itemId }: { itemId: string | undefined }) {
  *    the prototype rather than making Inventory the one screen with a real backing store.
  *  - The public/private switch drives the same `InventoryItem.isPublic` field InventoryPage's own
  *    summary line and TransferBox already read — this page is just the other place that value is
- *    editable now (it used to be a toggle button on each row in the old Inventory grid). */
+ *    editable now (it used to be a toggle button on each row in the old Inventory grid).
+ *  - Worth ("Items worth", this session) is a plain `<input type="number">`, not a picker — Márk's
+ *    own call, since there's nothing to scroll-and-snap the way Trading's Time tile has hours and
+ *    minutes to juggle. Shown read-only as a "Nh" fact next to Visibility outside edit mode, same
+ *    as the grid tiles' own `WorthBadge` — see `InventoryItem.worth`'s own doc comment
+ *    (mockInventory.ts) for how the mock numbers were derived. */
 export function ItemPage({ mode }: { mode?: 'create' }) {
   const { itemId } = useParams()
   const [searchParams] = useSearchParams()

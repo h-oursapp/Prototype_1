@@ -4,6 +4,7 @@ import { PagedGrid } from '../components/PagedGrid'
 import { RatingBadge } from '../components/RatingBadge'
 import { SquareTile } from '../components/SquareTile'
 import { MAX_STARS } from '../components/StarRating'
+import { WorthBadge } from '../components/WorthBadge'
 import { MOCK_PARTNER_INVENTORY, publicItems } from '../data/mockInventory'
 import { findTrade } from '../data/mockTrades'
 import { ROUTES, trading } from '../routes'
@@ -23,7 +24,8 @@ import './PartnerInventoryPage.css'
  *    What the partner puts on the table isn't modelled in this prototype (TradingTableZone's own
  *    comment already says so) — browsing her items is for looking, not offering.
  *  - Tiles show the same "N★" `RatingBadge` your own Inventory's item tiles do (direct feedback:
- *    this page was the one place items still had a `rating` but nothing on screen showed it). */
+ *    this page was the one place items still had a `rating` but nothing on screen showed it), plus
+ *    the matching "Nh" `WorthBadge` ("Items worth", this session) on the opposite corner. */
 export function PartnerInventoryPage() {
   const [searchParams] = useSearchParams()
   const trade = findTrade(searchParams.get('trade') ?? undefined)
@@ -67,13 +69,14 @@ export function PartnerInventoryPage() {
             gridLabel={`${trade.partner}'s inventory`}
             renderTile={(item) => (
               <SquareTile
-                label={`${item.name}, rated ${item.rating} out of ${MAX_STARS}`}
+                label={`${item.name}, rated ${item.rating} out of ${MAX_STARS}, worth ${item.worth}h`}
                 overlay={<span className="partner-inventory-page__tile-name">{item.name}</span>}
               >
                 <span className="square-tile__icon" aria-hidden="true">
                   {item.icon}
                 </span>
                 <RatingBadge value={item.rating} />
+                <WorthBadge hours={item.worth} />
               </SquareTile>
             )}
           />

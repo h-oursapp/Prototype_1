@@ -71,11 +71,86 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        56 files, 524 tests, all passing
+npm run test        58 files, 540 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-21, branch `todo-items-worth`** built **"Items worth"** — Márk's own direct ask this
+session, not a `TODO.md` point, made right after `todo-9-11-inventory-trading` (below) finished its
+own work. Branched off that branch rather than `main`: this reaches into `TradeItemTile`/
+`TradeSkillTile` (TODO #9.1's own split-tile code), which only exists there so far — `main` still
+hasn't merged it (flagged in that branch's own entry below, still unresolved).
+
+- **`InventoryItem` gained a `worth` field** (mockInventory.ts), stored purely in hours — never a
+  €-figure, never Germany's median wage itself (~25€, the reference this session settled on).
+  Every mock value was hand-estimated from a realistic secondhand-market price for that kind of
+  item in its current condition (its own `rating`, 1★ parts/broken through 5★ new/one-time-use),
+  then divided by that wage — matching items at different ratings (both Yoga mats, both Toolboxes,
+  one in each of `MOCK_YOUR_INVENTORY`/`MOCK_PARTNER_INVENTORY`) is the easiest way to see that
+  scaling in the actual numbers.
+- **New shared `WorthBadge`** (components/): a "6h"/"0.5h" pill pinned to a tile's top-left
+  corner, the mirror image of the existing `RatingBadge`'s top-right pin so a tile can carry both
+  without colliding. Wired into every place an `InventoryItem` already showed a `RatingBadge`
+  (direct feedback: "the worth should be shown everywhere where its in a grid") — Inventory's own
+  item tiles (plain browsing and the trade split-tile), its trading-table overlay,
+  PartnerInventoryPage's read-only tiles, and Trading's own grid (real offered items, the
+  partner-side tile, and even non-interactive suggestion filler) — plus a plain "Worth" fact row
+  and an `<input type="number">` field on the Item page (view/edit — "make it a simple number text
+  field," Márk's own words).
+- **Home's Ads grid (`GridSection.tsx`) shows worth too, for item-kind offers only — this took
+  three rounds to land right.** First pass pulled from raw `InventoryItem` stock into a brand-new
+  "Your items" row (wrong data source — Márk: "that's not what I meant. I meant show some item
+  offers"). Second pass built that as a separate, curated "Item offers" row sourced from
+  `Offer`/`MOCK_ADS` instead (closer, but still an invented section Márk hadn't asked for —
+  "remove the whole extra row that you made up. bad claude."). Landed on the simplest reading: the
+  existing Ads grid's own tiles, unchanged in every other way, just also carry a `WorthBadge` when
+  `offer.kind === 'item'` (skill offers don't — worth stays an item-only concept everywhere else
+  in the app too). No new `worth` field on `Offer` either: its existing `hours` ("the listed price
+  in hours," the field's own doc comment) already *is* an item offer's worth — Márk's own words,
+  "the offer has a price attribute but that should be replaced with the items worth" — so the
+  badge just reads that number instead of a second one invented to always agree with it.
+- **Not folded into `TODO.md`** — "Items worth" isn't one of Márk's numbered points, so nothing
+  there needed marking done; flagged to him whether it's worth adding as its own line for the
+  record.
+- Touched: `mockInventory.ts`; new `WorthBadge.tsx`/`.css`; `InventoryPage.tsx`,
+  `PartnerInventoryPage.tsx`, `ItemPage.tsx`, `TradingPage.tsx`, `GridSection.tsx`. `npm run test`
+  (538 tests, 58 files), `npx tsc --noEmit`, `npm run lint`, and `npm run build` all clean.
+
+This branch also carries a real layout bug fix from Inventory's own trading context — flagged
+directly by Márk, not a `TODO.md` point: the paging dots (TODO #20) were landing hidden behind the
+trading-table overlay (TODO #9.1) once a trade was active.
+
+- **First attempt was wrong.** It folded the overlay's measured height straight into
+  `useFittingRows`' own `reserveBottomPx` (alongside `DOTS_ALLOWANCE_PX`) — but that number only
+  changes how many *rows* `useFittingRows` decides fit; it never shrinks
+  `.inventory-page__grid-area`'s own box, which stays `flex: 1` of the whole page regardless.
+  Fewer rows just left blank space inside an unchanged, too-tall box the overlay still painted
+  over — no different from before.
+- **The real fix reserves actual space**, the same mechanism `--nav-bar-height` already uses for
+  the nav bar on `.page-shell__content`: `.inventory-page` now carries a `--trade-overlay-height`
+  CSS custom property, set inline from the overlay's own live-measured height, and
+  `InventoryPage.css` turns that into a real `padding-bottom` on the flex container holding the
+  grid area — which is what actually shrinks the space `useFittingRows` measures.
+- **Only while the overlay is *collapsed*, not expanded** — direct feedback caught a second-round
+  mistake: reserving room for the tall, fully-expanded table too just starved the grid down to a
+  couple of rows for no reason. Expanded is a deliberate full takeover of that bottom stretch of
+  the page (unchanged from before this fix), so the grid and the dots are left free to sit behind
+  it there, same as always — only the short collapsed strip (the one actually standing in for the
+  nav bar) gets a real reservation.
+- **New `useElementHeight` hook** (hooks/) measures the overlay's live height via a *callback* ref,
+  not a plain `useRef` + mount-time effect (the pattern `useFittingRows` uses for its own
+  container) — `TradeTableOverlay`'s collapsed `<div>` and expanded `<section>` are two different
+  host element types at the same JSX position, so React unmounts one and mounts the other on every
+  toggle rather than resizing one node in place. A one-time effect only ever measures whichever
+  node existed at first mount and never notices the swap; a callback ref fires on every one (`null`
+  on unmount, the new node on mount), so re-attaching the `ResizeObserver` there is what stays
+  correct across toggles — confirmed by reverting to the plain-ref version and watching the
+  regression test fail.
+- Touched: new `hooks/useElementHeight.ts` (+ test); `InventoryPage.tsx`, `InventoryPage.css`;
+  `InventoryPage.test.tsx`. `npm run test` (540 tests, 58 files), `npx tsc --noEmit`, `npm run
+  lint`, and `npm run build` all clean.
 
 **2026-08-21, branch `todo-9-11-inventory-trading`** finished **TODO #9.1** (Inventory in a
 trading context) and carried **TODO #11** (Trading) through several more rounds of direct
@@ -666,6 +741,12 @@ src/
                            (TODO #3), then Inventory's item *and* Skills-view tiles plus
                            PartnerInventoryPage's (TODO #9's second rework) once there were real
                            callers each time — see §8
+    WorthBadge.tsx/.css    "Items worth" (an un-numbered session): the mirror image of
+                           RatingBadge — a "6h"/"0.5h" corner badge, pinned top-left instead of
+                           top-right so a tile can carry both at once. Items only: `InventoryItem`
+                           is the only mock type with a `worth` field; an item-kind `Offer` has no
+                           second `worth` field of its own — GridSection's own tile just reads its
+                           existing `hours` for this badge instead, see §8
     SquareTile.tsx         one tile — optional `overlay` prop pins content over the icon
     StarRating.tsx         ★★★☆☆ *display* — unrelated to StarRatingInput below, see §8
     StarRatingInput.tsx/.css   the star-picker *input* (radio-group fieldset) — Final Review's own
@@ -703,6 +784,14 @@ src/
                            grid rows now come from this instead of reusing the grid-size setting
                            for both dimensions (TODO #9). `reserveBottomPx` (TODO #3) lets a caller
                            with no pager (Home's GridSection) skip reserving room for one — see §8
+    useElementHeight.ts    measures a mounted element's own live height via a *callback* ref
+                           (ResizeObserver) — for content whose height isn't a fixed constant, so
+                           a caller elsewhere in the layout can reserve real room for it instead of
+                           a hand-picked px guess. A callback ref rather than useFittingRows' own
+                           plain-ref-plus-mount-effect pattern: its first caller, Inventory's
+                           trading-table overlay, swaps its root between two different host element
+                           types (collapsed `<div>` vs. expanded `<section>`), which a one-time
+                           effect never notices past the first mount — see §8
 
   pages/                   one folder-less file per screen, plus its .css
     onboarding/            multi-step onboarding, split into step components — StepSkills.tsx
@@ -737,7 +826,11 @@ src/
                            mockInventory, mockCommunity; plus searchFilters.ts (TODO #3) — the
                            KindFilter/SearchFilters types, MAX_DISTANCE_KM, and the filter-label
                            helpers, shared by SearchPage and (now) SettingsPage's default-filter
-                           picker rather than living only inside SearchPage.tsx
+                           picker rather than living only inside SearchPage.tsx. mockInventory.ts's
+                           `InventoryItem` gained a `worth` field ("Items worth", an un-numbered
+                           session) — hours only, hand-derived per item from a secondhand-market
+                           €-estimate divided by Germany's median hourly wage (~25€); see the
+                           field's own doc comment for the full reasoning
 
   settings/                theme + grid-size + (TODO #3) default search filters + (TODO #9)
                            inventoryScrollable, persisted to localStorage
