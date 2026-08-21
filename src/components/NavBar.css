@@ -72,9 +72,13 @@
 }
 
 /* Hours reads as a big plain number rather than an icon plus a tiny label (TODO #4: "make the
- * hours just big numbers, no need for an icon"). */
+ * hours just big numbers, no need for an icon"). Sized up again (TODO #4 direct feedback: "make
+ * the time on the navbar bigger but still fitting the existing space") — 22px still clears
+ * `.nav-bar__item--wide`'s slot with room to spare for a "10h15m"-shaped balance, and the
+ * `.nav-bar__label` base rule's `overflow: hidden`/`ellipsis` above is the safety net if some
+ * future balance's label ever runs long enough not to fit. */
 .nav-bar__label--hours {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
 }
@@ -84,7 +88,12 @@
 }
 
 /* The floating corner button the bar collapses into away from Home (Appkarte §3). Fixed in place
- * for the same reason the full bar is — it never reserves layout space, collapsed or not. */
+ * for the same reason the full bar is — it never reserves layout space, collapsed or not.
+ *
+ * Size/margin used to be shared tokens in index.css (`--nav-bar-reopen-size`/`-margin`) so
+ * PagedGrid.css's 'dots' pager could line up its own fixed position against this button's —
+ * TODO #20 moved that pager back into the page's normal flow, so this is its only reader again
+ * and the values live here as plain numbers instead. */
 .nav-bar__reopen {
   position: fixed;
   right: 0;
@@ -93,9 +102,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--nav-bar-reopen-size);
-  height: var(--nav-bar-reopen-size);
-  margin: var(--nav-bar-reopen-margin);
+  width: 44px;
+  height: 44px;
+  margin: 8px;
   font-size: 18px;
   color: var(--brand-primary);
   background: var(--surface);

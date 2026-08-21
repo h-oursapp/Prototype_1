@@ -109,7 +109,7 @@ describe('PagedGrid', () => {
     expect(screen.getAllByRole('button', { name: /Item \d/ })).toHaveLength(2)
   })
 
-  it("shows a dot per page instead of the buttons row when pagerVariant is 'floating-dots'", () => {
+  it("shows a dot per page instead of the buttons row when pagerVariant is 'dots'", () => {
     render(
       <PagedGrid
         items={makeItems(9)}
@@ -118,7 +118,7 @@ describe('PagedGrid', () => {
         columns={2}
         rows={2}
         gridLabel="Items"
-        pagerVariant="floating-dots"
+        pagerVariant="dots"
       />,
     )
 
@@ -138,7 +138,7 @@ describe('PagedGrid', () => {
         columns={2}
         rows={2}
         gridLabel="Items"
-        pagerVariant="floating-dots"
+        pagerVariant="dots"
       />,
     )
 
@@ -157,7 +157,7 @@ describe('PagedGrid', () => {
         columns={2}
         rows={2}
         gridLabel="Items"
-        pagerVariant="floating-dots"
+        pagerVariant="dots"
       />,
     )
 

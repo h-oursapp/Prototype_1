@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import wordmark from '../assets/hours-wordmark.png'
 import { MOCK_HOURS_BALANCE } from '../data/mockUser'
 import { ROUTES } from '../routes'
 import { NavBar } from './NavBar'
@@ -28,7 +29,26 @@ interface PageShellProps {
  *  identical everywhere, so it can't drift page by page as more screens get built.
  *
  *  TODO #4: the back button isn't always a plain `navigate(-1)` — see topLevelRoutes.ts for which
- *  pages always go straight Home instead, and why. */
+ *  pages always go straight Home instead, and why.
+ *
+ *  TODO #14: every header now carries the h_OURs logo dead-center, the same wordmark image and
+ *  height (32px) Home's own topbar uses — sized in PageShell.css, not here, same as everywhere
+ *  else images get their dimensions in this codebase. It's positioned absolutely rather than as a
+ *  third flex child: headerAction ranges from nothing (Wallet) to a three-icon row (Inventory) to
+ *  a wide text button (Community), and none of those should be able to nudge the logo off-center
+ *  just because the *other* side happens to be narrower on that page. `pointer-events: none` (CSS)
+ *  keeps it from ever intercepting a tap meant for the back button or headerAction if a very long
+ *  title ever grew wide enough to sit underneath it. The back button and title both shrank a step
+ *  to leave it real room (PageShell.css) — this replaces the one-off logo Trading used to bolt
+ *  into its own `headerAction` (see TradingPage.tsx's history); every page gets it for free now.
+ *  `headerAction` itself is wrapped in `.page-shell__header-end` (direct feedback: capping the
+ *  title's own width so it can't run under the logo also broke the thing that used to push
+ *  headerAction flush right, since that used to be the very same box growing to fill the gap —
+ *  see PageShell.css's own comment on that class for the fix). Also, direct feedback: every
+ *  header measured the same 53px except Community's and AdDetail's, whose `.page-shell__action
+ *  --text` button had no fixed height of its own and rendered taller than the rest purely by
+ *  however tall its text's line-height happened to compute — fixed in PageShell.css by giving it
+ *  the same 28px box every other header control already had. */
 export function PageShell({ title, navCollapsible = true, headerAction, compactTitle = false, children }: PageShellProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -46,7 +66,8 @@ export function PageShell({ title, navCollapsible = true, headerAction, compactT
             <span aria-hidden="true">←</span>
           </button>
           <h1 className={`page-shell__title ${compactTitle ? 'page-shell__title--compact' : ''}`}>{title}</h1>
-          {headerAction}
+          <img className="page-shell__logo" src={wordmark} alt="h_OURs" />
+          {headerAction && <div className="page-shell__header-end">{headerAction}</div>}
         </header>
       )}
 

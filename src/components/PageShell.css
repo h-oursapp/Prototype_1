@@ -6,7 +6,10 @@
   background: var(--bg);
 }
 
+/* `position: relative` is what lets `.page-shell__logo` below center itself on this box exactly,
+ * regardless of how wide the back button/title/headerAction on either side of it are (TODO #14). */
 .page-shell__header {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -16,11 +19,13 @@
   background: var(--surface);
 }
 
+/* One step smaller than before (TODO #14: "make the buttons/text that's in its way smaller") —
+ * the centered logo needs the room, and this still reads clearly at header-bar size. */
 .page-shell__back {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  font-size: 18px;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
   color: var(--brand-primary);
   background: var(--surface-alt);
   clip-path: var(--chamfer);
@@ -30,10 +35,21 @@
   background: var(--brand-tint);
 }
 
+/* `max-width` keeps a long title's own text from ever running under the centered logo — found by
+ * actually clicking through to Trading ("Trading with Lena K.") once the logo landed dead-center
+ * (TODO #14): with no headerAction on that page, this box was free to grow well past the header's
+ * own middle, and the title text just overlapped the logo. Capped at "half the header, minus
+ * enough room for the logo's own half-width plus the back button/gap/padding the title's box
+ * starts after" (hand math, not a measured value) — ellipsis (below) takes over from there
+ * instead of running under the logo. Capping it here rather than shrinking `flex: 1`'s own grow
+ * factor is what keeps `.page-shell__header-end`'s own `margin-left: auto` trick working (its own
+ * comment) — the leftover space this box no longer grows into is exactly what pushes that one
+ * flush against the header's right edge. */
 .page-shell__title {
   flex: 1;
   min-width: 0;
-  font-size: 18px;
+  max-width: calc(50% - 90px);
+  font-size: 16px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -41,7 +57,39 @@
 
 /* See PageShell.tsx's `compactTitle` prop doc. */
 .page-shell__title--compact {
-  font-size: 14px;
+  font-size: 13px;
+}
+
+/* TODO #14: the h_OURs logo, dead-center in every header — same wordmark, same height (32px) as
+ * Home's own topbar (MainPage.css's `.main-page__logo`), so it reads as the same mark everywhere
+ * rather than a smaller stand-in. `position: absolute` + the 50%/50%/translate trick centers it on
+ * the header box itself (see `.page-shell__header`'s own comment) instead of on whatever space the
+ * back button and headerAction happen to leave between them. `pointer-events: none` because it's
+ * decorative, not a button — a very long title is the only thing that could ever sit underneath it,
+ * and it shouldn't be able to steal a tap meant for the title/back button/headerAction either way. */
+.page-shell__logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  height: 32px;
+  width: auto;
+  pointer-events: none;
+}
+
+/* Wraps whatever `headerAction` a page passes in (PageShell.tsx) — added once capping the
+ * title's own width (above, TODO #14) stopped it from also being the thing that pushed
+ * headerAction flush against the header's right edge: `flex: 1` used to do both jobs (grow to
+ * fill leftover space *and* truncate a long title) at once, and now that it's capped, something
+ * else has to claim that leftover space instead. `margin-left: auto` on a flex item consumes
+ * exactly that — it's the "push everything after me to the far edge" trick, independent of how
+ * wide the title's own box happens to be. Without this, a headerAction drifts toward the
+ * (now-narrower) title instead of staying pinned right, landing on top of the centered logo. */
+.page-shell__header-end {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* The header's `headerAction` slot. Pages kept inventing their own button here, in two recurring
@@ -65,20 +113,32 @@
   font-weight: 600;
 }
 
-/* Deliberately borderless and the same 32px box as .page-shell__back, so the two ends of the
- * header read as a matched pair. */
+/* Deliberately borderless and the same 28px box as .page-shell__back, so the two ends of the
+ * header read as a matched pair (TODO #14 shrank both a step to leave the centered logo room). */
 .page-shell__action--icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
 }
 
+/* Fixed to the same 28px box as .page-shell__back/.page-shell__action--icon, not just padding
+ * around its own text — direct feedback: the header rendered visibly thicker on Community and
+ * AdDetail (the two pages with a text-labelled action, "Blocked persons"/"View only") than on
+ * every icon-only header, because this button's box used to be sized by its text's own line-height
+ * alone, and that isn't guaranteed to land anywhere near `.page-shell__back`'s fixed height — it
+ * only ever agreed with it by coincidence. `line-height: 1` plus `display: flex` centering keeps
+ * the label vertically centred inside the fixed box regardless of font metrics, instead of relying
+ * on padding to look right. */
 .page-shell__action--text {
-  padding: 7px 10px;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 9px;
+  font-size: 12px;
+  line-height: 1;
   border: 1px solid var(--border);
 }
 

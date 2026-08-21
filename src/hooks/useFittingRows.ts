@@ -15,6 +15,16 @@ function gapForWidth(width: number): number {
  *  the rare page that turns out not to need a pager at all. */
 const PAGER_ALLOWANCE_PX = 40
 
+/** Same idea as `PAGER_ALLOWANCE_PX`, sized for PagedGrid's `pagerVariant="dots"` row instead —
+ *  exported (unlike `PAGER_ALLOWANCE_PX` above) because that variant isn't the default, so every
+ *  caller using it has to pass this explicitly (TODO #20: the dots used to float fixed over the
+ *  viewport, needing no reserved room at all — see PagedGrid.css's own history on why that stopped
+ *  working — and now flow after the grid like the buttons row does, so callers reserve space for
+ *  them the same way). Kept in sync by hand with `.paged-grid__dots`' own height (PagedGrid.css:
+ *  an 8px dot plus its padding) — there's no way for CSS to hand this number to JS, same tradeoff
+ *  `gapForWidth`'s own comment already makes peace with. */
+export const DOTS_ALLOWANCE_PX = 24
+
 /** How many rows of square, `columns`-wide cells fit a `width`×`height` box, without any row
  *  spilling past its bottom edge. `columns` is a fixed setting (the grid-size picker); rows is the
  *  one this solves for — see useFittingRows below for why that split exists.
