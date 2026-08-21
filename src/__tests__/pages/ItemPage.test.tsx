@@ -30,6 +30,12 @@ describe('ItemPage — viewing and editing an existing item', () => {
     expect(screen.getByText('Public')).toBeInTheDocument()
   })
 
+  it('shows the item\'s worth in hours, as a plain "Nh" fact ("Items worth")', () => {
+    renderItemPage('/inventory/item-1') // Acoustic guitar, worth 6 hours (mockInventory.ts)
+
+    expect(screen.getByText('6h')).toBeInTheDocument()
+  })
+
   it('edits the name and flips visibility, then saves', async () => {
     const user = userEvent.setup()
     renderItemPage('/inventory/item-5')
@@ -43,6 +49,20 @@ describe('ItemPage — viewing and editing an existing item', () => {
     expect(screen.getByRole('heading', { name: 'DSLR Camera' })).toBeInTheDocument()
     expect(screen.getByText('Public')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('nothing is saved')
+  })
+
+  it('edits the worth as a plain number field, then saves', async () => {
+    const user = userEvent.setup()
+    renderItemPage('/inventory/item-1') // Acoustic guitar, worth 6 hours
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByLabelText('Worth')).toHaveValue(6)
+
+    await user.clear(screen.getByLabelText('Worth'))
+    await user.type(screen.getByLabelText('Worth'), '7.5')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByText('7.5h')).toBeInTheDocument()
   })
 
   it('shows a not-found state for an unknown item id', () => {
@@ -59,6 +79,7 @@ describe('ItemPage — create mode', () => {
 
     expect(screen.getByRole('heading', { name: 'New item' })).toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toHaveValue('')
+    expect(screen.getByLabelText('Worth')).toHaveValue(0)
     expect(screen.getByRole('button', { name: 'Create item' })).toBeInTheDocument()
   })
 

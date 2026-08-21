@@ -71,6 +71,8 @@
     -make a setting for scrollable offers, make it work too.
     -create a hide nav bar setting. if turned on make the nav bar hide every page. otherwise make the navbar fixed on every page.
     -text size? is selecting text size possible or is that somthing the phone controlls? can we get that from the phone. Do we need to do anything? 
+    -automatic grid size as an option (for wide tablets)
+    -web view
 
 16.Offers: 
 

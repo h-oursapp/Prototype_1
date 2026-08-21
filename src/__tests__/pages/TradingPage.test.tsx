@@ -109,6 +109,15 @@ describe('TradingPage', () => {
     expect(within(partnerTable).getAllByRole('img', { name: /^Suggested:/ })).toHaveLength(4)
   })
 
+  it('shows a "Nh" worth badge on a suggested item tile too ("Items worth")', () => {
+    renderTradingPage()
+
+    // Garden hose (item-17, mockInventory.ts) is one of trade-1's default suggestions, worth 0.5h.
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    const tile = within(yourTable).getByRole('img', { name: /^Suggested: Garden hose/ })
+    expect(within(tile).getByText('0.5h')).toBeInTheDocument()
+  })
+
   it('keeps the "Open your inventory" tile while the real offer still has a spare slot', async () => {
     const user = userEvent.setup()
     const itemIds = ['item-1', 'item-2', 'item-3', 'item-4']
@@ -177,7 +186,8 @@ describe('TradingPage', () => {
 
     // TODO #11's split tile makes an offered item tappable now (open its inspect/remove split),
     // so it's a button, not the read-only role="img" it was before that landed.
-    expect(within(yourTable).getByRole('button', { name: 'Garden hose — tap for options' })).toBeInTheDocument()
+    // Garden hose (item-17, mockInventory.ts) is worth 0.5 hours.
+    expect(within(yourTable).getByRole('button', { name: 'Garden hose — tap for options, worth 0.5h' })).toBeInTheDocument()
     expect(within(yourTable).queryByRole('img', { name: /^Suggested: Garden hose/ })).toBeNull()
   })
 
@@ -196,7 +206,24 @@ describe('TradingPage', () => {
 
     await user.click(screen.getByText('toggle item-1'))
 
-    expect(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' })).toBeInTheDocument()
+    expect(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options, worth 6h' })).toBeInTheDocument()
+  })
+
+  it('shows a "Nh" worth badge on a real offered item tile too ("Items worth")', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(
+      <>
+        <TradingPage />
+        <TradeDraftToggle tradeId="trade-1" itemId="item-1" />
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+    await user.click(screen.getByText('toggle item-1'))
+
+    // Acoustic guitar (item-1, mockInventory.ts) is worth 6 hours.
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    const tile = within(yourTable).getByRole('button', { name: /^Acoustic guitar — tap for options/ })
+    expect(within(tile).getByText('6h')).toBeInTheDocument()
   })
 
   it('splits an offered item into inspect/remove halves when tapped (TODO #11)', async () => {
@@ -211,7 +238,7 @@ describe('TradingPage', () => {
     await user.click(screen.getByText('toggle item-1'))
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options, worth 6h' }))
 
     const split = within(yourTable).getByRole('group', { name: 'Acoustic guitar options' })
     expect(within(split).getByText('Acoustic guitar')).toBeInTheDocument()
@@ -224,7 +251,7 @@ describe('TradingPage', () => {
     await user.click(screen.getByText('toggle item-1'))
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options, worth 6h' }))
     await user.click(screen.getByText('Acoustic guitar'))
 
     expect(screen.getByTestId('location')).toHaveTextContent('/inventory/item-1')
@@ -242,7 +269,7 @@ describe('TradingPage', () => {
     await user.click(screen.getByText('toggle item-1'))
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options, worth 6h' }))
     await user.click(within(yourTable).getByRole('button', { name: 'Remove Acoustic guitar from your offer' }))
 
     expect(within(yourTable).queryByText('Acoustic guitar')).toBeNull()
@@ -263,10 +290,10 @@ describe('TradingPage', () => {
     await user.click(screen.getByText('toggle item-2'))
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options, worth 6h' }))
     expect(within(yourTable).getByRole('group', { name: 'Acoustic guitar options' })).toBeInTheDocument()
 
-    const secondItemTile = within(yourTable).getAllByRole('button', { name: /— tap for options$/ })[0]
+    const secondItemTile = within(yourTable).getAllByRole('button', { name: /— tap for options/ })[0]
     await user.click(secondItemTile)
 
     expect(within(yourTable).queryByRole('group', { name: 'Acoustic guitar options' })).toBeNull()
@@ -363,7 +390,7 @@ describe('TradingPage', () => {
 
     await user.click(screen.getByText('toggle item-1'))
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' })).toBeInTheDocument()
+    expect(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options, worth 6h' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Decline offer' }))
 

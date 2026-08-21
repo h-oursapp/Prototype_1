@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FilterChip } from '../components/FilterChip'
 import { GenerosityBar } from '../components/GenerosityBar'
@@ -11,11 +11,13 @@ import { SquareTile } from '../components/SquareTile'
 import { MAX_STARS } from '../components/StarRating'
 import { TimeScrollPicker } from '../components/TimeScrollPicker'
 import { TransferBox } from '../components/TransferBox'
+import { WorthBadge } from '../components/WorthBadge'
 import type { InventoryItem } from '../data/mockInventory'
 import { MOCK_YOUR_INVENTORY } from '../data/mockInventory'
 import type { Trade } from '../data/mockTrades'
 import { canRespondToOffer, findTrade } from '../data/mockTrades'
 import { MOCK_HOURS_BALANCE, MOCK_SKILLS, type Skill } from '../data/mockUser'
+import { useElementHeight } from '../hooks/useElementHeight'
 import { DOTS_ALLOWANCE_PX, useFittingRows } from '../hooks/useFittingRows'
 import { ROUTES, adCreateWithItem, itemDetail, skillDetail, trading } from '../routes'
 import { useSettings } from '../settings/useSettings'
@@ -222,8 +224,32 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
   // sharing this one — the two grid-area boxes are mutually exclusive (only one is ever mounted at
   // a time), and useFittingRows' own ResizeObserver is set up once per element it's first attached
   // to, so a single shared ref wouldn't reliably re-measure the other view's box after a switch.
+  //
+  // In a trade context, the trading-table overlay (below) also claims the bottom edge — fixed,
+  // over the page, same as the nav bar it stands in for. First attempt folded its measured height
+  // straight into this `reserveBottomPx` — wrong, because that number only changes how many ROWS
+  // useFittingRows decides fit; it never shrinks `.inventory-page__grid-area`'s own box, which
+  // stays flex:1 of the *full* page regardless. Fewer rows just left blank space at the bottom of
+  // an unchanged, too-tall box, still overlaid — the grid and the dots stayed exactly as covered
+  // as before. The real fix is `--trade-overlay-height` below: a genuine `padding-bottom` on
+  // `.inventory-page` (InventoryPage.css), the same mechanism `--nav-bar-height` already uses to
+  // reserve room for the nav bar on `.page-shell__content`. Once that shrinks the box for real,
+  // `useFittingRows` measuring it needs nothing extra — `DOTS_ALLOWANCE_PX` alone is enough again,
+  // same as outside a trade context.
+  const { ref: overlayRef, height: overlayHeight } = useElementHeight<HTMLElement>()
   const { containerRef: gridAreaRef, rows } = useFittingRows(gridSize, gridSize, DOTS_ALLOWANCE_PX)
   const { containerRef: skillsAreaRef, rows: skillRows } = useFittingRows(gridSize, gridSize, DOTS_ALLOWANCE_PX)
+  // Only while *collapsed* — direct feedback: the collapsed strip is the one that's really
+  // standing in for the nav bar (short, always there while a trade is active), so it's the one
+  // that needs a real reservation, the same as the nav bar gets one. Expanded is a deliberate full
+  // takeover of that bottom stretch of the page — same as it always was before this fix existed —
+  // so the grid (and the dots) are allowed to sit behind it there; reserving room for the tall
+  // expanded shape too just starved the grid down to a couple of rows for no reason, since nobody
+  // ever needed to see both at once. `undefined` (rather than `'0px'`) whenever this doesn't apply,
+  // so the rule's own `0px` fallback in InventoryPage.css covers every other page state.
+  const inventoryPageStyle: CSSProperties | undefined = trade && !isTableExpanded
+    ? ({ '--trade-overlay-height': `${overlayHeight}px` } as CSSProperties)
+    : undefined
   // Both views page (fixed grid + floating dots) when this is off, and both flow/scroll when it's
   // on — direct feedback made this apply uniformly, rather than Skills always flowing regardless
   // of the setting (that's how it started out). Falls back to PageShell's own scrolling content
@@ -452,6 +478,7 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
       <div
         className={`inventory-page${isScrollableLayout ? ' inventory-page--scrollable' : ''}`}
         ref={inventoryPageRef}
+        style={inventoryPageStyle}
       >
         {isInfoOpen && (
           <div className="inventory-page__info-panel">
@@ -546,6 +573,7 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
 
         {trade && (
           <TradeTableOverlay
+            ref={overlayRef}
             trade={trade}
             offeredItems={offeredItemsInAddOrder}
             offeredSkills={offeredSkillsInAddOrder}
@@ -659,18 +687,19 @@ interface ItemTileProps {
 
 /** Exactly a SquareTile with the item's name overlaid (TODO #9), plus a single "N★" `RatingBadge`
  *  pinned to the corner (direct feedback: "make the star rating visible for the items as well" —
- *  the same Home's-Ads-tile treatment `InventorySkillTile` below already got). The rating is
- *  folded into the tile's own accessible name too, whichever wording is currently active, so a
- *  screen reader isn't shown the badge's number but never told it (`RatingBadge`'s own doc
- *  comment). Outside any picking context the tile opens the Item page; picking for a new ad
- *  toggles the item into and out of that pick instead. */
+ *  the same Home's-Ads-tile treatment `InventorySkillTile` below already got) and a "Nh" `WorthBadge`
+ *  pinned to the opposite corner ("Items worth", this session). Both are folded into the tile's own
+ *  accessible name too, whichever wording is currently active, so a screen reader is told the
+ *  numbers but never shown them twice (`RatingBadge`/`WorthBadge`'s own doc comments). Outside any
+ *  picking context the tile opens the Item page; picking for a new ad toggles the item into and out
+ *  of that pick instead. */
 function ItemTile({ item, isOffered, onOpen, onToggleOffered }: ItemTileProps) {
   const action = onToggleOffered
     ? isOffered
       ? `Remove ${item.name} as this ad's item`
       : `Use ${item.name} for this ad`
     : item.name
-  const label = `${action}, rated ${item.rating} out of ${MAX_STARS}`
+  const label = `${action}, rated ${item.rating} out of ${MAX_STARS}, worth ${item.worth}h`
 
   return (
     <SquareTile
@@ -687,6 +716,7 @@ function ItemTile({ item, isOffered, onOpen, onToggleOffered }: ItemTileProps) {
         {item.icon}
       </span>
       <RatingBadge value={item.rating} />
+      <WorthBadge hours={item.worth} />
     </SquareTile>
   )
 }
@@ -724,7 +754,7 @@ function TradeItemTile({ item, isOffered, isSplit, canAddMore, onOpenSplit, onCl
     const offeredSuffix = isOffered ? ', in your offer' : ''
     return (
       <SquareTile
-        label={`${item.name}${offeredSuffix} — tap for options, rated ${item.rating} out of ${MAX_STARS}`}
+        label={`${item.name}${offeredSuffix} — tap for options, rated ${item.rating} out of ${MAX_STARS}, worth ${item.worth}h`}
         onClick={onOpenSplit}
         overlay={
           <>
@@ -737,6 +767,7 @@ function TradeItemTile({ item, isOffered, isSplit, canAddMore, onOpenSplit, onCl
           {item.icon}
         </span>
         <RatingBadge value={item.rating} />
+        <WorthBadge hours={item.worth} />
       </SquareTile>
     )
   }
@@ -914,6 +945,12 @@ interface TradeTableOverlayProps {
   onRemoveSkill: (skillId: string) => void
   onAccept: () => void
   onDecline: () => void
+  /** So InventoryScreen can measure whichever of this component's two root shapes is actually
+   *  rendered (collapsed strip vs. full table) — see useElementHeight's own doc comment for why:
+   *  a `position: fixed` element's height never bubbles up to affect an ancestor's layout, so a
+   *  wrapping element around this component couldn't measure it; the ref has to land here, on the
+   *  fixed element itself. React 19 accepts `ref` as a plain prop, no `forwardRef` needed. */
+  ref?: Ref<HTMLElement>
 }
 
 /** TODO #9.1: "for the trading area copy the top of the trading page. 3x2 grid, accept/reject
@@ -953,6 +990,7 @@ function TradeTableOverlay({
   onRemoveSkill,
   onAccept,
   onDecline,
+  ref,
 }: TradeTableOverlayProps) {
   const [isAdjustingHours, setIsAdjustingHours] = useState(false)
   const [splitItemId, setSplitItemId] = useState<string | null>(null)
@@ -960,7 +998,10 @@ function TradeTableOverlay({
 
   if (!isExpanded) {
     return (
-      <div className="inventory-page__table-collapsed">
+      // Cast needed only because TS's `HTMLDivElement` adds a long-deprecated `align` field that
+      // plain `HTMLElement` (this prop's type, shared with the <section> root below) doesn't have
+      // — irrelevant here; both are the same kind of DOM node at runtime, this is compile-time only.
+      <div ref={ref as Ref<HTMLDivElement>} className="inventory-page__table-collapsed">
         <span>Choose what to trade</span>
         <button
           type="button"
@@ -986,7 +1027,7 @@ function TradeTableOverlay({
   const slots = tableOverlaySlots(entries)
 
   return (
-    <section className="inventory-page__table-overlay" aria-label={`Trading with ${trade.partner}`}>
+    <section ref={ref} className="inventory-page__table-overlay" aria-label={`Trading with ${trade.partner}`}>
       <div className="inventory-page__table-header">
         <h2 className="inventory-page__table-heading">Trading with {trade.partner}</h2>
         <button
@@ -1164,13 +1205,14 @@ function TableOverlayTileView({
   if (!isSplit) {
     return (
       <SquareTile
-        label={`${entry.item.name} — tap for options`}
+        label={`${entry.item.name} — tap for options, worth ${entry.item.worth}h`}
         onClick={() => onOpenSplitItem(entry.item.id)}
         overlay={<span className="inventory-page__tile-name">{entry.item.name}</span>}
       >
         <span className="square-tile__icon" aria-hidden="true">
           {entry.item.icon}
         </span>
+        <WorthBadge hours={entry.item.worth} />
       </SquareTile>
     )
   }

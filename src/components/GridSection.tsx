@@ -5,6 +5,7 @@ import { PagedGrid } from './PagedGrid'
 import { RatingBadge } from './RatingBadge'
 import { SquareTile } from './SquareTile'
 import { MAX_STARS } from './StarRating'
+import { WorthBadge } from './WorthBadge'
 import './GridSection.css'
 
 interface GridSectionProps {
@@ -28,7 +29,16 @@ interface GridSectionProps {
  *  is passed to `useFittingRows`: there's no pager row to leave room for. PagedGrid is still what
  *  renders the grid itself (square cells, empty-slot padding when there are too few offers to
  *  fill it) — its own pager just never gets the chance to appear, since the slice below is always
- *  already capped at one page's worth. */
+ *  already capped at one page's worth.
+ *
+ *  "Show the worth of the item offers on Home" (a later, un-numbered session): an item-kind offer's
+ *  tile now also carries a `WorthBadge`, pinned to the opposite corner from `RatingBadge` — skill
+ *  offers don't get one, since worth is an item-only concept (mockInventory.ts's own
+ *  `InventoryItem.worth` comment). There's no separate `worth` field on `Offer` to read for it:
+ *  Márk's own words, "the offer has a price attribute but that should be replaced with the items
+ *  worth" — `hours` (its own doc comment: "the listed price in hours") already *is* an item offer's
+ *  worth in hours, so the badge just reads that number rather than a second one invented to agree
+ *  with it. */
 export function GridSection({ heading, offers, gridSize, onSelectOffer }: GridSectionProps) {
   const { containerRef, rows } = useFittingRows(gridSize, gridSize, 0)
   const visibleOffers = offers.slice(0, gridSize * rows)
@@ -42,18 +52,23 @@ export function GridSection({ heading, offers, gridSize, onSelectOffer }: GridSe
           columns={gridSize}
           rows={rows}
           gridLabel={heading}
-          renderTile={(offer) => (
-            <SquareTile
-              label={`${offer.title}, rated ${offer.rating} out of ${MAX_STARS}`}
-              onClick={() => onSelectOffer(offer)}
-              overlay={<span className="grid-section__tile-name">{offer.title}</span>}
-            >
-              <span className="square-tile__icon" aria-hidden="true">
-                {offer.icon}
-              </span>
-              <RatingBadge value={offer.rating} />
-            </SquareTile>
-          )}
+          renderTile={(offer) => {
+            const isItem = offer.kind === 'item'
+            const worthSuffix = isItem ? `, worth ${offer.hours}h` : ''
+            return (
+              <SquareTile
+                label={`${offer.title}, rated ${offer.rating} out of ${MAX_STARS}${worthSuffix}`}
+                onClick={() => onSelectOffer(offer)}
+                overlay={<span className="grid-section__tile-name">{offer.title}</span>}
+              >
+                <span className="square-tile__icon" aria-hidden="true">
+                  {offer.icon}
+                </span>
+                <RatingBadge value={offer.rating} />
+                {isItem && <WorthBadge hours={offer.hours} />}
+              </SquareTile>
+            )
+          }}
         />
       </div>
     </section>

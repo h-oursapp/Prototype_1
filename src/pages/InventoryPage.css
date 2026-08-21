@@ -14,6 +14,21 @@
  * setting is on) trades that whole arrangement for the opposite: no definite height, so the page
  * just grows and PageShell's own scrolling content area takes over — see its own rule below. */
 
+/* `--trade-overlay-height` is set inline, in px, only while the trading-table overlay is
+ * *collapsed* (InventoryPage.tsx) — its own measured height (useElementHeight), the same idea as
+ * `--nav-bar-height` reserving room for the nav bar on `.page-shell__content` (PageShell.css):
+ * the collapsed strip is the one standing in for the nav bar (short, always there through a
+ * trade), so it's the one that gets a real reservation. Expanded is a deliberate full takeover of
+ * the bottom of the page instead (direct feedback: "not a problem that it's in front of the grid
+ * when expanded" — that was never the bug), so it sets nothing here and the grid/dots are left
+ * free to sit behind it, same as before this fix existed. Can't be a fixed constant the way
+ * `--nav-bar-height` is, since even the collapsed strip's own height isn't fully pinned (font
+ * size / text-scaling settings still affect it). The `0px` fallback keeps this a no-op everywhere
+ * else — no trade, or trade with the table expanded — where the custom property is never set at
+ * all. Landing the padding here, on the flex *container*, rather than on
+ * `.inventory-page__grid-area` itself, is what actually shrinks the space handed to that flex:1
+ * child — the same relationship `.page-shell__content`'s own padding-bottom has to *its* flex:1
+ * content, one level up. */
 .inventory-page {
   height: 100%;
   max-width: 480px;
@@ -22,6 +37,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding-bottom: var(--trade-overlay-height, 0px);
 }
 
 /* The Skills view, and the items view once "inventory scrollable" is on (TODO #9, InventoryPage.tsx's

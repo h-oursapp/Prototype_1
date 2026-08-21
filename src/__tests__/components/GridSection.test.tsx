@@ -75,6 +75,22 @@ describe('GridSection', () => {
     expect(screen.getByText('Guitar lessons')).toBeInTheDocument()
     expect(screen.getByText('4★')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guitar lessons, rated 4 out of 5' })).toBeInTheDocument()
+    // A skill offer has no worth — that badge is item-only.
+    expect(screen.queryByText('2h')).toBeNull()
+  })
+
+  it('shows a "Nh" worth badge on an item offer\'s tile, reading its existing `hours` price ("show the worth of item offers")', () => {
+    render(
+      <GridSection
+        heading="Ads"
+        offers={[{ id: '1', title: 'Wooden chair', icon: '🪑', kind: 'item', hours: 4, rating: 4 }]}
+        gridSize={2}
+        onSelectOffer={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Wooden chair, rated 4 out of 5, worth 4h' })).toBeInTheDocument()
+    expect(screen.getByText('4h')).toBeInTheDocument()
   })
 
   it('names the grid after its heading for assistive tech', () => {

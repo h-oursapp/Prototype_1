@@ -75,9 +75,17 @@ describe('InventoryPage', () => {
   it('shows a single "N★" rating badge on each item tile, same as Home\'s Ads tiles (direct feedback)', () => {
     renderInventoryPage()
 
-    // Acoustic guitar (item-1, mockInventory.ts) is rated 4.
-    const tile = grid().getByRole('button', { name: 'Acoustic guitar, rated 4 out of 5' })
+    // Acoustic guitar (item-1, mockInventory.ts) is rated 4, worth 6 hours.
+    const tile = grid().getByRole('button', { name: 'Acoustic guitar, rated 4 out of 5, worth 6h' })
     expect(within(tile).getByText('4★')).toBeInTheDocument()
+  })
+
+  it('shows a "Nh" worth badge on each item tile ("Items worth")', () => {
+    renderInventoryPage()
+
+    // Acoustic guitar (item-1, mockInventory.ts) is worth 6 hours.
+    const tile = grid().getByRole('button', { name: 'Acoustic guitar, rated 4 out of 5, worth 6h' })
+    expect(within(tile).getByText('6h')).toBeInTheDocument()
   })
 
   it('shows a small "Items" caption beside the search bar instead of the visibility summary (direct feedback)', () => {
@@ -364,6 +372,49 @@ describe('InventoryPage', () => {
 
       expect(screen.getByRole('button', { name: 'Page 3 of 3' })).toHaveAttribute('aria-current', 'true')
       expect(screen.getByRole('button', { name: /^Painting supplies/ })).toBeInTheDocument()
+    })
+
+    it('reserves the collapsed trading-table strip\'s own measured height on the page, the same way the nav bar\'s height is reserved', async () => {
+      // Regression test for a real bug, not just a math one: an earlier version of this fix folded
+      // the overlay's height into `reserveBottomPx` (useFittingRows) instead — which only changes
+      // how many ROWS are asked for, never the actual size of `.inventory-page__grid-area`'s own
+      // box (still flex:1 of the *whole* page either way). Fewer rows just left blank space inside
+      // an unchanged, too-tall box that the fixed overlay still painted straight over — dots and
+      // grid content stayed exactly as hidden. The real fix has to shrink a real box, the same way
+      // `--nav-bar-height` shrinks `.page-shell__content` for the nav bar — so what's worth pinning
+      // down here is that mechanism: `.inventory-page` itself carries the collapsed strip's own
+      // live-measured height as a CSS custom property.
+      const user = userEvent.setup()
+      const original = HTMLElement.prototype.getBoundingClientRect
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.classList.contains('inventory-page__table-collapsed')) {
+          return { height: 46 } as DOMRect
+        }
+        return { height: 0 } as DOMRect
+      }
+
+      try {
+        renderInventoryPage('/inventory?trade=trade-1')
+        const page = document.querySelector('.inventory-page') as HTMLElement
+
+        // Direct feedback: expanded is a deliberate full takeover, not a bug — reserving room for
+        // it too just starves the grid for no reason, so nothing is reserved while it starts out
+        // expanded (TODO #9.1's own default).
+        expect(page.style.getPropertyValue('--trade-overlay-height')).toBe('')
+
+        await user.click(screen.getByRole('button', { name: 'Collapse the trading table' }))
+
+        expect(page.style.getPropertyValue('--trade-overlay-height')).toBe('46px')
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = original
+      }
+    })
+
+    it('reserves no space at all outside a trade context, same as the nav bar staying put', () => {
+      renderInventoryPage()
+
+      const page = document.querySelector('.inventory-page') as HTMLElement
+      expect(page.style.getPropertyValue('--trade-overlay-height')).toBe('')
     })
   })
 
@@ -859,6 +910,18 @@ describe('InventoryPage', () => {
       expect(within(slots[4]).getByText('Acoustic guitar')).toBeInTheDocument()
       expect(within(slots[3]).getByText('Keyboard stand')).toBeInTheDocument()
       expect(within(slots[5]).queryByText(/h$/)).toBeNull()
+    })
+
+    it('shows a "Nh" worth badge on an offered item tile in the overlay too ("Items worth")', async () => {
+      const user = userEvent.setup()
+      renderInventoryPage('/inventory?trade=trade-1')
+
+      await user.click(grid().getByRole('button', { name: /^Acoustic guitar — tap for options/ }))
+      await user.click(grid().getByRole('button', { name: 'Add Acoustic guitar to your offer' }))
+
+      // Acoustic guitar (item-1, mockInventory.ts) is worth 6 hours.
+      const tile = tableGrid().getByRole('button', { name: /^Acoustic guitar — tap for options/ })
+      expect(within(tile).getByText('6h')).toBeInTheDocument()
     })
 
     it('inspects and removes an offered item directly from the overlay (same split as Trading’s own grid)', async () => {
