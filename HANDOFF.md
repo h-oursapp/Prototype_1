@@ -77,6 +77,52 @@ npm run lint        clean
 npm run build       succeeds
 ```
 
+**Before this branch's work lands, `main` is missing the previous session's TODO #5–#7 rework.**
+PR #21 (`todo-5-7-profile-skills-rework`) merged into `todo-16-offers`, not `main` — its own base
+branch — because it had been opened while PR #20 (`todo-16-offers` → `main`) was still open, per
+that session's own plan ("a PR from this branch carries #20's diff until #20 merges first," see the
+next entry down). #20 merged into `main` first, but nobody then re-opened #21 against `main`, so its
+merge into the now-dead-end `todo-16-offers` branch never reached `main`. `main` (as of this branch)
+still ends at #20's merge commit; the TODO #5–#7 rework commit only exists on `todo-16-offers` /
+`todo-5-7-profile-skills-rework` / (now) this branch. Flagged to Márk; not fixed as part of this
+session — resolving it (retargeting/reopening a PR straight to `main`) is his call, not something to
+silently fold into an unrelated colors PR.
+
+**2026-08-21, branch `todo-17-colors`** built **TODO #17** (Colors) — replaced `src/index.css`'s
+placeholder purple palette with h_OURs' real brand colors. Márk supplied a table of eleven named
+dark-theme hex values (a green primary/accent, an "Aubergine" secondary, a "Verlaufston" gradient
+tone, plus backgrounds/surfaces/text/border) after being asked twice — first whether he had official
+codes at all versus deriving them from the logo (`public/hours-logo-source.png`, a green-to-indigo
+gradient the old purple placeholder never matched), then for the actual codes once he said he had
+them. Only a dark palette was given; the light theme is this session's own derivation (same hues,
+tuned for contrast against light surfaces) since Márk asked for that to be inferred rather than
+supplied.
+
+Two things stopped this from being a straight value swap:
+
+- **`--brand-tint`'s dark value isn't the literal "Verlaufston" hex.** That color sits too close in
+  lightness to `--brand-primary-deep` to work as the background almost every active/selected state
+  in the app puts behind `--brand-primary-deep`-colored text (FilterChip, OptionGroup, PageShell,
+  chips across a dozen pages) — contrast came out under 1.2:1, essentially invisible. Used a derived,
+  low-saturation dark green in the same hue instead, and gave "Verlaufston" a real home on a new
+  `--brand-gradient` token, used in exactly one place (onboarding's decorative illustration
+  placeholder gradient) where nothing readable sits on top of it.
+- **Two hardcoded `color: #fff` button rules** (`LoginPage.css`'s `.login-page__button`,
+  `onboarding.css`'s `.onboarding-step__primary`) became `color: var(--surface)`, matching every
+  other brand-primary-filled button already in the app. Needed, not cosmetic: the official green
+  primary is lighter than the old purple, so plain white text on it dropped to ~2.3:1 contrast in
+  dark mode — `var(--surface)` (dark and card-colored in dark mode) fixes that the same way it
+  already did everywhere else.
+
+Also added: `--text-faint`, a third, quieter text tier (Márk's table had two "muted" rows; the app
+only had one `--text-muted` token). Applied it to every `:disabled` button's text color across the
+app (`SkillsPage`, `TradingPage` ×2, `FinalReviewPage`, `ItemPage`, `onboarding.css`) — all six were
+already using `--text-muted` there, and "disabled" is the one state unambiguously quieter than
+whatever `--text-muted` covers elsewhere (labels, captions, hints), so this is the token's first
+real use rather than a defined-but-dangling one. `index.html`'s and `vite.config.ts`'s
+`theme-color`/`theme_color` (PWA/browser-chrome tint) updated to match the new light-theme primary;
+`background_color` untouched since the light theme's `--bg` didn't change.
+
 **2026-08-20, branch `todo-5-7-profile-skills-rework`** reworked **TODO #5–#7** (Profile, Skills,
 Skill) again, plus a small unrelated Offers fix Márk asked for in the same session. Branched off
 `todo-16-offers` rather than `main`, since PR #20 (`todo-16-offers`) was still open and this work
@@ -586,8 +632,10 @@ Break these and the app looks wrong or breaks quietly.
 /* no  */  background: #ffffff;      /* invisible in dark mode */
 ```
 
-Tokens: `--brand-primary`, `--brand-primary-deep`, `--brand-accent`, `--brand-tint`, `--bg`,
-`--surface`, `--surface-alt`, `--text`, `--text-muted`, `--border`, `--gridline`, `--shadow`.
+Tokens: `--brand-primary`, `--brand-primary-deep`, `--brand-accent`, `--brand-tint`,
+`--brand-gradient` (TODO #17 — decorative gradient stops only, never a background behind text), `--bg`,
+`--surface`, `--surface-alt`, `--text`, `--text-muted`, `--text-faint` (TODO #17 — quieter than
+`--text-muted`, currently only on `:disabled` button text), `--border`, `--gridline`, `--shadow`.
 
 ### Corners are chamfered, never rounded
 

@@ -21,7 +21,7 @@ export default defineConfig({
         name: 'h_OURs',
         short_name: 'h_OURs',
         description: 'Trade skills and items with your community.',
-        theme_color: '#863bff',
+        theme_color: '#16825a',
         background_color: '#fbf9ff',
         display: 'standalone',
         start_url: '/',

@@ -61,7 +61,7 @@
 }
 
 .skills-page__add-to-offer:disabled {
-  color: var(--text-muted);
+  color: var(--text-faint);
   background: var(--surface-alt);
   cursor: not-allowed;
 }

@@ -181,7 +181,7 @@
 }
 
 .item-page__action:disabled {
-  color: var(--text-muted);
+  color: var(--text-faint);
   background: var(--surface-alt);
   border-color: var(--border);
   cursor: not-allowed;
