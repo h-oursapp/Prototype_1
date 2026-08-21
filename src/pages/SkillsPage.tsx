@@ -1,14 +1,23 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/PageShell'
+import { RatingBadge } from '../components/RatingBadge'
+import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
-import { StarRating } from '../components/StarRating'
+import { MAX_STARS } from '../components/StarRating'
 import { TransferBox } from '../components/TransferBox'
 import { MOCK_SKILLS, type Skill } from '../data/mockUser'
 import { findTrade } from '../data/mockTrades'
 import { ROUTES, adCreateWithSkill, skillDetail, trading } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import './SkillsPage.css'
+
+/** Plain case-insensitive substring match against a skill's name — same shape as Inventory's own
+ *  `matchesSkillQuery` (TODO #6's "add a simple search bar"). Kept as its own copy rather than a
+ *  shared import: InventoryPage's version isn't exported, and the whole function is one line. */
+function matchesQuery(skill: Skill, query: string): boolean {
+  return skill.name.toLowerCase().includes(query.trim().toLowerCase())
+}
 
 /** Wording for the tile's picking button and its accessible names — a trade builds a multi-skill
  *  offer, but a new ad has exactly one subject (TODO #8), so the two contexts say it differently
@@ -45,7 +54,12 @@ interface SkillTileProps {
 /** One cell of the grid. The tile itself always opens the Skill page (§7) — even while picking a
  *  skill for an offer, seeing the full rating and description before choosing is useful — so
  *  the picking control is a separate button underneath, the same split InventoryPage uses for its
- *  items. */
+ *  items.
+ *
+ *  TODO #6: only the review rating shows now, as one "N★" `RatingBadge` pinned to the corner —
+ *  the same convention Search's result tiles use — replacing the two stacked `StarRating` rows
+ *  (self-rating and review rating) this tile used to show. The self-rating isn't gone, just moved
+ *  off this tile: it's still the first thing the Skill page itself shows a tap away. */
 function SkillTile({ skill, isSelected, pick }: SkillTileProps) {
   const navigate = useNavigate()
 
@@ -53,21 +67,14 @@ function SkillTile({ skill, isSelected, pick }: SkillTileProps) {
     <li className="skills-page__cell">
       <span className="skills-page__tile">
         <SquareTile
-          label={skill.name}
+          label={`${skill.name}, rated ${skill.reviewRating} out of ${MAX_STARS}`}
           onClick={() => navigate(skillDetail(skill.id))}
-          overlay={
-            <>
-              <span className="skills-page__tile-name">{skill.name}</span>
-              <span className="skills-page__tile-ratings">
-                <StarRating value={skill.rating} subject={`${skill.name}'s rating`} />
-                <StarRating value={skill.reviewRating} subject={`${skill.name}'s review rating`} />
-              </span>
-            </>
-          }
+          overlay={<span className="skills-page__tile-name">{skill.name}</span>}
         >
           <span className="square-tile__icon" aria-hidden="true">
             {skill.icon}
           </span>
+          <RatingBadge value={skill.reviewRating} />
         </SquareTile>
       </span>
 
@@ -110,7 +117,12 @@ function ContextBanner({ title, subtitle }: { title: string; subtitle?: string }
  *    TODO #8, also at `/skills?forAd=new` (picking the one skill a brand-new ad is for) — both
  *    are the same query-parameter convention InventoryPage already uses. The two contexts share
  *    almost everything: only the wording (PickCopy above) and whether picking appends to the
- *    offer or replaces it (an ad has exactly one subject) differ. */
+ *    offer or replaces it (an ad has exactly one subject) differ.
+ *  - TODO #6's "add a simple search bar": narrows which tiles the grid shows, the same
+ *    filter-the-view-not-the-data convention Inventory's own search already follows — an
+ *    already-offered skill stays in the transfer box even if a search typed afterwards would hide
+ *    its tile. The "Add a skill" tile is exempt, same as Offers' own add-prompt tile (TODO #16):
+ *    it's a control, not a result, so it always renders last regardless of what's typed. */
 export function SkillsPage() {
   const navigate = useNavigate()
   const { gridSize } = useSettings()
@@ -120,6 +132,9 @@ export function SkillsPage() {
 
   const [offeredIds, setOfferedIds] = useState<string[]>([])
   const [isAccepted, setIsAccepted] = useState(false)
+  const [query, setQuery] = useState('')
+
+  const matchingSkills = MOCK_SKILLS.filter((skill) => matchesQuery(skill, query))
 
   const offeredSkills = MOCK_SKILLS.filter((skill) => offeredIds.includes(skill.id))
 
@@ -154,14 +169,22 @@ export function SkillsPage() {
         )}
         {isForNewAd && <ContextBanner title="Picking a skill for your new ad" />}
 
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          placeholder="Search your skills"
+          ariaLabel="Search your skills"
+        />
+
         <section className="page-section">
           <h2 className="page-section__heading">Your skills</h2>
+          {matchingSkills.length === 0 && <p className="page-note">No skills match your search.</p>}
           <ul
             className="skills-page__grid"
             style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
             aria-label="Your skills"
           >
-            {MOCK_SKILLS.map((skill) => (
+            {matchingSkills.map((skill) => (
               <SkillTile
                 key={skill.id}
                 skill={skill}

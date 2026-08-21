@@ -19,19 +19,19 @@
 4.Nav bar: 
      -make the time on the navbar bigger but still fitting the existing space.
      -make the nav bar always on insted of the nav button, on pages that are not scrollable
-5.Profile: 
+5.Profile: DONE
     -show your best skills only in a grid. only one row. follow the setting for the number of columns
     -only show the review ratings and do that in the upper right corner similar to the search page.
     -all skills can be a button, loads all skills (with filter public / private) puts in
     -remove reviews
     -
 
-6.Skills: 
+6.Skills: DONE
     -only show the review ratings and do that in the upper right corner similar to the search page. 
     -add a simple search bar.
 
 
-7.Skill: 
+7.Skill: DONE
     -add private/public property
     -now skills can be in the inventory 
     -now items and skills has to be similar

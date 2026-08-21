@@ -35,9 +35,10 @@ export interface SkillDraft {
   description: string
   rating: number
   proof: string
-  /** No editing control for this yet (TODO #7's own "add private/public property" is still
-   *  open) — every draft just carries the default/existing value through so `toSkill` below has
-   *  something real to set, the same way `description`/`proof` do before anyone's touched them. */
+  /** Edited by `SkillForm`'s own Visibility `OptionGroup` now (TODO #7's "items and skills have
+   *  to be similar", matching `ItemForm`'s identical control) — this field used to just carry the
+   *  default/existing value through untouched, the same way `description`/`proof` still do before
+   *  anyone's edited them. */
   isPublic: boolean
 }
 

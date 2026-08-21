@@ -63,6 +63,17 @@ describe('SkillPage', () => {
       expect(screen.getByText('No reviews of this skill yet.')).toBeInTheDocument()
     })
 
+    it('shows a public skill\'s visibility (TODO #7: "items and skills have to be similar")', () => {
+      renderSkill('skill-1') // Web design, public
+      expect(screen.getByText('Visibility')).toBeInTheDocument()
+      expect(screen.getByText('Public')).toBeInTheDocument()
+    })
+
+    it('shows a private skill\'s visibility', () => {
+      renderSkill('skill-5') // Photography, private
+      expect(screen.getByText('Private')).toBeInTheDocument()
+    })
+
     it('opens this skill’s reviewed trades', async () => {
       const user = userEvent.setup()
       renderSkill('skill-1')
@@ -111,6 +122,18 @@ describe('SkillPage', () => {
       await user.click(screen.getByRole('button', { name: 'Save' }))
 
       expect(screen.getByRole('img', { name: "Cooking's rating: rated 2 out of 5" })).toBeInTheDocument()
+    })
+
+    it('toggles visibility (TODO #7\'s "add private/public property", now with a real editing control)', async () => {
+      const user = userEvent.setup()
+      renderSkill('skill-1') // Web design, public to start
+
+      await user.click(screen.getByRole('button', { name: 'Edit' }))
+      await user.click(within(screen.getByRole('group', { name: 'Visibility' })).getByRole('button', { name: 'Private' }))
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+
+      expect(screen.getByText('Visibility')).toBeInTheDocument()
+      expect(screen.getByText('Private')).toBeInTheDocument()
     })
 
     it('blocks raising the rating to 4★+ with no proof, and says why', async () => {

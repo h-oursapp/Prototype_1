@@ -98,8 +98,11 @@ export const inventoryForNewAd = () => `${ROUTES.inventory}?forAd=new`
 export const adCreateWithSkill = (skillId: string) => `${ROUTES.adCreate}?skillId=${skillId}`
 export const adCreateWithItem = (itemId: string) => `${ROUTES.adCreate}?itemId=${itemId}`
 
-/** Trades filtered to "already reviewed" (closed) trades (TODO #5/#7), optionally narrowed to one
- *  skill. One builder covers both: Profile's "reviewed trades" button omits skillId, the Skill
- *  page's "all reviewed trades" button passes its own id. */
+/** Trades filtered to "already reviewed" (closed) trades, optionally narrowed to one skill — the
+ *  Skill page's "all reviewed trades for this skill" button passes its own id. `skillId` used to
+ *  be optional for Profile's own "Reviewed trades" button too; that button is gone (TODO #5's
+ *  "remove reviews"), but `skillId` stays optional rather than required — `?status=closed` alone
+ *  is still a real, tested `/trades` view (TradesPage.tsx's own `isReviewedStatus`), just with no
+ *  in-app link to it left after this. */
 export const reviewedTrades = (skillId?: string) =>
   skillId ? `${ROUTES.trades}?status=closed&skill=${skillId}` : `${ROUTES.trades}?status=closed`

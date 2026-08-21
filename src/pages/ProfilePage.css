@@ -47,8 +47,23 @@
   white-space: pre-wrap;
 }
 
-.profile-page__skills,
-.profile-page__reviews {
+/* ---------- Skills grid (TODO #5's rework) ---------- */
+
+/* Filter row (TODO #5: "all skills ... with filter public/private"), only rendered once "All
+   skills" is showing — same shell/positioning convention as Inventory's own `.inventory-page__filters`
+   (FilterChip.tsx's own comment on why `position: relative` matters here). */
+.profile-page__filters {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+/* Column count follows the Settings grid-size setting (grid-template-columns set inline — see
+   ProfilePage.tsx). Capped to one row's worth while showing your best skills; uncapped, wrapping
+   into as many rows as it needs, once "All skills" is showing — the same shape SkillsPage's own
+   grid uses. */
+.profile-page__skills-grid {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -56,50 +71,27 @@
   gap: 8px;
 }
 
-/* Zeroes out .page-card's own padding (the compound selector outranks it regardless of CSS
-   import order) so the button below can fill the whole card — its hover then reaches the card's
-   own border instead of leaving an inactive 12px margin around it. */
-.profile-page__skill.page-card {
-  padding: 0;
+.profile-page__skill-cell {
+  display: flex;
 }
 
-/* The whole row is one button now (TODO #5: opens the Skill page). */
-.profile-page__skill-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Square frame for the reused SquareTile, which fills whatever box it is given. */
+.profile-page__skill-tile {
   width: 100%;
-  padding: 12px;
-  text-align: left;
-  background: none;
+  aspect-ratio: 1;
 }
 
-.profile-page__skill-button:hover {
-  background: var(--surface-alt);
-}
-
-/* Fixed square frame for the reused SquareTile, which fills whatever box it is given. */
-.profile-page__skill-icon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-}
-
+/* TODO #5: the name sits inside the square, over the icon — SquareTile's `overlay` prop pins this
+   to the tile's bottom edge, same as SkillsPage's own tile. The review rating is a `RatingBadge`
+   pinned to the corner instead (RatingBadge.css), not part of this overlay. */
 .profile-page__skill-name {
-  flex: 1;
-  min-width: 0;
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-/* Both ratings, stacked, next to the name — self-rating above the review rating, matching TODO
-   #5's "the upper one is your rating ... the lower is the review score." */
-.profile-page__skill-ratings {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
 
 .profile-page__link {
   display: block;
@@ -114,34 +106,4 @@
 
 .profile-page__link:hover {
   background: var(--surface-alt);
-}
-
-.profile-page__review-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-}
-
-.profile-page__review-author {
-  font-weight: 600;
-}
-
-.profile-page__review-date {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.profile-page__review-rating {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.profile-page__review-comment {
-  margin: 6px 0 0;
 }

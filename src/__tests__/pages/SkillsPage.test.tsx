@@ -33,22 +33,45 @@ describe('SkillsPage', () => {
     renderSkillsPage()
 
     expect(yourSkills().getAllByRole('listitem')).toHaveLength(MOCK_SKILLS.length + 1)
-    expect(yourSkills().getByRole('button', { name: 'Web design' })).toBeInTheDocument()
+    expect(yourSkills().getByRole('button', { name: 'Web design, rated 5 out of 5' })).toBeInTheDocument()
     expect(yourSkills().getByRole('button', { name: 'Add a skill' })).toBeInTheDocument()
   })
 
-  it('shows both ratings for a skill (TODO #6: self-rating and review rating)', () => {
+  it('shows only the review rating for a skill, as a single badge (TODO #6)', () => {
     renderSkillsPage()
 
-    expect(screen.getByRole('img', { name: "Web design's rating: rated 5 out of 5" })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: "Web design's review rating: rated 5 out of 5" })).toBeInTheDocument()
+    expect(yourSkills().getByRole('button', { name: 'Web design, rated 5 out of 5' })).toBeInTheDocument()
+    // The old two-stacked-StarRating look (self-rating and review rating) is gone from this tile.
+    expect(screen.queryByRole('img', { name: "Web design's rating: rated 5 out of 5" })).not.toBeInTheDocument()
+  })
+
+  describe('search bar (TODO #6)', () => {
+    it('narrows the grid to skills matching the typed text, leaving "Add a skill" untouched', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage()
+
+      await user.type(screen.getByLabelText('Search your skills'), 'pian')
+
+      expect(yourSkills().getByRole('button', { name: /^piano/i })).toBeInTheDocument()
+      expect(yourSkills().queryByRole('button', { name: /^web design/i })).not.toBeInTheDocument()
+      expect(yourSkills().getByRole('button', { name: 'Add a skill' })).toBeInTheDocument()
+    })
+
+    it('says so when nothing matches', async () => {
+      const user = userEvent.setup()
+      renderSkillsPage()
+
+      await user.type(screen.getByLabelText('Search your skills'), 'zzz')
+      expect(screen.getByText('No skills match your search.')).toBeInTheDocument()
+      expect(yourSkills().getByRole('button', { name: 'Add a skill' })).toBeInTheDocument()
+    })
   })
 
   it('opens the Skill page when a tile is tapped', async () => {
     const user = userEvent.setup()
     renderSkillsPage()
 
-    await user.click(yourSkills().getByRole('button', { name: 'Web design' }))
+    await user.click(yourSkills().getByRole('button', { name: 'Web design, rated 5 out of 5' }))
     expect(screen.getByTestId('location')).toHaveTextContent('/skills/skill-1')
   })
 
