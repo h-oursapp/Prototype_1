@@ -44,7 +44,9 @@
 .onboarding-step__illustration {
   border-radius: 12px;
   height: 180px;
-  background: linear-gradient(135deg, var(--brand-tint), var(--surface-alt));
+  /* The one spot that uses --brand-gradient (TODO #17) — a purely decorative wash, echoing
+     the logo's green-to-indigo sweep, with nothing readable placed on top of it. */
+  background: linear-gradient(135deg, var(--brand-tint), var(--brand-gradient));
 }
 
 .onboarding-step__actions {
@@ -66,7 +68,9 @@
   flex: 1;
   padding: 14px;
   font-weight: 600;
-  color: #fff;
+  /* var(--surface), matching every other brand-primary-filled button (TODO #17) — see
+     LoginPage.css's .login-page__button for why this can't just be a hardcoded white. */
+  color: var(--surface);
   background: var(--brand-primary);
   clip-path: var(--chamfer);
 }
@@ -77,7 +81,7 @@
 
 .onboarding-step__primary:disabled {
   background: var(--border);
-  color: var(--text-muted);
+  color: var(--text-faint);
   cursor: not-allowed;
 }
 

@@ -7,80 +7,46 @@
         -play the video here
    
     
-3.Home: DONE
-    -replace the stars on the grid items with number + *. exp.: **** -> 4*. make them small in the upper right coner of the grid item. 
-    -remove your offers both the text and the grid.
-    -make the ads grid as many rows as the page fits. 
-    -ask for the picture before starting.
-    -the upper left corner is with a button that leads to your offers.
-    -upper right corner button to the search.
-    -inbetween these add the hours logo.
+3.Home: 
    
 4.Nav bar: 
      -make the time on the navbar bigger but still fitting the existing space.
-     -make the nav bar always on insted of the nav button, on pages that are not scrollable
-5.Profile: DONE
-    -show your best skills only in a grid. only one row. follow the setting for the number of columns
-    -only show the review ratings and do that in the upper right corner similar to the search page.
-    -all skills can be a button, loads all skills (with filter public / private) puts in
-    -remove reviews
-    -
 
-6.Skills: DONE
-    -only show the review ratings and do that in the upper right corner similar to the search page. 
-    -add a simple search bar.
+5.Profile: 
+    -badges
 
+6.Skills: 
 
-7.Skill: DONE
-    -add private/public property
-    -now skills can be in the inventory 
-    -now items and skills has to be similar
+7.Skill: 
 
 8.Ad: 
 
-9.Inventory: DONE
-    -make the grid fill up the rest of the page. columns by the setting.
-    -make a version of the page that is scrollable. add the option to the settings. - inventory scrollable: yes / no
-    -get 2 buttons one for the skills and one for the items/skills.
-    -skills are opening a seperate view within the inventory to reveal the skills.
+9.Inventory: 
+    -when in trading context: make it better (for mark)
 
 10.Item:
 
-11.Trading: DONE
-    -ask for the image about the trading page.
+11.Trading:
 
 12.Trades:
     -filter beautification like in the search
 
-13.Sreach: DONE
-    -for both text and map view
-    -remove the search header from above the search field.
-    -add a small search button to the right of the sreach bar.
-    -remove the "show" text and make a small filter area. smaller as currently, it should include the skill/items/all, range, and minimum start rating.
-    -the veiw changeger  should move up the the right corner.
-    -the site is scrollable when there is enough items found.
-    -show the rating for both skills and items in the upper right coner as for example: 5*
+13.a.Sreach: 
     
-    13.1.Map search: DONE
-        - put the map under the search + filters fields.
-        -under the map use the usual grid structure (use the from setting how many items in a row)
+13.b.Map search:
 
-14.Icon: DONE
-    -replace the defaulte vite icons,logos with the logo of h_ours.
+14.Logo: 
+    -add the hours logo in the header bar, in the middle, make the buttons / text that its in its way smaller. make the logo same size as the home page has.
 
-15.Settings: (not for prototype)
-    -clean up data x days
+15.Settings:
+    -clean up data x days  (not for prototype)
+    -make a setting for scrollable offers, make it work too.
+    -create a hide nav bar setting. if turned on make the nav bar hide every page. otherwise make the navbar fixed on every page.
+    -text size? is selecting text size possible or is that somthing the phone controlls? can we get that from the phone. Do we need to do anything? 
 
-16.Offers: DONE
-    -remove the one of the skill offers section.
-    -make the item offers fill up the screen, mix it with skill offers.
-    -remove text "item offers" 
-    -put the add offer option into the first square of the grid.
-    -if the page is not full still show the empty grid spaces.
-    -keep the paging
+16.Offers: 
 
 17.Colors:
-    -introduce the company colors 
 
 18.Tooltips:
     -create a small circular button with an i in it. Its goal to provide short description for the give element / page.
@@ -88,3 +54,13 @@
     -have a close tooltip button in the left corner of the page.
     -have in the settings an option of hide tooltips.
     -if needed can be scrollable.
+
+19.Suggestions:
+    -create suggestions based on what you lookfor and what you offer. both for the main paig and in the trading page.
+    -
+
+20.Paging:
+    -put the paging dots under the grid. It looks stupid when its hidden by the nav bar, my bad.
+
+21.Icons:
+    -lets make tougether icons for the nav bar. so its looks nicer.

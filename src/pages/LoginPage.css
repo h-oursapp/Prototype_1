@@ -57,7 +57,11 @@
   padding: 14px 40px;
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  /* var(--surface), not a hardcoded white — every other brand-primary-filled button in the
+     app reads its label color this way (TODO #17), and it's what keeps this one legible in
+     dark mode, where brand-primary is a pale green that a plain white label would wash out
+     against. */
+  color: var(--surface);
   background: var(--brand-primary);
   clip-path: var(--chamfer);
 }

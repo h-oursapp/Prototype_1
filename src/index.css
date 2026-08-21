@@ -1,22 +1,35 @@
 /* Brand theme tokens. Light values live on :root; dark overrides apply when
-   <html data-theme="dark">, set by SettingsContext from the persisted/system theme. */
+   <html data-theme="dark">, set by SettingsContext from the persisted/system theme.
+   TODO #17: these are h_OURs' official brand colors (from the developer's brand-color
+   table), not placeholders — a green primary + an aubergine accent, matching the logo's
+   green-to-indigo gradient. The dark-theme values below are the official ones as given;
+   the light theme is this developer's own derivation (same hues, tuned for light
+   backgrounds) since only a dark palette was specified. */
 :root {
-  --brand-primary: #863bff;
-  --brand-primary-deep: #7e14ff;
-  --brand-accent: #47bfff;
-  --brand-tint: #ede6ff;
+  --brand-primary: #16825a;
+  --brand-primary-deep: #0f5b3f;
+  --brand-accent: #5a3fa0;
+  --brand-tint: #e5f6ee;
+  /* A second, decorative brand hue only — the diagonal wash behind onboarding's
+     illustration placeholder (onboarding.css), pairing this pale accent tint with the
+     dark theme's own "Verlaufston" (gradient tone) value below. Not used anywhere text
+     sits on top of it, unlike --brand-tint. */
+  --brand-gradient: #ede7f7;
 
   --bg: #fbf9ff;
   --surface: #ffffff;
   --surface-alt: #f4f0ff;
   --text: #1c1730;
   --text-muted: #6b6478;
+  /* A third, even-quieter text tier for things like disabled labels, timestamps and
+     hints — sits a step further from --text than --text-muted does. */
+  --text-faint: #8f889f;
   --border: #e4defa;
-  --gridline: rgba(134, 59, 255, 0.28);
-  --shadow: rgba(124, 58, 237, 0.12);
+  --gridline: rgba(22, 130, 90, 0.28);
+  --shadow: rgba(90, 63, 160, 0.12);
   /* Not part of the brand palette on purpose — a status colour (TradesPage's "awaiting review"
-   * highlight, TradingPage's Accept checkmark) needs to read as its own signal, not as more brand
-   * purple. */
+   * highlight, TradingPage's Accept checkmark) needs to read as its own signal, not as more
+   * brand green/aubergine. */
   --status-success: #2f9e44;
   --status-success-tint: #e6f6ea;
   /* Added for the Trading page's generosity meter (TODO #11) — the same "its own signal" reasoning
@@ -71,18 +84,26 @@
 }
 
 :root[data-theme='dark'] {
-  --brand-primary: #a866ff;
-  --brand-primary-deep: #9b3bff;
-  --brand-accent: #5fd1ff;
-  --brand-tint: #2a2340;
+  --brand-primary: #46c08e;
+  --brand-primary-deep: #2e8b6a;
+  --brand-accent: #5a3fa0;
+  /* Not the given "Verlaufston" (#3a2768) — that sits too close in lightness to
+     --brand-primary-deep to work as a background behind brand-primary-deep-colored text,
+     which is how --brand-tint is used everywhere (FilterChip, OptionGroup, PageShell,
+     etc.). This is a low-saturation dark green in the same hue instead, keeping that
+     pairing readable. Verlaufston itself lives on --brand-gradient below, where it's
+     genuinely used as a gradient stop rather than a text background. */
+  --brand-tint: #1b2d25;
+  --brand-gradient: #3a2768;
 
-  --bg: #14111d;
-  --surface: #1e1930;
-  --surface-alt: #251f3a;
-  --text: #f3f0fb;
-  --text-muted: #b0a8c4;
-  --border: #362d52;
-  --gridline: rgba(168, 102, 255, 0.35);
+  --bg: #181325;
+  --surface: #221b37;
+  --surface-alt: #1e1830;
+  --text: #f3effb;
+  --text-muted: #cbc4dd;
+  --text-faint: #9a91b4;
+  --border: #352b4e;
+  --gridline: rgba(70, 192, 142, 0.35);
   --shadow: rgba(0, 0, 0, 0.4);
   --status-success: #51cf66;
   --status-success-tint: #1c3324;
