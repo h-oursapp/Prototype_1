@@ -93,30 +93,22 @@
   color: var(--text-muted);
 }
 
-/* 'floating-dots' variant (TODO #16, Offers): pinned to the viewport's own bottom edge rather
- * than flowing after the grid, so it stays in the same spot regardless of how tall the grid's own
- * frame is. `z-index` sits below the nav bar's (10, NavBar.css) on purpose — the nav bar is
- * collapsed into a small corner button most of the time (useAutoCollapse), so this is visible
- * almost always, and it's fine for the nav bar to draw over it the few seconds it's expanded.
- * The strip itself ignores pointer events so its transparent left/right margins never block taps
- * on whatever is underneath; only the dots opt back in.
- *
- * Its vertical footprint (`bottom`/`height`) is deliberately the exact same box as the collapsed
- * nav bar's own reopen button (`--nav-bar-reopen-size`/`-margin`, shared via index.css) — that's
- * what centers the dots on the button's own middle rather than just guessing a `bottom` offset
- * that happens to look right. */
+/* 'dots' variant (TODO #16, Offers): a small dot-per-page strip, the alternative to the
+ * "← Page N of M →" buttons row above. Originally `position: fixed`, pinned to the viewport's own
+ * bottom edge so it stayed put regardless of how tall the grid's own frame was — with a `z-index`
+ * kept below the nav bar's (10, NavBar.css) on the assumption the nav bar would almost always be
+ * collapsed to its small corner button. TODO #20 direct feedback: "it looks stupid when its
+ * hidden by the nav bar" — the nav bar re-expands often enough (any tap, `useAutoCollapse`) that
+ * drawing over the strip read as broken, not deliberate. Flows after the grid now instead, same as
+ * the buttons row does — callers reserve room for it via `useFittingRows`' `reserveBottomPx`
+ * (`DOTS_ALLOWANCE_PX`, useFittingRows.ts) the same way they already did for the buttons row. */
 .paged-grid__dots {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--nav-bar-reopen-margin);
-  height: var(--nav-bar-reopen-size);
-  z-index: 5;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  pointer-events: none;
+  padding: 10px 0 6px;
 }
 
 .paged-grid__dot {

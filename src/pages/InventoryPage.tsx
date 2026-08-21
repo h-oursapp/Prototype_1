@@ -14,7 +14,7 @@ import { MOCK_YOUR_INVENTORY } from '../data/mockInventory'
 import type { Trade } from '../data/mockTrades'
 import { findTrade } from '../data/mockTrades'
 import { MOCK_SKILLS, type Skill } from '../data/mockUser'
-import { useFittingRows } from '../hooks/useFittingRows'
+import { DOTS_ALLOWANCE_PX, useFittingRows } from '../hooks/useFittingRows'
 import { ROUTES, adCreateWithItem, itemDetail, skillDetail, trading } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import { useTradeDraft } from '../trading/useTradeDraft'
@@ -112,11 +112,12 @@ function visibilityFilterLabel(visibilityFilter: VisibilityFilter): string {
  *    filter row instead of reusing that same setting — a tall phone gets more rows per page, not
  *    just narrower ones. PagedGrid still sizes each cell to the largest square that fits
  *    `columns × rows`, and a short last page still pads out with visibly empty slots. The pager
- *    itself is the same `pagerVariant="floating-dots"` PagedGrid grew for Offers (TODO #16) —
- *    direct feedback asked for the identical dot strip, pinned to the same spot above the nav
- *    bar's own reopen button, here too — so `useFittingRows` is also called with `reserveBottomPx`
- *    0 like Offers: the dots float outside the page's own flow, so nothing needs reserving for
- *    them. Direct feedback also gave the Skills view this exact same paged treatment (it started
+ *    itself is the same `pagerVariant="dots"` PagedGrid grew for Offers (TODO #16) — direct
+ *    feedback asked for the identical dot strip here too, and (TODO #20) it now flows right after
+ *    the grid rather than floating pinned over the nav bar (that collided with the nav bar itself
+ *    re-expanding over it) — so `useFittingRows` is called with `DOTS_ALLOWANCE_PX` as its
+ *    `reserveBottomPx`, the same way it's always been called with the buttons pager's own
+ *    allowance elsewhere. Direct feedback also gave the Skills view this exact same paged treatment (it started
  *    out always flowing/unpaged — see the view-switch bullet below) via its own, independent
  *    `useFittingRows` call: the two grid-area boxes are mutually exclusive, so sharing one ref
  *    between them would leave whichever wasn't measured first stuck with a stale row count after a
@@ -125,8 +126,8 @@ function visibilityFilterLabel(visibilityFilter: VisibilityFilter): string {
  *    "add the paging" would have nothing to actually show.
  *  - The "inventory scrollable: yes / no" Settings toggle (TODO #9) swaps which grid component
  *    *both* views render, not just a CSS overflow flag — direct feedback made this uniform rather
- *    than items-only: off keeps `useFittingRows` + PagedGrid (a fixed page, the floating-dots
- *    pager), on renders every match through the same flowing, no-row-cap grid Skills' standalone
+ *    than items-only: off keeps `useFittingRows` + PagedGrid (a fixed page, the dots pager), on
+ *    renders every match through the same flowing, no-row-cap grid Skills' standalone
  *    page (`FlowGrid` below) uses, letting the page itself grow and scroll —
  *    `.inventory-page--scrollable` is what hands scrolling back to PageShell's own content area
  *    (it's `overflow-y: auto` already; this page just opts out of that by default). InventoryPage.css's
@@ -184,14 +185,14 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
   )
   // The setting still drives columns; rows is measured from whatever height is actually left
   // under the search bar and filter row once they're on the page — see the file banner comment.
-  // `reserveBottomPx` is 0, same as Offers: the floating-dots pager below sits outside the page's
-  // own layout flow, so there's nothing to reserve room for. Skills gets its own independent
-  // measurement rather than sharing this one — the two grid-area boxes are mutually exclusive
-  // (only one is ever mounted at a time), and useFittingRows' own ResizeObserver is set up once
-  // per element it's first attached to, so a single shared ref wouldn't reliably re-measure the
-  // other view's box after a switch.
-  const { containerRef: gridAreaRef, rows } = useFittingRows(gridSize, gridSize, 0)
-  const { containerRef: skillsAreaRef, rows: skillRows } = useFittingRows(gridSize, gridSize, 0)
+  // `reserveBottomPx` reserves room for the dots pager below (TODO #20: it flows in-page now,
+  // instead of floating outside the page's own layout, so it needs the same kind of reserved
+  // space the buttons pager always did). Skills gets its own independent measurement rather than
+  // sharing this one — the two grid-area boxes are mutually exclusive (only one is ever mounted at
+  // a time), and useFittingRows' own ResizeObserver is set up once per element it's first attached
+  // to, so a single shared ref wouldn't reliably re-measure the other view's box after a switch.
+  const { containerRef: gridAreaRef, rows } = useFittingRows(gridSize, gridSize, DOTS_ALLOWANCE_PX)
+  const { containerRef: skillsAreaRef, rows: skillRows } = useFittingRows(gridSize, gridSize, DOTS_ALLOWANCE_PX)
   // Both views page (fixed grid + floating dots) when this is off, and both flow/scroll when it's
   // on — direct feedback made this apply uniformly, rather than Skills always flowing regardless
   // of the setting (that's how it started out). Falls back to PageShell's own scrolling content
@@ -251,7 +252,7 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
         columns={gridSize}
         rows={rows}
         gridLabel="Your inventory"
-        pagerVariant="floating-dots"
+        pagerVariant="dots"
         renderTile={renderItemTile}
       />
     )
@@ -272,7 +273,7 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
         columns={gridSize}
         rows={skillRows}
         gridLabel="Your skills"
-        pagerVariant="floating-dots"
+        pagerVariant="dots"
         renderTile={renderSkillTile}
       />
     )

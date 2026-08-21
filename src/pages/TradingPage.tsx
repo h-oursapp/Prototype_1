@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import wordmark from '../assets/hours-wordmark.png'
 import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
 import { SquareTile } from '../components/SquareTile'
@@ -317,11 +316,7 @@ function TradeScreen({ trade }: { trade: Trade }) {
   }
 
   return (
-    <PageShell
-      title={`Trading with ${trade.partner}`}
-      compactTitle
-      headerAction={<img className="trading-page__logo" src={wordmark} alt="h_OURs" />}
-    >
+    <PageShell title={`Trading with ${trade.partner}`} compactTitle>
       <div className="trading-page">
         <TradingTableZone
           trade={trade}

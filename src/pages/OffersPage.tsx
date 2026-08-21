@@ -8,7 +8,7 @@ import { SquareTile } from '../components/SquareTile'
 import { MAX_STARS } from '../components/StarRating'
 import type { Offer } from '../data/mockOffers'
 import { MOCK_YOUR_OFFERS } from '../data/mockOffers'
-import { useFittingRows } from '../hooks/useFittingRows'
+import { DOTS_ALLOWANCE_PX, useFittingRows } from '../hooks/useFittingRows'
 import { ROUTES, adDetail } from '../routes'
 import { useSettings } from '../settings/useSettings'
 import './OffersPage.css'
@@ -39,13 +39,12 @@ function matchesQuery(offer: Offer, query: string): boolean {
  *  page used to hand-roll: columns come from the grid-size setting, rows from whatever height is
  *  actually left under the header, and a short last page still pads out with visibly empty
  *  slots for free — TODO #16's "if the page is not full still show the empty grid spaces".
- *  Paging itself ("keep the paging") is still PagedGrid's own pager, just its 'floating-dots'
- *  variant: small dots pinned to the bottom of the viewport instead of a "← Page N of M →" row
- *  after the grid, per direct feedback. Since that pager no longer sits in-flow after the grid,
- *  `useFittingRows` is told there's no in-flow pager row to leave room for (`reserveBottomPx={0}`,
- *  the same argument Home's GridSection passes for the same reason) — the dots instead land in
- *  the bottom padding every page already reserves for the floating nav bar (PageShell.css), which
- *  is otherwise empty whenever the nav bar itself is collapsed to its corner button.
+ *  Paging itself ("keep the paging") is still PagedGrid's own pager, just its 'dots' variant:
+ *  small dots after the grid instead of a "← Page N of M →" row, per direct feedback. It used to
+ *  float pinned to the bottom of the viewport instead of flowing after the grid — TODO #20 undid
+ *  that (direct feedback: it disappeared under the nav bar whenever that re-expanded), so
+ *  `useFittingRows` now reserves `DOTS_ALLOWANCE_PX` of room for it, the same way it reserves room
+ *  for the buttons pager everywhere else that variant is used.
  *
  *  The add-more prompt moved from "the last free box on the last page" to "the grid's very first
  *  slot, always on page 1" (TODO #16: "put the add offer option into the first square of the
@@ -62,7 +61,7 @@ function matchesQuery(offer: Offer, query: string): boolean {
 export function OffersPage() {
   const navigate = useNavigate()
   const { gridSize } = useSettings()
-  const { containerRef, rows } = useFittingRows(gridSize, gridSize, 0)
+  const { containerRef, rows } = useFittingRows(gridSize, gridSize, DOTS_ALLOWANCE_PX)
   const [query, setQuery] = useState('')
 
   const openAdDetail = (offer: Offer) => navigate(adDetail(offer.id))
@@ -90,7 +89,7 @@ export function OffersPage() {
             columns={gridSize}
             rows={rows}
             gridLabel="Your offers"
-            pagerVariant="floating-dots"
+            pagerVariant="dots"
             renderTile={(slot) =>
               slot.kind === 'add' ? (
                 <SquareTile label="Add a new offer" onClick={openAdCreate}>

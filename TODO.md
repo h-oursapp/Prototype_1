@@ -9,7 +9,7 @@
     
 3.Home: 
    
-4.Nav bar: 
+4.Nav bar: DONE
      -make the time on the navbar bigger but still fitting the existing space.
 
 5.Profile: 
@@ -22,20 +22,45 @@
 8.Ad: 
 
 9.Inventory: 
-    -when in trading context: make it better (for mark)
+    -put items/skills to the right of search bar.
+
+    9.1.inventory in trading context: 
+        -the part where it says picking items... remove it.
+        -the text "your offer" replace it with "Trading with XY"
+        -forget drag and drop.
+        -when clicking on a grid item split it into 2. on top have inspect option that open the item/skill. on the bottom a + that adds it to the offer.
+        -for the trading area copy the top of the top half of the trading page. 3x2 grid accept / reject buttons + the generosity meter.
+        -the generosity meter should have the knowledge of whats on the trading table from my partner. so it can calculate the currrent level of generosity.
+        -show the already filled in items (including the time on offer)
+        -dont show the suggestions in it.
+        -dont show the to inventory button either.
+        -the items already in trade should keep their respected positions.
+        -fill up the grid starting from the lower right coner the last should be the upper left.
 
 10.Item:
 
 11.Trading:
-
+    -after the inventory button the first suggestion should be time. except if its a quick buy, than its already pre filled.
+    -when clicking on the time open a time picker within the grid cell. where the user can scroll up and down to choose the correct amount. it should have a minutes side.(no need to save the minutes atm)
+    -i want a button that opens my trading partners profil. not sure where.
+    -when the grid is full of items (6) than open inventory is not available anymore
+    --when clicking on a grid item split it into 2. on top have inspect option that open the item/skill. on the bottom a - that removes it to the offer.
 12.Trades:
     -filter beautification like in the search
+    -remove text "search trades" over the search field
+    -remove text "all trades"
+    -put all dev info remarks into an info button on the header
+    12.1.Trade card:
+        -look at the picture ./wireframes/trading_card.jpg
+        -the info button over the status, does nothing yet, but will be used later.
+        -the chat button should open the trade with the chat extended and in focus.
+        
 
 13.a.Sreach: 
     
 13.b.Map search:
 
-14.Logo: 
+14.Logo: DONE
     -add the hours logo in the header bar, in the middle, make the buttons / text that its in its way smaller. make the logo same size as the home page has.
 
 15.Settings:
@@ -59,8 +84,10 @@
     -create suggestions based on what you lookfor and what you offer. both for the main paig and in the trading page.
     -
 
-20.Paging:
+20.Paging: DONE
     -put the paging dots under the grid. It looks stupid when its hidden by the nav bar, my bad.
 
 21.Icons:
     -lets make tougether icons for the nav bar. so its looks nicer.
+    -make an X aka reject
+    -make a accept

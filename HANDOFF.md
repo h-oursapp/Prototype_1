@@ -77,6 +77,78 @@ npm run lint        clean
 npm run build       succeeds
 ```
 
+**2026-08-21, branch `todo-4-14-20-navbar-logo-paging`** built **TODO #4** (nav bar hours size),
+**#14** (the h_OURs logo in every header), and **#20** (paging dots), all requested together at the
+start of this session. Branched off `main` after confirming the same day's `todo-17-colors` work
+(below) was already committed and merged (PR #23) — Márk's own call when asked how to handle it.
+
+- **TODO #4**: the nav bar's Hours label went from 18px to 22px (NavBar.css) — still clears
+  `.nav-bar__item--wide`'s slot with room for a "10h15m"-shaped balance; `.nav-bar__label`'s
+  existing `overflow: hidden`/ellipsis is the safety net if a future balance's label ever runs
+  longer than that.
+- **TODO #14**: `PageShell`'s header now carries the h_OURs wordmark dead-center on every page that
+  uses it — same image, same 32px height as Home's own topbar logo (`MainPage.css`'s
+  `.main-page__logo`). It's `position: absolute` rather than a third flex child, specifically so
+  headerAction's wildly different widths across pages (nothing on Wallet, a three-icon row on
+  Inventory, a text button on Community) can't nudge it off-center. This replaces the one-off logo
+  Trading used to bolt into its own `headerAction` (see this file's 2026-08-17 entry, TODO #13/#14)
+  — every page gets it for free now, and that per-page CSS/import is gone. The back button, title,
+  and both `headerAction` button variants all shrank one step (32px→28px boxes, a font-size or two
+  down) to leave it real room.
+- **Direct feedback, same session: "the header bar thickness is all over the place, choose Profile
+  as standard, make all the same."** This didn't come from reading the CSS — `PageShell` is one
+  shared component, so on paper every header should already match. It came from actually running
+  the app: no project skill covers launching it yet, and `chromium-cli` wasn't installed, so this
+  used `npx playwright` (Chromium was already cached locally) directly against the real `npm run
+  dev` server rather than jsdom, which this repo's own tests already can't trust for layout
+  (§3's own trap note). Logging in and clicking through onboarding's Skip buttons was required —
+  `page.goto` on a fresh URL drops the in-memory `isSignedIn` flag (App.tsx), so only client-side
+  navigation (clicking nav bar buttons) keeps a session alive across pages. Measuring
+  `.page-shell__header`'s real `getBoundingClientRect()` height on every page found the actual
+  bug: every page measured 53.0px except Community and AdDetail, at 62.2px. Root cause:
+  `.page-shell__action--text` (Community's "Blocked persons" toggle, AdDetail's "View only"
+  toggle) was the one header control with no explicit height — sized only by its own padding plus
+  whatever its text's line-height happened to compute to, which this environment's font metrics
+  put at nearly double a plain 1.2 ratio. Fixed by giving it the same fixed 28px box every other
+  header control already had (`display: flex` centering instead of relying on padding to look
+  right) — confirmed back down to 53.0px everywhere by re-measuring, not just re-reading the CSS.
+- **That same measuring pass caught two more real bugs the logo-centering change introduced**,
+  neither visible from the CSS alone: Trading's title ("Trading with {partner}") ran text straight
+  under the now-centered logo once a name was long enough — `.page-shell__title` gained a
+  `max-width` (`calc(50% - 90px)`, hand math: half the header minus the logo's own half-width and
+  the back button/gap/padding the title starts after) so ellipsis takes over before that happens;
+  the partner's name is still readable elsewhere on that page (the inventory button, chat, table
+  labels) even when the title itself truncates to "Trading with…". Capping the title's width then
+  broke the *other* job its old `flex: 1` was quietly doing — pushing `headerAction` flush against
+  the header's right edge by consuming all the leftover space itself. Once it stopped growing that
+  far, a headerAction (Inventory's three icons, concretely) drifted left into the logo instead of
+  staying pinned right. Fixed with a new `.page-shell__header-end` wrapper around `headerAction`
+  using `margin-left: auto`, which claims that leftover space independently of the title's own
+  width. All three fixes were re-verified with real screenshots (Profile, Community, Inventory,
+  Trading, Search, AdDetail), not just the numeric measurements.
+- **TODO #20**: `PagedGrid`'s dot-per-page pager (Inventory's two views, Offers) used to be
+  `position: fixed`, pinned to the viewport's own bottom edge at the same spot as the nav bar's
+  collapsed reopen button — direct feedback: "it looks stupid when it's hidden by the nav bar"
+  (the nav bar re-expands on any tap, drawing over it, `z-index` intentionally lower). Moved back
+  into the page's normal flow, right after the grid, the same as the "buttons" pager variant
+  always has been. Renamed the variant `'floating-dots'` → `'dots'` throughout (the type, both call
+  sites, the tests) since "floating" no longer describes it. Inventory and Offers now call
+  `useFittingRows` with a new `DOTS_ALLOWANCE_PX` (24px, hand-kept in sync with
+  `.paged-grid__dots`'s own CSS height — the codebase's established tradeoff for a number CSS can't
+  hand to JS, see `gapForWidth`'s own comment) instead of `reserveBottomPx={0}`, so the grid leaves
+  the dots real room instead of the dots floating outside the page's layout. `--nav-bar-reopen-size`
+  /`-margin` — pulled into shared `index.css` tokens purely so the old fixed-position dots could
+  line up against the collapsed nav bar's own button — went back to being plain numbers inside
+  `NavBar.css`, their only remaining reader.
+- Touched: `PageShell.tsx`/`.css`, `NavBar.css`, `PagedGrid.tsx`/`.css`, `useFittingRows.ts`,
+  `InventoryPage.tsx`, `OffersPage.tsx`, `TradingPage.tsx`/`.css`, `PagedGrid.test.tsx`, `index.css`.
+  `npm run test` (454 tests), `npx tsc --noEmit`, `npm run lint`, and `npm run build` all clean.
+- **Worth knowing for next time**: this repo still has no committed way to actually run/screenshot
+  itself — `npx playwright` (with Chromium already cached on this machine) was used ad hoc, not
+  added as a project dependency. If visual verification like this comes up often enough, it's worth
+  running `/run-skill-generator` to turn today's login/onboarding-skip/measure recipe into a real
+  project skill instead of re-deriving it each time.
+
 **Before this branch's work lands, `main` is missing the previous session's TODO #5–#7 rework.**
 PR #21 (`todo-5-7-profile-skills-rework`) merged into `todo-16-offers`, not `main` — its own base
 branch — because it had been opened while PR #20 (`todo-16-offers` → `main`) was still open, per
@@ -513,11 +585,17 @@ src/
   components/              reusable across pages
     PageShell.tsx/.css     the frame every page uses except Home. `compactTitle` shrinks the
                            header's <h1> for a page that's already tight on room (Trading).
-                           Its back button uses topLevelRoutes.ts (below) — TODO #4
+                           Its back button uses topLevelRoutes.ts (below) — TODO #4. The h_OURs
+                           logo sits dead-center in every header (`position: absolute`, TODO #14)
+                           regardless of what headerAction a page passes — see §8 for why that's
+                           absolute rather than a flex child, and for the two knock-on layout bugs
+                           (title running under the logo, headerAction drifting off the right edge)
+                           fixing that one thing surfaced
     topLevelRoutes.ts      isTopLevelRoute() — pure, unit-tested; the "back always goes Home
                            from here" page list (TODO #4), pulled out of PageShell.tsx so that
                            file can keep exporting only its component (Fast Refresh lint rule)
-    NavBar.tsx/.css        bottom nav, self-navigating, floating (TODO #4)
+    NavBar.tsx/.css        bottom nav, self-navigating, floating (TODO #4). Hours reads as a big
+                           plain number, sized up once already by direct feedback (TODO #4)
     navItems.ts            nav list + activeNavKey() — pure, unit-tested
     useAutoCollapse.ts     the §3 nav auto-collapse timer
     GridSection.tsx        Home's one remaining grid (Ads — Your offers' own grid is gone, TODO
@@ -529,9 +607,11 @@ src/
                            Offers (TODO #16), every row on Trading (skills, the trading table), and
                            (TODO #3) GridSection's own rendering — see §8. `pagerVariant` is
                            `'buttons'` (the "← Page N of M →" row, hidden on a single page) or
-                           `'floating-dots'` (a dot-per-page strip pinned to the viewport's own
-                           bottom edge, TODO #16 — always shows *at least one* dot even on a single
-                           page, TODO #9's second rework, see §8)
+                           `'dots'` (a dot-per-page strip, TODO #16 — always shows *at least one*
+                           dot even on a single page, TODO #9's second rework, see §8). Used to be
+                           called `'floating-dots'` and sit `position: fixed` pinned over the
+                           viewport's bottom edge; TODO #20 moved it back into the page's normal
+                           flow, right after the grid, once that collided with the nav bar itself
     RatingBadge.tsx/.css   the compact "N★" corner badge (TODO #13), reused by Home's grid tiles
                            (TODO #3), then Inventory's item *and* Skills-view tiles plus
                            PartnerInventoryPage's (TODO #9's second rework) once there were real
