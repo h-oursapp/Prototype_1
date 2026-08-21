@@ -1,0 +1,109 @@
+/* TimeScrollPicker (TODO #11) — see the component's own doc comment for why this floats over the
+ * grid rather than fitting inside one tile's square footprint. Colours come only from the theme
+ * tokens in index.css; corners are cut with clip-path, never border-radius. */
+
+.time-scroll-picker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  width: max-content;
+  background: var(--surface);
+  border: 2px solid var(--brand-primary);
+  clip-path: var(--chamfer);
+  box-shadow: 0 4px 16px var(--shadow);
+}
+
+.time-scroll-picker__columns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.time-scroll-picker__separator {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.time-scroll-picker__column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Three rows tall (28px each) with one row's worth of padding above and below — that's what lets
+ * the first and last values scroll all the way to the column's own vertical center, the same
+ * "half a row of breathing room" trick a native wheel picker uses. `scroll-snap-type` settles the
+ * list on a row boundary once a drag/momentum scroll stops, matching the row math `handleScroll`
+ * (TimeScrollPicker.tsx) already assumes. */
+.time-scroll-picker__list {
+  width: 48px;
+  height: 84px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  padding: 28px 0;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+  /* Fades the top/tail rows rather than hard-cropping them — reads as "more to scroll to" instead
+   * of a clipped edge. */
+  mask-image: linear-gradient(to bottom, transparent, var(--surface) 28px, var(--surface) calc(100% - 28px), transparent);
+}
+
+.time-scroll-picker__row {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+  width: 100%;
+  height: 28px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+}
+
+.time-scroll-picker__row.is-selected {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--brand-primary-deep);
+}
+
+.time-scroll-picker__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.time-scroll-picker__remove,
+.time-scroll-picker__done {
+  flex: 1;
+  font-size: 11px;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.time-scroll-picker__remove {
+  color: var(--text-muted);
+}
+
+.time-scroll-picker__remove:hover {
+  color: var(--text);
+  background: var(--surface-alt);
+}
+
+.time-scroll-picker__done {
+  color: var(--brand-primary-deep);
+  font-weight: 600;
+}
+
+.time-scroll-picker__done:hover {
+  background: var(--brand-tint);
+}

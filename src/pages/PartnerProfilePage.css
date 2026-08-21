@@ -1,0 +1,65 @@
+/* Partner profile (TODO #11): a read-only, minimal read-out of one trading partner's profile.
+ * Colours come only from the theme tokens in index.css, and corners are cut with clip-path —
+ * never border-radius. No `.partner-profile-page { height: 100% }` the way Inventory/
+ * PartnerInventory need — this page's content is short prose, not a grid fighting for every
+ * pixel, so it just flows and lets PageShell's own scrolling content area handle overflow. */
+
+.partner-profile-page {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Same shape as ProfilePage's own identity block (ProfilePage.css) — picture with the personal
+ * info beside it — just under this page's own class prefix. */
+.partner-profile-page__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.partner-profile-page__avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  font-size: 48px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.partner-profile-page__personal {
+  min-width: 0;
+}
+
+.partner-profile-page__name {
+  font-size: 20px;
+}
+
+.partner-profile-page__meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.partner-profile-page__headline {
+  margin: 0;
+}
+
+.partner-profile-page__link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--brand-primary);
+}
+
+.partner-profile-page__link:hover {
+  color: var(--brand-primary-deep);
+}
+
+.partner-profile-page__not-found-title {
+  font-size: 15px;
+}

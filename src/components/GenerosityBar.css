@@ -1,0 +1,43 @@
+/* GenerosityBar (TODO #11, extracted for TODO #9.1 — see the component's own doc comment).
+ * Colours come only from the theme tokens in index.css; corners are cut with clip-path, never
+ * border-radius. Sized to sit beside a 44px-tall pair of accept/decline buttons wherever it's
+ * used — both current callers (TradingPage, Inventory's trading-table overlay) give it a row of
+ * exactly that height. */
+
+.generosity-bar {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 2px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+/* Text colour is --surface on purpose, not a fixed light/dark value: light mode's fill colours are
+ * dark/saturated (white text reads well), dark mode's are pale (see index.css) and --surface there
+ * is a dark plum — the same token flips to the right contrast in both themes for free. */
+.generosity-bar.is-red {
+  color: var(--surface);
+  background: var(--status-danger);
+  border-color: var(--status-danger);
+}
+
+.generosity-bar.is-yellow {
+  color: var(--surface);
+  background: var(--status-warning);
+  border-color: var(--status-warning);
+}
+
+.generosity-bar.is-green {
+  color: var(--surface);
+  background: var(--status-success);
+  border-color: var(--status-success);
+}

@@ -22,6 +22,21 @@ describe('TransferBox', () => {
     expect(screen.getByText('Nothing in the offer yet.')).toBeInTheDocument()
   })
 
+  it('defaults its heading to "Your offer" when no caller names one', () => {
+    renderWithRouter(<TransferBox items={[]} {...TRADE_PROPS} onRemove={vi.fn()} onPrimary={vi.fn()} />)
+
+    expect(screen.getByRole('heading', { name: 'Your offer' })).toBeInTheDocument()
+  })
+
+  it('shows the caller-given heading instead, when one is passed (TODO #9.1)', () => {
+    renderWithRouter(
+      <TransferBox heading="Trading with Lena K." items={[]} {...TRADE_PROPS} onRemove={vi.fn()} onPrimary={vi.fn()} />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Trading with Lena K.' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Your offer' })).toBeNull()
+  })
+
   it('lists offered items and calls onRemove for the one removed', async () => {
     const user = userEvent.setup()
     const onRemove = vi.fn()

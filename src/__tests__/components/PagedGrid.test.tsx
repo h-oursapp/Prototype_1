@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { PagedGrid } from '../../components/PagedGrid'
 
 function makeItems(count: number): { id: string; label: string }[] {
@@ -166,6 +166,48 @@ describe('PagedGrid', () => {
     expect(screen.getByText('Item 8')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Page 3 of 3' })).toHaveAttribute('aria-current', 'true')
     expect(screen.getByRole('button', { name: 'Page 1 of 3' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('calls onPageChange with the landed-on page, for buttons, dots and both directions alike (TODO #9.1)', async () => {
+    const user = userEvent.setup()
+    const onPageChange = vi.fn()
+    render(
+      <PagedGrid
+        items={makeItems(9)}
+        getKey={(item) => item.id}
+        renderTile={(item) => <span>{item.label}</span>}
+        columns={2}
+        rows={2}
+        gridLabel="Items"
+        onPageChange={onPageChange}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(onPageChange).toHaveBeenLastCalledWith(1)
+
+    await user.click(screen.getByRole('button', { name: 'Previous page' }))
+    expect(onPageChange).toHaveBeenLastCalledWith(0)
+  })
+
+  it('calls onPageChange when a dot is tapped too', async () => {
+    const user = userEvent.setup()
+    const onPageChange = vi.fn()
+    render(
+      <PagedGrid
+        items={makeItems(9)}
+        getKey={(item) => item.id}
+        renderTile={(item) => <span>{item.label}</span>}
+        columns={2}
+        rows={2}
+        gridLabel="Items"
+        pagerVariant="dots"
+        onPageChange={onPageChange}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Page 3 of 3' }))
+    expect(onPageChange).toHaveBeenCalledWith(2)
   })
 
   it('keeps empty padding cells out of the accessibility tree', () => {

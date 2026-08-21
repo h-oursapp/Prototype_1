@@ -12,6 +12,10 @@ export interface TransferBoxItem {
 }
 
 interface TransferBoxProps {
+  /** TODO #9.1: "the text 'your offer' replace it with 'Trading with XY'" — only Inventory's
+   *  trade-context call site passes this; the ad-picker keeps the generic default below, since
+   *  there's no partner name to put in its place. */
+  heading?: string
   items: TransferBoxItem[]
   /** Singular noun for what's being transferred — named in the drag-and-drop note below
    *  ("use '{pickActionLabel}' on a {noun} above"). */
@@ -52,6 +56,7 @@ interface TransferBoxProps {
  *  trading" into `backTo`/`primaryLabel`/`onPrimary` for the same reason, once picking a new ad's
  *  subject became a second real context this same box needed to serve. */
 export function TransferBox({
+  heading = 'Your offer',
   items,
   noun,
   pickActionLabel,
@@ -65,7 +70,7 @@ export function TransferBox({
 }: TransferBoxProps) {
   return (
     <section className="page-section">
-      <h2 className="page-section__heading">Your offer</h2>
+      <h2 className="page-section__heading">{heading}</h2>
 
       <div className="page-card transfer-box">
         <div className="transfer-box__drop" role="group" aria-label="Your offer for this trade">

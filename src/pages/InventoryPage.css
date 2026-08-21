@@ -33,20 +33,42 @@
   overflow: visible;
 }
 
+/* ---------- Search row (TODO #9: the view switch moved beside the search bar instead of
+   stacking above it) ---------- */
+
+/* SearchBar (components/SearchBar.css) has no width opinion of its own — its field just fills
+ * whatever box it's given — so this is the one place that gives it `flex: 1` and lets the view
+ * switch keep its own natural width beside it. `align-items: stretch` (the flex default, spelled
+ * out here since it's load-bearing) is what makes the view switch match the search bar's height
+ * exactly, whatever that height computes to — rather than a fixed number that would need to be
+ * kept in sync by hand if the search bar's own padding or font size ever changed. */
+.inventory-page__search-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.inventory-page__search-row .search-bar {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ---------- View switch (direct feedback, twice over: replaces the old "X of Y items are
    visible to a trading partner" summary line, the two-button OptionGroup that first replaced it,
    and the single header button that replaced *that* — see InventoryPage.tsx's ViewSwitch and its
    own doc comment) ---------- */
 
-/* One button, sized to its own content (not stretched to the flex column's full width) — the
- * chamfer and border are the same materials FilterChip's trigger and OptionGroup's options use,
- * just arranged as a sliding two-segment control instead of a row of separate buttons. */
+/* Sized to its own content horizontally, but matches the search bar's height vertically (direct
+ * feedback) — no `align-self` override here, so it takes the row's `align-items: stretch` above
+ * rather than shrinking to its own text. The chamfer and border are the same materials FilterChip's
+ * trigger and OptionGroup's options use, just arranged as a sliding two-segment control instead of
+ * a row of separate buttons. A row sibling of the search bar (TODO #9) rather than stacked above
+ * it, so no bottom margin of its own — `.inventory-page__search-row`'s `gap` does that job instead. */
 .inventory-page__view-switch {
   position: relative;
-  align-self: flex-start;
   flex-shrink: 0;
   display: flex;
-  margin: 0 0 6px;
   background: var(--surface);
   border: 1px solid var(--border);
   clip-path: var(--chamfer);
@@ -75,7 +97,13 @@
    * text widths. box-sizing: border-box (index.css's `*` reset) means this already includes the
    * padding below. */
   width: 64px;
-  padding: 6px 8px;
+  /* The switch itself now stretches taller than this text needs (matching the search bar's
+   * height) — centering with flex, rather than fixed top/bottom padding, keeps the label in the
+   * middle of that box instead of stuck to its top edge. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
   font-size: 11px;
   font-weight: 600;
   text-align: center;
@@ -84,8 +112,11 @@
   letter-spacing: 0.04em;
 }
 
-.inventory-page__view-switch:not(.is-skills) .inventory-page__view-switch-option:first-child,
-.inventory-page__view-switch.is-skills .inventory-page__view-switch-option:last-child {
+/* Driven straight off each span's own `is-active` class (InventoryPage.tsx), not off DOM position
+ * — a `:first-child`/`:last-child` version of this rule looked right for the Skills side but
+ * silently never matched the Items span (it's the thumb span above that's the button's actual
+ * first child), so Items was muted no matter which view was active. See ViewSwitch's own comment. */
+.inventory-page__view-switch-option.is-active {
   color: var(--brand-primary-deep);
 }
 
@@ -200,6 +231,242 @@
   margin-top: 2px;
   font-size: 10px;
   color: var(--brand-primary-deep);
+}
+
+/* ---------- TradeItemTile's split (TODO #9.1) ---------- */
+
+/* Same shape as TradingPage's own `.trading-page__split-tile` (TODO #11) — a square tile split
+ * into a tall inspect half and a slim action strip along the bottom — mirrored rather than shared
+ * between the two pages (see TradeItemTile's own doc comment on why this one only ever adds). */
+.inventory-page__split-tile {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gridline);
+  clip-path: var(--chamfer);
+  overflow: hidden;
+}
+
+.inventory-page__split-inspect {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  font-size: 20px;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.inventory-page__split-inspect:hover {
+  background: var(--surface-alt);
+}
+
+.inventory-page__split-add {
+  flex-shrink: 0;
+  height: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary-deep);
+  background: var(--brand-tint);
+  border: none;
+}
+
+.inventory-page__split-add:hover {
+  background: var(--brand-primary);
+  color: var(--surface);
+}
+
+/* No add/remove action of its own (TradeItemTile's own comment) — muted rather than styled like a
+ * live action button, so it doesn't read as a control that's simply not working. */
+.inventory-page__split-added {
+  flex-shrink: 0;
+  height: 22px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: none;
+}
+
+.inventory-page__split-added:hover {
+  background: var(--border);
+}
+
+/* The overlay's own item tiles (TableOverlayTileView) reuse everything above except this one half
+ * — they remove rather than add, same "−" shape as TradingPage's own `.trading-page__split-remove`
+ * (TODO #11), mirrored here rather than shared per this round's own Q&A. */
+.inventory-page__split-remove {
+  flex-shrink: 0;
+  height: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--status-danger);
+  background: var(--status-danger-tint);
+  border: none;
+}
+
+.inventory-page__split-remove:hover {
+  background: var(--status-danger);
+  color: var(--surface);
+}
+
+/* ---------- The trading-table overlay (TODO #9.1) ---------- */
+
+/* "Put the trading table on the bottom, make it overlay the inventory parts" — `position: fixed`
+ * over the page, not a flex sibling that would eat into the grid's own space, the same reasoning
+ * TradingPage's own chat overlay already documents (TradingPage.css). Matches `.inventory-page`'s
+ * own centered 480px max width so it lines up with the page underneath it rather than spanning the
+ * full viewport on a wide screen. `bottom: 0` rather than offset above the nav bar — direct
+ * feedback moved the table down to the true bottom edge once the nav bar stopped sharing it
+ * (InventoryScreen's own `hideNavBar` on PageShell): this overlay only ever mounts in the same
+ * trading context that hides the nav bar, so there's never a bar left underneath it to clear. */
+.inventory-page__table-overlay,
+.inventory-page__table-collapsed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-top: 2px solid var(--brand-primary);
+  box-shadow: 0 -2px 12px var(--shadow);
+}
+
+/* The collapsed strip: "in hidden form it should say 'choose what to trade' and add a button to
+ * expand it next to the text." */
+.inventory-page__table-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.inventory-page__table-expand,
+.inventory-page__table-collapse {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--brand-primary-deep);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  clip-path: var(--chamfer);
+}
+
+.inventory-page__table-expand:hover,
+.inventory-page__table-collapse:hover {
+  background: var(--brand-tint);
+}
+
+.inventory-page__table-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
+}
+
+.inventory-page__table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inventory-page__table-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Fixed height, not sized off the page's own remaining space the way PagedGrid's frame is — this
+ * overlay never has to fit "whatever's left", it just needs its own 3x2 square grid to look right
+ * at a phone-width `.inventory-page`'s own fixed max-width. */
+.inventory-page__table-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.inventory-page__table-cell {
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+.inventory-page__table-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-alt);
+  border: 1px dashed var(--gridline);
+  clip-path: var(--chamfer);
+  opacity: 0.5;
+}
+
+/* Wraps the Time tile so TimeScrollPicker (shared with TradingPage) has a `position: relative`
+ * anchor to float over — same technique as `.trading-page__time-cell` (TradingPage.css). */
+.inventory-page__table-time-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.inventory-page__table-respond {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inventory-page__table-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  /* Holds its footprint even with nothing inside (an already-agreed/closed trade has no
+   * Accept/Decline to show) — same reasoning as TradingPage's own `.trading-page__respond-actions`. */
+  min-height: 36px;
+}
+
+.inventory-page__table-accept,
+.inventory-page__table-decline {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  clip-path: var(--chamfer);
+}
+
+.inventory-page__table-accept {
+  border: 2px solid var(--status-success);
+}
+
+.inventory-page__table-accept:hover {
+  background: var(--status-success-tint);
+}
+
+.inventory-page__table-decline {
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+}
+
+.inventory-page__table-decline:hover {
+  background: var(--surface-alt);
 }
 
 /* ---------- The flowing grid (TODO #9: scrollable items, and the Skills view) ---------- */

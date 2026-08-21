@@ -23,11 +23,11 @@
 
 9.Inventory: 
     -put items/skills to the right of search bar.
+    -items/skills button, its a toggle but because of that the highlighting is inconsistent. when items are choose, it should be highlighted as is now. but skills text should be muted. when skills are choosen the items should be muted and skills highlited
 
-    9.1.inventory in trading context: 
+    9.1.inventory in trading context: DONE
         -the part where it says picking items... remove it.
         -the text "your offer" replace it with "Trading with XY"
-        -forget drag and drop.
         -when clicking on a grid item split it into 2. on top have inspect option that open the item/skill. on the bottom a + that adds it to the offer.
         -for the trading area copy the top of the top half of the trading page. 3x2 grid accept / reject buttons + the generosity meter.
         -the generosity meter should have the knowledge of whats on the trading table from my partner. so it can calculate the currrent level of generosity.
@@ -36,15 +36,17 @@
         -dont show the to inventory button either.
         -the items already in trade should keep their respected positions.
         -fill up the grid starting from the lower right coner the last should be the upper left.
+        -put the trading table on the bottom. make it overlay the invetory parts. make it hide when the user searches or scrolls/flips the page. in hidden form it should say "choose what to trade" and add a button to expand it next to the text.
 
 10.Item:
 
-11.Trading:
+11.Trading: DONE except the open question below
     -after the inventory button the first suggestion should be time. except if its a quick buy, than its already pre filled.
     -when clicking on the time open a time picker within the grid cell. where the user can scroll up and down to choose the correct amount. it should have a minutes side.(no need to save the minutes atm)
-    -i want a button that opens my trading partners profil. not sure where.
+    -i want a button that opens my trading partners profil. not sure where. OPEN QUESTION: tried it as a grid tile, pulled back out - placement still undecided.
     -when the grid is full of items (6) than open inventory is not available anymore
-    --when clicking on a grid item split it into 2. on top have inspect option that open the item/skill. on the bottom a - that removes it to the offer.
+    -when clicking on a grid item split it into 2. on top have inspect option that open the item/skill. on the bottom a - that removes it to the offer.
+
 12.Trades:
     -filter beautification like in the search
     -remove text "search trades" over the search field
@@ -64,6 +66,7 @@
     -add the hours logo in the header bar, in the middle, make the buttons / text that its in its way smaller. make the logo same size as the home page has.
 
 15.Settings:
+    -language en, de, hu, fr.
     -clean up data x days  (not for prototype)
     -make a setting for scrollable offers, make it work too.
     -create a hide nav bar setting. if turned on make the nav bar hide every page. otherwise make the navbar fixed on every page.

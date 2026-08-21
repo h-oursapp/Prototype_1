@@ -1,15 +1,23 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { GenerosityBar } from '../components/GenerosityBar'
 import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
 import { SquareTile } from '../components/SquareTile'
+import { TimeScrollPicker } from '../components/TimeScrollPicker'
 import type { InventoryItem } from '../data/mockInventory'
 import { MOCK_PARTNER_INVENTORY, MOCK_YOUR_INVENTORY, publicItems } from '../data/mockInventory'
 import type { ChatMessage, Trade } from '../data/mockTrades'
 import { TRADE_STATUS_LABEL, canRespondToOffer, findTrade, statusAfterAccept } from '../data/mockTrades'
 import type { Skill } from '../data/mockUser'
 import { MOCK_HOURS_BALANCE, MOCK_PARTNER_SKILLS, MOCK_SKILLS } from '../data/mockUser'
-import { finalReview, inventoryForTrade, partnerInventoryForTrade, ROUTES } from '../routes'
+import {
+  finalReview,
+  inventoryForTrade,
+  itemDetail,
+  partnerInventoryForTrade,
+  ROUTES,
+} from '../routes'
 import { useTradeDraft } from '../trading/useTradeDraft'
 import './TradingPage.css'
 
@@ -64,6 +72,30 @@ import './TradingPage.css'
  *    room left in the new two-button bottom row, so it's dropped rather than squeezed in somewhere
  *    it wasn't asked for.
  *
+ *  TODO #11's next round, on top of both of the above:
+ *  - **Your own grid's opener tile disappears once the real offer alone fills all 6 slots** —
+ *    "when the grid is full of items (6), open inventory is not available anymore". See
+ *    `hasRoomToAddMore` below.
+ *  - **"A button that opens my trading partner's profile" is still an open question** (Márk's own
+ *    words: "not sure where") — a grid tile was tried here for one round, but got pulled back out
+ *    (direct feedback) since the placement itself wasn't settled yet, not because a tile is
+ *    necessarily wrong. TODO #11 keeps the request open rather than the tile as a placeholder
+ *    answer; `PartnerProfilePage` (routes.ts's `partnerProfileForTrade`) still exists and is still
+ *    reachable directly by URL, just not linked from anywhere in the UI yet.
+ *  - **Time already was the slot right after the inventory opener, pre-filled on a quick offer**
+ *    — this round found that already true from the "both grids bigger" rework, not something
+ *    that needed changing.
+ *
+ *  A later round changed what "pre-filled" actually means the rest of the time: **opening the
+ *  table plainly (not via Quick Buy) now starts Time as a suggestion, not a real offer** —
+ *  "opening the trading window the time should be just a suggestion, opaque like the others, and
+ *  show 1 hour... if its added make it active like now, if its removed make it a suggestion
+ *  again" (Márk's own words). `SUGGESTED_TIME_HOURS` is that flat "1 hour", and
+ *  `getIsTimeOffered`'s own fallback (`isQuickOffer`) is what keeps Quick Buy's own "already
+ *  pre-filled" behaviour untouched — see tradeDraftContextInstance.ts's file comment. Declining
+ *  now resets Time to that same suggestion state too (TradeDraftContext.tsx's `resetOffer`), not
+ *  back to an active default — a declined offer should look exactly like a fresh one.
+ *
  *  The page reads its own :tradeId, so it takes no props. An id that isn't in the mock data
  *  renders a "trade not found" card rather than crashing. */
 export function TradingPage() {
@@ -98,15 +130,18 @@ function TradeNotFound() {
 
 /* ---------- Grid entry types ---------- */
 
-/** Everything either grid can show, in one union: the real offer (`time`/`add-time`/`item`), each
- *  side's own inventory shortcut (`open-inventory`), and the mock filler that pads out whatever's
- *  left (`suggested-item`/`suggested-skill`) — see the file banner comment for why all three kinds
- *  of "not a real offered thing" exist. One type rather than three separate ones because every
- *  slot in a grid is interchangeable from PagedGrid's point of view; TableTileView is the only
- *  place that needs to tell them apart. */
+/** Everything either grid can show, in one union: the real offer (`time`/`suggested-time`/`item`),
+ *  each side's own inventory shortcut (`open-inventory`), and the mock filler that pads out
+ *  whatever's left (`suggested-item`/`suggested-skill`) — see the file banner comment for why all
+ *  these kinds of "not a real offered thing" exist. `suggested-time` is the odd one out among
+ *  them: unlike every other "suggested" kind, tapping it is a real action (TableTileView's own
+ *  comment). One type rather than separate ones because every slot in a grid is interchangeable
+ *  from PagedGrid's point of view; TableTileView is the only place that needs to tell them apart.
+ *  (A `'open-profile'` kind lived here for one round — see the file banner comment on why it was
+ *  pulled back out.) */
 type TableEntry =
   | { kind: 'time'; hours: number; editable: boolean }
-  | { kind: 'add-time' }
+  | { kind: 'suggested-time' }
   | { kind: 'item'; item: InventoryItem }
   | { kind: 'open-inventory'; label: string; onOpen: () => void }
   | { kind: 'suggested-item'; item: InventoryItem }
@@ -116,8 +151,8 @@ function entryKey(entry: TableEntry): string {
   switch (entry.kind) {
     case 'time':
       return 'time'
-    case 'add-time':
-      return 'add-time'
+    case 'suggested-time':
+      return 'suggested-time'
     case 'item':
       return entry.item.id
     case 'open-inventory':
@@ -142,6 +177,12 @@ const PARTNER_GRID_COLUMNS = 3
 const PARTNER_GRID_ROWS = 2
 
 const SUGGESTION_LABEL_PREFIX = 'Suggested:'
+
+/** Direct feedback: "opening the trading window the time should be just a suggestion... and show
+ *  1 hour." A flat number rather than anything derived from the trade (`trade.yourHours`, say) —
+ *  the suggestion is deliberately generic, the same one hour regardless of which trade it's on,
+ *  unlike the real offer it turns into once accepted. */
+const SUGGESTED_TIME_HOURS = 1
 
 /** A tiny, deterministic stand-in for "pick something to show" — stable across re-renders (the
  *  grid shouldn't reshuffle itself every time you adjust the hour stepper) and predictable in
@@ -177,9 +218,13 @@ function suggestionEntries(seed: string, items: InventoryItem[], skills: Skill[]
 
 /** TODO #8: Quick Buy passes the ad's listed hours through as `?hours=`, so the table starts
  *  already showing that offer instead of your usual default (`trade.yourHours`). A plain (non-
- *  quick) open, or a missing/unparseable value, falls back to that default — and the result is
- *  clamped to what you actually have, so a stale or tampered URL can never smuggle in more than
- *  your balance allows. */
+ *  quick) open, or a missing/unparseable value, falls back to that default too — though direct
+ *  feedback on the Time tile itself (see the file banner comment) means that fallback almost never
+ *  actually shows on a plain open any more: Time starts as a suggestion reading a flat
+ *  `SUGGESTED_TIME_HOURS`, not this number, so `trade.yourHours` only surfaces here if some future
+ *  caller reads `offeredHours` before Time is ever added. The clamp to what you actually have still
+ *  applies regardless, so a stale or tampered URL can never smuggle in more than your balance
+ *  allows. */
 function initialOfferedHours(trade: Trade, isQuickOffer: boolean, searchParams: URLSearchParams): number {
   if (!isQuickOffer) return trade.yourHours
   const hoursParam = searchParams.get('hours')
@@ -188,94 +233,26 @@ function initialOfferedHours(trade: Trade, isQuickOffer: boolean, searchParams: 
   return Number.isNaN(parsed) ? trade.yourHours : Math.min(parsed, MOCK_HOURS_BALANCE)
 }
 
-/* ---------- The generosity meter ---------- */
-
-type GenerosityZone = 'you-extreme' | 'you-generous' | 'fair' | 'partner-generous' | 'partner-extreme' | 'empty'
-
-interface Generosity {
-  zone: GenerosityZone
-  message: string
-}
-
-/** How far your offer's hours are from the partner's — Márk's own idea, "based on the offers
- *  items, skills and time how balanced is the trade from my generosity's perspective", with "the
- *  exact math is out of scope now" (his words) taken literally: items/skills sit on the table
- *  without moving this meter at all, since putting a real number of hours on an arbitrary item is
- *  exactly the kind of math that line rules out. Only the two Time tiles — the one number both
- *  sides of this page already agree means the same thing — feed it.
- *
- *  The band constants below were picked to match Márk's own three worked examples: offering 100h
- *  (+ an item, ignored) against 5h back lands past `GENEROSITY_EXTREME_BAND` ("extremely
- *  generous"), against 50h+10h lands past `GENEROSITY_FAIR_BAND` ("generous"), against 70h lands
- *  inside the fair band ("a fair trade") — the fair band's reciprocal and the extreme band's
- *  reciprocal then give the other side's two zones for free, by symmetry. */
-const GENEROSITY_FAIR_BAND = 1.6
-const GENEROSITY_EXTREME_BAND = 3
-
-function computeGenerosity(yourHours: number, partnerHours: number): Generosity {
-  if (yourHours === 0 && partnerHours === 0) {
-    return { zone: 'empty', message: 'Add something to the table to see how the trade balances.' }
-  }
-  if (partnerHours === 0) {
-    return { zone: 'you-extreme', message: 'You are extremely generous!' }
-  }
-  const ratio = yourHours / partnerHours
-  if (ratio > GENEROSITY_EXTREME_BAND) return { zone: 'you-extreme', message: 'You are extremely generous!' }
-  if (ratio > GENEROSITY_FAIR_BAND) return { zone: 'you-generous', message: 'You are generous.' }
-  if (ratio >= 1 / GENEROSITY_FAIR_BAND) return { zone: 'fair', message: "That's a fair trade!" }
-  if (ratio >= 1 / GENEROSITY_EXTREME_BAND) return { zone: 'partner-generous', message: 'Good deal!' }
-  return { zone: 'partner-extreme', message: 'This is too good to be true.' }
-}
-
-/** In the order `computeGenerosity`'s zones fall along the yourHours/partnerHours ratio — used both
- *  to look up which colour a zone gets and, via its index, as the meter's `aria-valuenow`.
- *  `'empty'` isn't in here (see GenerosityBar): there's no colour to show yet. */
-const GENEROSITY_ZONES: { zone: GenerosityZone; colorClass: 'is-red' | 'is-yellow' | 'is-green' }[] = [
-  { zone: 'you-extreme', colorClass: 'is-red' },
-  { zone: 'you-generous', colorClass: 'is-yellow' },
-  { zone: 'fair', colorClass: 'is-green' },
-  { zone: 'partner-generous', colorClass: 'is-yellow' },
-  { zone: 'partner-extreme', colorClass: 'is-red' },
-]
-
-/** "Full of the current color... similar style as the buttons, with border and chamfer, have the
- *  text inside" (Márk) — one solid, chamfered bar rather than the 5-segment strip this started as:
- *  the message *is* the bar's own content now, not a caption underneath it. `role="meter"` still
- *  carries the same numeric semantics as before for assistive tech — `aria-valuetext` is the actual
- *  message, since the zones aren't evenly spaced enough for the raw index to mean much alone. */
-function GenerosityBar({ yourHours, partnerHours }: { yourHours: number; partnerHours: number }) {
-  const { zone, message } = computeGenerosity(yourHours, partnerHours)
-  const activeIndex = GENEROSITY_ZONES.findIndex((entry) => entry.zone === zone)
-  const colorClass = activeIndex >= 0 ? GENEROSITY_ZONES[activeIndex].colorClass : ''
-
-  return (
-    <div
-      className={`trading-page__generosity ${colorClass}`}
-      role="meter"
-      aria-label="Generosity meter"
-      aria-valuemin={0}
-      aria-valuemax={GENEROSITY_ZONES.length - 1}
-      {...(activeIndex >= 0 ? { 'aria-valuenow': activeIndex } : {})}
-      aria-valuetext={message}
-    >
-      {message}
-    </div>
-  )
-}
-
 /** Everything below the id lookup. Split out so the hooks only ever run for a trade that exists —
  *  a component can't call useState after an early return. */
 function TradeScreen({ trade }: { trade: Trade }) {
   const navigate = useNavigate()
-  const { getOfferedItemIds, clearItems } = useTradeDraft()
+  const { getOfferedItemIds, removeItem, getOfferedHours, setOfferedHours, getIsTimeOffered, setTimeOffered, resetOffer } =
+    useTradeDraft()
   const [status, setStatus] = useState(trade.status)
   const [searchParams] = useSearchParams()
   // TODO #13: AdDetailPage's Quick Buy sends you here with ?quick=1 instead of the plain trading
   // route — the chat starting expanded (see ChatOverlay) and, per TODO #8, the offered hours below
   // being preloaded from the ad's listed price are the two things that actually differ.
   const isQuickOffer = searchParams.get('quick') === '1'
-  const [offeredHours, setOfferedHours] = useState(() => initialOfferedHours(trade, isQuickOffer, searchParams))
-  const [isTimeOffered, setIsTimeOffered] = useState(true)
+  // TODO #9.1/#11: hours and the Time toggle now live in TradeDraftContext, shared with
+  // Inventory's own trading-table overlay — see tradeDraftContextInstance.ts's own comment on why
+  // both `getOfferedHours` and `getIsTimeOffered` still take this page's own quick-offer-aware
+  // fallbacks rather than the context guessing one. Direct feedback: "opening the trading window,
+  // the time should just be a suggestion... except if its a quick buy, than its already pre
+  // filled" — `isQuickOffer` doubles as that fallback exactly.
+  const offeredHours = getOfferedHours(trade.id, initialOfferedHours(trade, isQuickOffer, searchParams))
+  const isTimeOffered = getIsTimeOffered(trade.id, isQuickOffer)
   const [isAdjustingHours, setIsAdjustingHours] = useState(false)
   const [isDeclined, setIsDeclined] = useState(false)
   const [isChatExpanded, setIsChatExpanded] = useState(isQuickOffer)
@@ -284,22 +261,28 @@ function TradeScreen({ trade }: { trade: Trade }) {
   const offeredItems = MOCK_YOUR_INVENTORY.filter((item) => offeredItemIds.includes(item.id))
 
   const changeOfferedHours = (hours: number) => {
-    setOfferedHours(hours)
+    setOfferedHours(trade.id, hours)
     setIsDeclined(false)
   }
 
-  /** "Delete it entirely" (Márk, re: the Time tile) — distinct from the stepper reaching 0h: this
+  /** "Delete it entirely" (Márk, re: the Time tile) — distinct from the picker reaching 0h: this
    *  removes the tile from the table altogether, same end state an item has before it's ever
-   *  toggled on. Re-added via the grid's own "add-time" tile (TableTileView), which reopens the
-   *  stepper rather than guessing an amount. */
+   *  toggled on. Direct feedback: "if its removed make it a suggestion again" — removing doesn't
+   *  leave a gap, it reverts the tile to the same opaque suggestion a fresh, never-touched trade
+   *  starts with (see `SUGGESTED_TIME_TILE` below), re-added via that same suggestion tile
+   *  (TableTileView), which reopens the picker rather than guessing an amount. */
   const removeTime = () => {
-    setIsTimeOffered(false)
+    setTimeOffered(trade.id, false)
     setIsAdjustingHours(false)
     setIsDeclined(false)
   }
 
+  /** Always lands on `SUGGESTED_TIME_HOURS`, never whatever was offered before it was last
+   *  removed — the suggestion tile that triggers this always reads "1 hour" (TableTileView), so
+   *  accepting it has to produce exactly that, not a stale leftover number from an earlier round. */
   const addTimeBack = () => {
-    setIsTimeOffered(true)
+    setTimeOffered(trade.id, true)
+    setOfferedHours(trade.id, SUGGESTED_TIME_HOURS)
     setIsAdjustingHours(true)
     setIsDeclined(false)
   }
@@ -309,9 +292,7 @@ function TradeScreen({ trade }: { trade: Trade }) {
    *  table clears so a new offer can be built — rather than a second status value. The trade
    *  itself stays 'open': it was never agreed, so there's nothing to revert. */
   const decline = () => {
-    clearItems(trade.id)
-    setOfferedHours(trade.yourHours)
-    setIsTimeOffered(true)
+    resetOffer(trade.id, trade.yourHours)
     setIsDeclined(true)
   }
 
@@ -332,6 +313,8 @@ function TradeScreen({ trade }: { trade: Trade }) {
           onAddTimeBack={addTimeBack}
           onOpenYourInventory={() => navigate(inventoryForTrade(trade.id))}
           onOpenPartnerInventory={() => navigate(partnerInventoryForTrade(trade.id))}
+          onInspectItem={(itemId) => navigate(itemDetail(itemId))}
+          onRemoveItem={(itemId) => removeItem(trade.id, itemId)}
           onAccept={() => setStatus((current) => statusAfterAccept(current))}
           onDecline={decline}
         />
@@ -352,16 +335,59 @@ function TradeScreen({ trade }: { trade: Trade }) {
 
 /* ---------- Tile overlays (items, the Time tile, inventory shortcuts, suggestions) ---------- */
 
-/** Always read-only on the table now — nothing on this page toggles an item on/off any more (see
- *  the file banner comment on the favorites rail's removal); an item only ever appears here because
- *  Inventory's own page already put it on the shared draft. */
-function ItemTile({ item }: { item: InventoryItem }) {
+/** TODO #11: "when clicking on a grid item split it into 2. on top have inspect option that open
+ *  the item/skill. on the bottom a - that removes it [from] the offer." Unsplit, this is exactly
+ *  the plain read-only tile the page has shown since the favorites rail was removed (see the file
+ *  banner comment); tapping it opens the split rather than doing anything itself, the "in-place
+ *  split" shape agreed on for this round. Only one tile is ever split open at once — TradingTableZone
+ *  tracks which by id, so opening a second one implicitly closes the first.
+ *
+ *  There's deliberately no third "just close this, do nothing" control once it's split — inspect
+ *  navigates away and remove clears the tile, and either one is the natural end of looking at a
+ *  split tile at all; opening a different tile's split (or leaving the page) is what closes this
+ *  one otherwise. */
+function SplitItemTile({
+  item,
+  isSplit,
+  onOpenSplit,
+  onInspect,
+  onRemove,
+}: {
+  item: InventoryItem
+  isSplit: boolean
+  onOpenSplit: () => void
+  onInspect: () => void
+  onRemove: () => void
+}) {
+  if (!isSplit) {
+    return (
+      <SquareTile
+        label={`${item.name} — tap for options`}
+        onClick={onOpenSplit}
+        overlay={<span className="trading-page__tile-name">{item.name}</span>}
+      >
+        <span className="square-tile__icon" aria-hidden="true">
+          {item.icon}
+        </span>
+      </SquareTile>
+    )
+  }
+
   return (
-    <SquareTile label={item.name} overlay={<span className="trading-page__tile-name">{item.name}</span>}>
-      <span className="square-tile__icon" aria-hidden="true">
-        {item.icon}
-      </span>
-    </SquareTile>
+    <div className="trading-page__split-tile" role="group" aria-label={`${item.name} options`}>
+      <button type="button" className="trading-page__split-inspect" onClick={onInspect}>
+        <span aria-hidden="true">{item.icon}</span>
+        <span className="trading-page__tile-name">{item.name}</span>
+      </button>
+      <button
+        type="button"
+        className="trading-page__split-remove"
+        aria-label={`Remove ${item.name} from your offer`}
+        onClick={onRemove}
+      >
+        <span aria-hidden="true">−</span>
+      </button>
+    </div>
   )
 }
 
@@ -415,6 +441,8 @@ interface TradingTableZoneProps {
   onAddTimeBack: () => void
   onOpenYourInventory: () => void
   onOpenPartnerInventory: () => void
+  onInspectItem: (itemId: string) => void
+  onRemoveItem: (itemId: string) => void
   onAccept: () => void
   onDecline: () => void
 }
@@ -439,15 +467,30 @@ function TradingTableZone({
   onAddTimeBack,
   onOpenYourInventory,
   onOpenPartnerInventory,
+  onInspectItem,
+  onRemoveItem,
   onAccept,
   onDecline,
 }: TradingTableZoneProps) {
-  const yourRealEntries: TableEntry[] = [
-    { kind: 'open-inventory', label: 'Open your inventory', onOpen: onOpenYourInventory },
-    isTimeOffered ? { kind: 'time', hours: offeredHours, editable: true } : { kind: 'add-time' },
+  // TODO #11's split-tile: which one item (if any) is currently showing its inspect/remove split,
+  // by id rather than a boolean — so opening a different tile's split implicitly closes whichever
+  // one was open before, with nothing extra to reset by hand.
+  const [splitItemId, setSplitItemId] = useState<string | null>(null)
+
+  const yourPerPage = YOUR_GRID_COLUMNS * YOUR_GRID_ROWS
+  const yourOfferedEntries: TableEntry[] = [
+    isTimeOffered ? { kind: 'time', hours: offeredHours, editable: true } : { kind: 'suggested-time' },
     ...offeredItems.map((item): TableEntry => ({ kind: 'item', item })),
   ]
-  const yourPerPage = YOUR_GRID_COLUMNS * YOUR_GRID_ROWS
+  // TODO #11: "when the grid is full of items (6), open inventory is not available anymore" —
+  // once the real offer alone already fills every slot there's no room left for the opener tile
+  // regardless, so it's dropped rather than pushed onto a second PagedGrid page. Dropping it is
+  // also what actually blocks adding more: the opener is the only way back to Inventory's own
+  // picking flow from this page (routes.ts's inventoryForTrade), so no tile here means no path in.
+  const hasRoomToAddMore = yourOfferedEntries.length < yourPerPage
+  const yourRealEntries: TableEntry[] = hasRoomToAddMore
+    ? [{ kind: 'open-inventory', label: 'Open your inventory', onOpen: onOpenYourInventory }, ...yourOfferedEntries]
+    : yourOfferedEntries
   // Never suggest something you're already offering — it would show up twice, once for real.
   const yourSuggestionPool = MOCK_YOUR_INVENTORY.filter(
     (item) => !offeredItems.some((offered) => offered.id === item.id),
@@ -458,7 +501,8 @@ function TradingTableZone({
   ]
 
   // §6: which items/skills the partner puts up isn't modelled beyond their Time tile — same gap
-  // this page has always had; their remaining slots are suggestion filler like yours.
+  // this page has always had; their remaining slots are suggestion filler like yours. (A profile
+  // opener lived here too for one round — see the file banner comment on why it's out again.)
   const partnerRealEntries: TableEntry[] = [
     { kind: 'open-inventory', label: `Open ${trade.partner}'s inventory`, onOpen: onOpenPartnerInventory },
     { kind: 'time', hours: trade.partnerHours, editable: false },
@@ -485,17 +529,23 @@ function TradingTableZone({
             rows={YOUR_GRID_ROWS}
             gridLabel="Your offer on the table"
             renderTile={(entry) => (
-              <TableTileView entry={entry} onOpenTime={onToggleAdjustingHours} onAddTimeBack={onAddTimeBack} />
+              <TableTileView
+                entry={entry}
+                isAdjustingHours={isAdjustingHours}
+                onOpenTime={onToggleAdjustingHours}
+                onChangeHours={onChangeOfferedHours}
+                onRemoveTime={onRemoveTime}
+                onAddTimeBack={onAddTimeBack}
+                splitItemId={splitItemId}
+                onOpenSplitItem={setSplitItemId}
+                onInspectItem={onInspectItem}
+                onRemoveItem={(itemId) => {
+                  onRemoveItem(itemId)
+                  setSplitItemId(null)
+                }}
+              />
             )}
           />
-          {isAdjustingHours && (
-            <HoursStepper
-              hours={offeredHours}
-              max={MOCK_HOURS_BALANCE}
-              onChange={onChangeOfferedHours}
-              onRemove={onRemoveTime}
-            />
-          )}
         </div>
 
         <OfferRespondRow
@@ -575,41 +625,107 @@ function OfferRespondRow({ status, isDeclined, yourHours, partnerHours, onAccept
 }
 
 /** Time is drawn "as an item" (Márk, from the first sketch) — same tile shape as an item. Tapping
- *  your own Time tile opens the hour stepper; tapping the "add it back" tile (shown once it's been
- *  removed entirely) reopens the stepper too, so there's always a way back in. The partner's is a
- *  plain read-out, same as their other tiles everywhere else on this page. */
+ *  your own Time tile opens TimeScrollPicker (TODO #11); tapping the "add it back" tile (shown
+ *  once it's been removed entirely) reopens it too, so there's always a way back in. The partner's
+ *  is a plain read-out, same as their other tiles everywhere else on this page — none of the
+ *  editing-only props below ever get passed for their grid (see TradingTableZone's second
+ *  `<PagedGrid>` call). */
 function TableTileView({
   entry,
+  isAdjustingHours,
   onOpenTime,
+  onChangeHours,
+  onRemoveTime,
   onAddTimeBack,
+  splitItemId,
+  onOpenSplitItem,
+  onInspectItem,
+  onRemoveItem,
 }: {
   entry: TableEntry
+  isAdjustingHours?: boolean
   onOpenTime?: () => void
+  onChangeHours?: (hours: number) => void
+  onRemoveTime?: () => void
   onAddTimeBack?: () => void
+  splitItemId?: string | null
+  onOpenSplitItem?: (itemId: string) => void
+  onInspectItem?: (itemId: string) => void
+  onRemoveItem?: (itemId: string) => void
 }) {
   if (entry.kind === 'time') {
     const label = entry.editable
       ? `Your offered hours: ${entry.hours}. Tap to adjust.`
       : `Offered hours: ${entry.hours}`
     return (
-      <SquareTile label={label} onClick={entry.editable ? onOpenTime : undefined} overlay={<span>{entry.hours} h</span>}>
-        <span className="square-tile__icon" aria-hidden="true">
-          ⏱️
-        </span>
-      </SquareTile>
+      // `position: relative` unconditionally (TradingPage.css) rather than only while open — the
+      // partner's own read-only Time tile never opens a picker, but sharing one class either way
+      // means nothing here has to guess in advance whether this particular render will need it.
+      <div className="trading-page__time-cell">
+        <SquareTile
+          label={label}
+          onClick={entry.editable ? onOpenTime : undefined}
+          overlay={<span>{entry.hours} h</span>}
+        >
+          <span className="square-tile__icon" aria-hidden="true">
+            ⏱️
+          </span>
+        </SquareTile>
+        {entry.editable && isAdjustingHours && onChangeHours && onRemoveTime && onOpenTime && (
+          <TimeScrollPicker
+            hours={entry.hours}
+            maxHours={MOCK_HOURS_BALANCE}
+            onChangeHours={onChangeHours}
+            onRemove={onRemoveTime}
+            onClose={onOpenTime}
+          />
+        )}
+      </div>
     )
   }
-  if (entry.kind === 'add-time') {
+  if (entry.kind === 'suggested-time') {
+    // Direct feedback: "the time should be just a suggestion, opaque like the others, and show 1
+    // hour" — same opaque/desaturated look SuggestionTile uses, but (unlike a real suggestion
+    // tile) this one is genuinely actionable: tapping it puts real time on the table, since a
+    // suggested amount of time is never a stand-in for a future matching feature the way a
+    // suggested item/skill still is. `SuggestionTile` itself stays deliberately non-interactive
+    // (its own doc comment), so this is written out separately rather than reusing it with an
+    // added `onClick` that would only ever apply to this one caller.
     return (
-      <SquareTile label="Add a time offer" onClick={onAddTimeBack} overlay={<span>+ Time</span>}>
-        <span className="square-tile__icon" aria-hidden="true">
-          ⏱️
-        </span>
-      </SquareTile>
+      <div className="trading-page__suggestion-tile">
+        <SquareTile
+          label={`${SUGGESTION_LABEL_PREFIX} ${SUGGESTED_TIME_HOURS} hour of your time — tap to add it to the offer`}
+          onClick={onAddTimeBack}
+          overlay={<span>{SUGGESTED_TIME_HOURS} h</span>}
+        >
+          <span className="square-tile__icon" aria-hidden="true">
+            ⏱️
+          </span>
+        </SquareTile>
+      </div>
     )
   }
   if (entry.kind === 'item') {
-    return <ItemTile item={entry.item} />
+    // Read-only on the partner's grid (none of these three props are passed there) — same shape
+    // as the plain read-out that was always ItemTile's whole job before TODO #11's split.
+    if (!onOpenSplitItem || !onInspectItem || !onRemoveItem) {
+      return (
+        <SquareTile label={entry.item.name} overlay={<span className="trading-page__tile-name">{entry.item.name}</span>}>
+          <span className="square-tile__icon" aria-hidden="true">
+            {entry.item.icon}
+          </span>
+        </SquareTile>
+      )
+    }
+    return (
+      <SplitItemTile
+        item={entry.item}
+        isSplit={entry.item.id === splitItemId}
+        onOpenSplit={() => onOpenSplitItem(entry.item.id)}
+        onInspect={() => onInspectItem(entry.item.id)}
+        onRemove={() => onRemoveItem(entry.item.id)}
+      />
+    )
   }
   if (entry.kind === 'open-inventory') {
     return <InventoryOpenerTile label={entry.label} onOpen={entry.onOpen} />
@@ -618,48 +734,6 @@ function TableTileView({
     return <SuggestionTile name={entry.item.name} icon={entry.item.icon} />
   }
   return <SuggestionTile name={entry.skill.name} icon={entry.skill.icon} />
-}
-
-interface HoursStepperProps {
-  hours: number
-  max: number
-  onChange: (hours: number) => void
-  onRemove: () => void
-}
-
-/** Adjusting your own offer is in scope — a stepper rather than a free-text field, so the offer
- *  can never exceed the hours you actually have. Revealed by tapping the Time tile above it. The
- *  Remove button is the "delete it entirely" action — distinct from stepping down to 0h, which
- *  still just means "offering zero hours," not "no time tile at all". */
-function HoursStepper({ hours, max, onChange, onRemove }: HoursStepperProps) {
-  return (
-    <div className="trading-page__stepper" role="group" aria-label="Your offered hours">
-      <button
-        type="button"
-        className="trading-page__stepper-button"
-        aria-label="Offer one hour less"
-        disabled={hours <= 0}
-        onClick={() => onChange(hours - 1)}
-      >
-        <span aria-hidden="true">−</span>
-      </button>
-      <span className="trading-page__stepper-value" aria-live="polite">
-        {hours} h
-      </span>
-      <button
-        type="button"
-        className="trading-page__stepper-button"
-        aria-label="Offer one hour more"
-        disabled={hours >= max}
-        onClick={() => onChange(hours + 1)}
-      >
-        <span aria-hidden="true">+</span>
-      </button>
-      <button type="button" className="trading-page__stepper-remove" aria-label="Remove time from the table" onClick={onRemove}>
-        Remove
-      </button>
-    </div>
-  )
 }
 
 /* ---------- Bottom bar: final review + the chat toggle ---------- */

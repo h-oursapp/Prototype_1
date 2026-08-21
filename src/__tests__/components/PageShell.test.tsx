@@ -79,6 +79,27 @@ describe('PageShell', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/')
   })
 
+  it('hides the nav bar entirely when hideNavBar is set (Inventory\'s trading context)', () => {
+    renderWithRouter(
+      <PageShell title="Inventory" hideNavBar>
+        <p>content</p>
+      </PageShell>,
+    )
+
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show navigation' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the nav bar by default', () => {
+    renderWithRouter(
+      <PageShell title="Inventory">
+        <p>content</p>
+      </PageShell>,
+    )
+
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
+  })
+
   it('falls back to ordinary one-step-back everywhere else', async () => {
     const user = userEvent.setup()
     renderWithRouter(

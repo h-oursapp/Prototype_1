@@ -153,6 +153,12 @@
   padding-bottom: calc(12px + var(--nav-bar-height));
 }
 
+/* PageShell's own `hideNavBar` prop — no floating bar left to reserve room for, so the extra
+ * bottom padding above would just be dead space once scrolled all the way down. */
+.page-shell__content--no-nav {
+  padding-bottom: 12px;
+}
+
 /* Shared building blocks for the prototype's pages, so each new screen doesn't invent its own
  * card and section styling. */
 .page-section {
