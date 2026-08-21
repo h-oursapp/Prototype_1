@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage'
 import { MainPage } from './pages/MainPage'
 import { OffersPage } from './pages/OffersPage'
 import { PartnerInventoryPage } from './pages/PartnerInventoryPage'
+import { PartnerProfilePage } from './pages/PartnerProfilePage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path={ROUTES.itemDetail} element={<ItemPage />} />
         <Route path={ROUTES.wallet} element={<WalletPage />} />
         <Route path={ROUTES.profile} element={<ProfilePage />} />
+        <Route path={ROUTES.partnerProfile} element={<PartnerProfilePage />} />
         <Route path={ROUTES.skills} element={<SkillsPage />} />
         {/* 'new' before ':skillId', same reason /ads/new precedes /ads/:adId. */}
         <Route path={ROUTES.skillCreate} element={<SkillPage mode="create" />} />

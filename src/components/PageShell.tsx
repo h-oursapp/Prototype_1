@@ -19,6 +19,12 @@ interface PageShellProps {
    *  page leaves this off and keeps the normal size, so this can't drift the header's usual look
    *  app-wide. */
   compactTitle?: boolean
+  /** Hides the nav bar entirely — not just collapsed to its own small reopen button, gone
+   *  altogether. Inventory's trading context (TODO #9.1 follow-up, direct feedback) is the one
+   *  caller: its trading-table overlay already floats along that same bottom edge, and having the
+   *  nav bar's own floating strip (or its collapsed reopen button) compete with it there read as
+   *  cluttered. Every other page leaves this off and keeps the normal nav bar. */
+  hideNavBar?: boolean
   children: ReactNode
 }
 
@@ -49,7 +55,14 @@ interface PageShellProps {
  *  --text` button had no fixed height of its own and rendered taller than the rest purely by
  *  however tall its text's line-height happened to compute — fixed in PageShell.css by giving it
  *  the same 28px box every other header control already had. */
-export function PageShell({ title, navCollapsible = true, headerAction, compactTitle = false, children }: PageShellProps) {
+export function PageShell({
+  title,
+  navCollapsible = true,
+  headerAction,
+  compactTitle = false,
+  hideNavBar = false,
+  children,
+}: PageShellProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -71,9 +84,9 @@ export function PageShell({ title, navCollapsible = true, headerAction, compactT
         </header>
       )}
 
-      <main className="page-shell__content">{children}</main>
+      <main className={`page-shell__content ${hideNavBar ? 'page-shell__content--no-nav' : ''}`}>{children}</main>
 
-      <NavBar hoursBalance={MOCK_HOURS_BALANCE} collapsible={navCollapsible} />
+      {!hideNavBar && <NavBar hoursBalance={MOCK_HOURS_BALANCE} collapsible={navCollapsible} />}
     </div>
   )
 }

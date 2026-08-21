@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FilterChip } from '../components/FilterChip'
+import { GenerosityBar } from '../components/GenerosityBar'
 import { OptionGroup } from '../components/OptionGroup'
 import { PageShell } from '../components/PageShell'
 import { PagedGrid } from '../components/PagedGrid'
@@ -8,12 +9,13 @@ import { RatingBadge } from '../components/RatingBadge'
 import { SearchBar } from '../components/SearchBar'
 import { SquareTile } from '../components/SquareTile'
 import { MAX_STARS } from '../components/StarRating'
+import { TimeScrollPicker } from '../components/TimeScrollPicker'
 import { TransferBox } from '../components/TransferBox'
 import type { InventoryItem } from '../data/mockInventory'
 import { MOCK_YOUR_INVENTORY } from '../data/mockInventory'
 import type { Trade } from '../data/mockTrades'
-import { findTrade } from '../data/mockTrades'
-import { MOCK_SKILLS, type Skill } from '../data/mockUser'
+import { canRespondToOffer, findTrade } from '../data/mockTrades'
+import { MOCK_HOURS_BALANCE, MOCK_SKILLS, type Skill } from '../data/mockUser'
 import { DOTS_ALLOWANCE_PX, useFittingRows } from '../hooks/useFittingRows'
 import { ROUTES, adCreateWithItem, itemDetail, skillDetail, trading } from '../routes'
 import { useSettings } from '../settings/useSettings'
@@ -77,11 +79,13 @@ function visibilityFilterLabel(visibilityFilter: VisibilityFilter): string {
  *    header's "ⓘ" panel instead (direct feedback: every explanatory note on this page, previously
  *    scattered across the shelf button's own toggle, a standing paragraph under the grid, and a
  *    trade-context banner line, now lives in that one place).
- *  - Accepting an offer here (TransferBox's Accept button) navigates straight back to the trade it
- *    was opened from, the same place "Back to trading" goes — direct feedback again: this page is
- *    for building your side of the offer, not a destination in its own right, so confirming it is
- *    also leaving it. There's nothing left to show a "your offer was accepted" message *for* once
- *    the trade itself is showing that offer a moment later.
+ *  - Accepting an offer here (the trading-table overlay's own Accept button, TODO #9.1) navigates
+ *    straight back to the trade it was opened from — direct feedback: this page is for building
+ *    your side of the offer, not a destination in its own right, so confirming it is also leaving
+ *    it. There's nothing left to show a "your offer was accepted" message *for* once the trade
+ *    itself is showing that offer a moment later. The plain drop-area/list TransferBox used to
+ *    give this job (heading "Trading with XY") is gone now — the overlay's own live grid replaced
+ *    everything it did, so there is no longer a second, static place showing the same offer.
  *  - "Only the item name overlayed the picture" (TODO #9) means a tile is exactly a SquareTile:
  *    no badge, no shelf picker, nothing rendered below it. What used to live in that row — making
  *    an item public or private — moved to the new Item page (TODO #10), reached by tapping a tile.
@@ -145,14 +149,18 @@ function visibilityFilterLabel(visibilityFilter: VisibilityFilter): string {
  *    visible on it, with a sliding highlight over whichever is active — unlike a plain button whose
  *    label only ever shows one name at a time, this shows the current state *and* the alternative
  *    in the same control, still built from the app's usual button materials (border, chamfer,
- *    brand-tint) rather than a native rounded switch. The search bar, the visibility filter, and
- *    both TransferBoxes stay exactly where they are; only the toggle and the grid beneath it swap.
- *    The Skills view is read-only browsing (tap a tile → the Skill page): skills already have their
- *    own picking flow (`/skills?trade=`, TODO #8's `/skills?forAd=new`), so this page doesn't grow a
- *    second one — unifying item/skill picking into one flow is TODO #7's "items and skills have to
- *    be similar", not this one. It now follows the same paged-vs-flowing split the items view does
- *    (the scrollable-setting bullet above), rather than always flowing unconditionally the way it
- *    first shipped. */
+ *    brand-tint) rather than a native rounded switch. The search bar, the visibility filter, the
+ *    ad-picker's TransferBox and the trading-table overlay all stay exactly where they are; only
+ *    the toggle and the grid beneath it swap.
+ *    The Skills view is read-only browsing outside a trading context (tap a tile → the Skill
+ *    page) — it also has its own separate picking flow for a new ad (`/skills?forAd=new`, TODO
+ *    #8), untouched here. It now follows the same paged-vs-flowing split the items view does (the
+ *    scrollable-setting bullet above), rather than always flowing unconditionally the way it first
+ *    shipped.
+ *    A later round gave a trading context's Skills view the same split "inspect / add" tile items
+ *    already had (`TradeSkillTile`, direct feedback: "skills should have the inspect / add
+ *    behaviour") — skills now share the trading table with items instead of being left out of it
+ *    (TradeDraftContext's own file comment covers what that did and didn't unify). */
 export function InventoryPage() {
   const [searchParams] = useSearchParams()
   const trade = findTrade(searchParams.get('trade') ?? undefined)
@@ -167,13 +175,36 @@ export function InventoryPage() {
 function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isForNewAd: boolean }) {
   const navigate = useNavigate()
   const { gridSize, inventoryScrollable } = useSettings()
-  const { getOfferedItemIds, toggleItem, removeItem } = useTradeDraft()
+  const {
+    getOfferedItemIds,
+    toggleItem,
+    removeItem,
+    getOfferedSkillIds,
+    toggleSkill,
+    removeSkill,
+    getOfferedHours,
+    setOfferedHours,
+    getIsTimeOffered,
+    setTimeOffered,
+    resetOffer,
+  } = useTradeDraft()
   const [items] = useState<InventoryItem[]>(MOCK_YOUR_INVENTORY)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   // The ad picker's pick lives here, not in TradeDraftContext (see the file banner comment) —
   // it's capped at one, so toggling it is always "select this one, or clear it" rather than
   // appending, unlike a trade's item list below.
   const [adPickedIds, setAdPickedIds] = useState<string[]>([])
+  // TODO #9.1's split tile: which one item (if any) is showing its inspect/add split, by id —
+  // same "only one at a time, tracked by id" shape TradingPage's own split-tile state uses. Skills
+  // get their own, separate id — the two views never show at once, but an item id and a skill id
+  // are still two different things to be split open.
+  const [splitItemId, setSplitItemId] = useState<string | null>(null)
+  const [splitSkillId, setSplitSkillId] = useState<string | null>(null)
+  // TODO #9.1: the trading-table overlay starts expanded (so arriving from Trading shows what's
+  // already on offer at a glance) and collapses itself on search/scroll/page-flip — see the
+  // effects below, and TradeTableOverlay's own doc comment for the collapsed shape.
+  const [isTableExpanded, setIsTableExpanded] = useState(true)
+  const inventoryPageRef = useRef<HTMLDivElement>(null)
 
   const [view, setView] = useState<InventoryView>('items')
   const [query, setQuery] = useState('')
@@ -205,7 +236,57 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
   // no trade).
   const offeredIds = trade ? getOfferedItemIds(trade.id) : isForNewAd ? adPickedIds : []
   const offeredItems = items.filter((item) => offeredIds.includes(item.id))
-  const privateOfferedCount = offeredItems.filter((item) => !item.isPublic).length
+  // TODO #9.1: "the items already in trade should keep their respected positions" — the overlay
+  // below needs *insertion* order (whatever order they were actually added in), not the catalogue
+  // order `offeredItems` above uses (a plain `.filter` over `items` always reads in catalogue
+  // order regardless of when each id was added). `offeredIds` is itself already insertion-ordered
+  // (TradeDraftContext.tsx's `toggleItem` only ever appends), so mapping straight over it instead
+  // of filtering `items` is what preserves that — see TradeTableOverlay's own doc comment for why
+  // that distinction is what makes "keep their positions" true at all.
+  const offeredItemsInAddOrder = offeredIds
+    .map((id) => items.find((item) => item.id === id))
+    .filter((item): item is InventoryItem => item !== undefined)
+  // Skills (direct feedback: "skills should have the inspect / add behaviour" too) — trade-only,
+  // same as items are for the ad-picker: TODO #8's ad picker has exactly one subject and it's
+  // always an item, so there's no `isForNewAd` branch here the way `offeredIds` above has one.
+  const offeredSkillIds = trade ? getOfferedSkillIds(trade.id) : []
+  const offeredSkillsInAddOrder = offeredSkillIds
+    .map((id) => MOCK_SKILLS.find((skill) => skill.id === id))
+    .filter((skill): skill is Skill => skill !== undefined)
+  const offeredHours = trade ? getOfferedHours(trade.id, trade.yourHours) : 0
+  // TODO #9.1: "when its a suggestion it shouldn't show up on the inventory" — this page has no
+  // notion of a quick offer to fall back to the way TradingPage does, so Time only ever counts as
+  // offered here once it's been explicitly added; a plain `false` fallback is always the right one.
+  const isTimeOffered = trade ? getIsTimeOffered(trade.id, false) : false
+  const canAddMoreToTable =
+    offeredItemsInAddOrder.length + offeredSkillsInAddOrder.length + (isTimeOffered ? 1 : 0) < TABLE_OVERLAY_SLOTS
+
+  /** TODO #9.1: "make it hide when the user searches" — any real edit to the search bar collapses
+   *  the table; clearing it back to blank doesn't re-expand it on its own (the expand button is
+   *  always right there once collapsed). A plain event handler, not a `query`-watching effect —
+   *  this *is* the one place `query` actually changes, so there's nothing to "synchronize"
+   *  after the fact; reacting to it here instead is what the lint rule against deriving state in
+   *  an effect is steering toward. Called for every keystroke regardless of trade context; it's
+   *  a no-op without one, since the table itself never renders then. */
+  const changeQuery = (value: string) => {
+    setQuery(value)
+    if (trade && value !== '') setIsTableExpanded(false)
+  }
+
+  // "...or scrolls" — the one trigger this page doesn't already track as state. `.inventory-page`
+  // (this component's own outermost element) is always PageShell's scrolling content area's
+  // direct child (PageShell.tsx renders `<main className="page-shell__content">{children}</main>`),
+  // so `parentElement` reaches that scrollable ancestor without a wider DOM query. Only actually
+  // scrolls while `inventoryScrollable` is on — see the file banner comment — so this is a no-op
+  // the rest of the time, but it costs nothing to leave listening either way.
+  useEffect(() => {
+    if (!trade) return
+    const scrollContainer = inventoryPageRef.current?.parentElement
+    if (!scrollContainer) return
+    const collapseTable = () => setIsTableExpanded(false)
+    scrollContainer.addEventListener('scroll', collapseTable)
+    return () => scrollContainer.removeEventListener('scroll', collapseTable)
+  }, [trade])
 
   /** A tap both adds and removes — see the file banner comment on why there's no separate button
    *  for it here. In a trade this appends/removes from the shared draft; picking for a new ad
@@ -226,19 +307,53 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
     }
   }
 
-  const isPicking = Boolean(trade) || isForNewAd
+  // Skills only ever toggle in a trade context — no ad-picker branch, see offeredSkillIds above.
+  // Removing an already-offered skill is the trading-table overlay's own job (its `onRemoveSkill`
+  // calls `removeSkill` directly) — no separate wrapper needed the way `removeFromOffer` exists
+  // for items, since there's no skill-equivalent of the ad-picker's TransferBox to also call it.
+  const toggleSkillOffered = (skillId: string) => {
+    if (trade) toggleSkill(trade.id, skillId)
+  }
 
   // Shared between the paged (PagedGrid) and flowing (FlowGrid) items grid below — the two differ
   // only in what wraps them, never in how one tile itself looks or behaves.
-  const renderItemTile = (item: InventoryItem) => (
-    <ItemTile
-      item={item}
-      isOffered={offeredIds.includes(item.id)}
-      onOpen={() => navigate(itemDetail(item.id))}
-      onToggleOffered={isPicking ? () => toggleOffered(item.id) : undefined}
-      pickingContext={trade ? 'trade' : 'ad'}
-    />
-  )
+  //
+  // TODO #9.1 gave the trading context its own tile (TradeItemTile, the split inspect/add tile)
+  // instead of ItemTile's plain toggle — picking an item for a new ad (TODO #8) keeps the toggle,
+  // since that round of feedback was about Inventory *in a trading context* specifically and
+  // never touched the ad-picker's own flow.
+  const renderItemTile = (item: InventoryItem) => {
+    const isOffered = offeredIds.includes(item.id)
+    if (trade) {
+      return (
+        <TradeItemTile
+          item={item}
+          isOffered={isOffered}
+          isSplit={item.id === splitItemId}
+          canAddMore={canAddMoreToTable}
+          onOpenSplit={() => setSplitItemId(item.id)}
+          onCloseSplit={() => setSplitItemId(null)}
+          onInspect={() => navigate(itemDetail(item.id))}
+          onAdd={() => {
+            if (!canAddMoreToTable) return
+            toggleOffered(item.id)
+            setSplitItemId(null)
+            // Direct feedback: "the trading table should expand when I add an item/skill" — so
+            // adding one is never followed by having to go find the table again by hand.
+            setIsTableExpanded(true)
+          }}
+        />
+      )
+    }
+    return (
+      <ItemTile
+        item={item}
+        isOffered={isOffered}
+        onOpen={() => navigate(itemDetail(item.id))}
+        onToggleOffered={isForNewAd ? () => toggleOffered(item.id) : undefined}
+      />
+    )
+  }
 
   const itemsGrid =
     matches.length === 0 ? (
@@ -254,12 +369,35 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
         gridLabel="Your inventory"
         pagerVariant="dots"
         renderTile={renderItemTile}
+        onPageChange={trade ? () => setIsTableExpanded(false) : undefined}
       />
     )
 
-  const renderSkillTile = (skill: Skill) => (
-    <InventorySkillTile skill={skill} onOpen={() => navigate(skillDetail(skill.id))} />
-  )
+  // Same split as renderItemTile above, once direct feedback asked for skills to get the same
+  // "inspect / add" behaviour — see TradeSkillTile's own doc comment.
+  const renderSkillTile = (skill: Skill) => {
+    const isOffered = offeredSkillIds.includes(skill.id)
+    if (trade) {
+      return (
+        <TradeSkillTile
+          skill={skill}
+          isOffered={isOffered}
+          isSplit={skill.id === splitSkillId}
+          canAddMore={canAddMoreToTable}
+          onOpenSplit={() => setSplitSkillId(skill.id)}
+          onCloseSplit={() => setSplitSkillId(null)}
+          onInspect={() => navigate(skillDetail(skill.id))}
+          onAdd={() => {
+            if (!canAddMoreToTable) return
+            toggleSkillOffered(skill.id)
+            setSplitSkillId(null)
+            setIsTableExpanded(true)
+          }}
+        />
+      )
+    }
+    return <InventorySkillTile skill={skill} onOpen={() => navigate(skillDetail(skill.id))} />
+  }
 
   const skillsGrid =
     matchingSkills.length === 0 ? (
@@ -275,12 +413,17 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
         gridLabel="Your skills"
         pagerVariant="dots"
         renderTile={renderSkillTile}
+        onPageChange={trade ? () => setIsTableExpanded(false) : undefined}
       />
     )
 
   return (
     <PageShell
       title="Inventory"
+      // Direct feedback: the nav bar (and its own collapsed reopen button) competes with the
+      // trading-table overlay for the same bottom edge — hidden entirely in a trading context,
+      // where that overlay now owns that strip instead. See PageShell.tsx's own doc comment.
+      hideNavBar={Boolean(trade)}
       headerAction={
         <div className="inventory-page__header-actions">
           <button type="button" className="page-shell__action page-shell__action--icon" aria-label="New shelf">
@@ -306,7 +449,10 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
         </div>
       }
     >
-      <div className={`inventory-page${isScrollableLayout ? ' inventory-page--scrollable' : ''}`}>
+      <div
+        className={`inventory-page${isScrollableLayout ? ' inventory-page--scrollable' : ''}`}
+        ref={inventoryPageRef}
+      >
         {isInfoOpen && (
           <div className="inventory-page__info-panel">
             <p className="page-note">
@@ -335,14 +481,20 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
         {trade && <TradeContextBanner trade={trade} />}
         {isForNewAd && <AdContextBanner />}
 
-        <ViewSwitch view={view} onChange={setView} />
-
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder={view === 'items' ? 'Search your inventory' : 'Search your skills'}
-          ariaLabel={view === 'items' ? 'Search your inventory' : 'Search your skills'}
-        />
+        {/* TODO #9: the view switch used to sit on its own row above the search bar — direct
+         *  feedback moved it beside the bar instead (to its left), so the two controls share one
+         *  row rather than stacking. `.inventory-page__search-row` (CSS) is what makes the search
+         *  bar shrink to make room, rather than SearchBar itself gaining a width opinion it'd need
+         *  for every other caller too. */}
+        <div className="inventory-page__search-row">
+          <ViewSwitch view={view} onChange={setView} />
+          <SearchBar
+            value={query}
+            onChange={changeQuery}
+            placeholder={view === 'items' ? 'Search your inventory' : 'Search your skills'}
+            ariaLabel={view === 'items' ? 'Search your inventory' : 'Search your skills'}
+          />
+        </div>
 
         <div className="inventory-page__filters">
           <FilterChip
@@ -379,31 +531,6 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
           </div>
         )}
 
-        {trade && (
-          <TransferBox
-            items={offeredItems.map((item) => ({
-              id: item.id,
-              name: item.name,
-              icon: item.icon,
-              note: item.isPublic ? undefined : 'Private',
-            }))}
-            noun="item"
-            pickActionLabel="Add to offer"
-            backTo={{ label: 'Back to trading', path: trading(trade.id) }}
-            primaryLabel="Accept"
-            onPrimary={() => navigate(trading(trade.id))}
-            onRemove={removeFromOffer}
-            extraNote={
-              privateOfferedCount > 0 && (
-                <p className="page-note">
-                  Still private, so invisible to {trade.partner}: {privateOfferedCount} of{' '}
-                  {offeredItems.length}.
-                </p>
-              )
-            }
-          />
-        )}
-
         {isForNewAd && (
           <TransferBox
             items={offeredItems.map((item) => ({ id: item.id, name: item.name, icon: item.icon }))}
@@ -416,6 +543,26 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
             onRemove={removeFromOffer}
           />
         )}
+
+        {trade && (
+          <TradeTableOverlay
+            trade={trade}
+            offeredItems={offeredItemsInAddOrder}
+            offeredSkills={offeredSkillsInAddOrder}
+            offeredHours={offeredHours}
+            isTimeOffered={isTimeOffered}
+            isExpanded={isTableExpanded}
+            onToggleExpanded={() => setIsTableExpanded((expanded) => !expanded)}
+            onChangeHours={(hours) => setOfferedHours(trade.id, hours)}
+            onRemoveTime={() => setTimeOffered(trade.id, false)}
+            onInspectItem={(itemId) => navigate(itemDetail(itemId))}
+            onRemoveItem={(itemId) => removeItem(trade.id, itemId)}
+            onInspectSkill={(skillId) => navigate(skillDetail(skillId))}
+            onRemoveSkill={(skillId) => removeSkill(trade.id, skillId)}
+            onAccept={() => navigate(trading(trade.id))}
+            onDecline={() => resetOffer(trade.id, trade.yourHours)}
+          />
+        )}
       </div>
     </PageShell>
   )
@@ -423,12 +570,14 @@ function InventoryScreen({ trade, isForNewAd }: { trade: Trade | undefined; isFo
 
 /* ---------- Context banners ---------- */
 
+/** TODO #9.1: "the part where it says picking items... remove it" — the banner used to open with
+ *  an h2 stating that (and naming the partner); the partner's name has a new, more prominent home
+ *  now anyway (the trading-table overlay's own heading, "Trading with XY" — see TradeTableOverlay
+ *  below), so there's nothing left worth restating here. What's left is exactly the one thing
+ *  that heading doesn't cover: which subject this trade is actually about. */
 function TradeContextBanner({ trade }: { trade: Trade }) {
   return (
     <section className="page-card inventory-page__trade-banner" aria-label="Trading context">
-      <h2 className="inventory-page__banner-title">
-        Picking items for your trade with {trade.partner}
-      </h2>
       <p className="inventory-page__banner-subject">
         <span aria-hidden="true">{trade.icon}</span> {trade.subject}
       </p>
@@ -458,7 +607,16 @@ function AdContextBanner() {
  *  assistive tech and relies on its own label instead. Built from the app's usual button materials
  *  (`--border`, `--chamfer`, `--brand-tint`/`--brand-primary`) rather than a native rounded switch —
  *  "stick to the style of other buttons" ruled out the rounded-pill look a slide toggle usually
- *  gets. */
+ *  gets.
+ *
+ *  Each option span now carries its own `is-active` class straight from `isSkills`, rather than
+ *  leaning on a `:first-child`/`:last-child` CSS selector to infer which option is which (TODO #9,
+ *  direct feedback: "the highlighting is inconsistent"). That inference was silently broken —
+ *  the decorative thumb span above is the button's *actual* first child, so the Items span is
+ *  really the second child and `.inventory-page__view-switch-option:first-child` never matched
+ *  anything. Only the Skills side's `:last-child` rule ever fired, so Items was muted no matter
+ *  which view was active. Styling directly off state removes the positional assumption instead of
+ *  patching around it. */
 function ViewSwitch({ view, onChange }: { view: InventoryView; onChange: (view: InventoryView) => void }) {
   const isSkills = view === 'skills'
 
@@ -471,10 +629,16 @@ function ViewSwitch({ view, onChange }: { view: InventoryView; onChange: (view: 
       onClick={() => onChange(isSkills ? 'items' : 'skills')}
     >
       <span className="inventory-page__view-switch-thumb" aria-hidden="true" />
-      <span className="inventory-page__view-switch-option" aria-hidden="true">
+      <span
+        className={`inventory-page__view-switch-option ${!isSkills ? 'is-active' : ''}`}
+        aria-hidden="true"
+      >
         Items
       </span>
-      <span className="inventory-page__view-switch-option" aria-hidden="true">
+      <span
+        className={`inventory-page__view-switch-option ${isSkills ? 'is-active' : ''}`}
+        aria-hidden="true"
+      >
         Skills
       </span>
     </button>
@@ -487,12 +651,10 @@ interface ItemTileProps {
   item: InventoryItem
   isOffered: boolean
   onOpen: () => void
-  /** Present in a trading context or while picking an item for a new ad — outside either there is
-   *  no offer to add anything to. */
+  /** Present only while picking an item for a new ad (TODO #8) — outside that there is no offer
+   *  to add anything to. A trading context has its own TradeItemTile now (right below) instead of
+   *  this toggle — see TODO #9.1's split tile. */
   onToggleOffered?: () => void
-  /** Wording differs between building a multi-item trade offer and picking the one item for a new
-   *  ad (TODO #8) — defaults to 'trade' since that's the only context before TODO #8. */
-  pickingContext?: 'trade' | 'ad'
 }
 
 /** Exactly a SquareTile with the item's name overlaid (TODO #9), plus a single "N★" `RatingBadge`
@@ -500,19 +662,13 @@ interface ItemTileProps {
  *  the same Home's-Ads-tile treatment `InventorySkillTile` below already got). The rating is
  *  folded into the tile's own accessible name too, whichever wording is currently active, so a
  *  screen reader isn't shown the badge's number but never told it (`RatingBadge`'s own doc
- *  comment). Outside any picking context the tile opens the Item page; inside one it toggles the
- *  item into and out of the offer instead, per the judgement call documented on InventoryPage
- *  above. */
-function ItemTile({ item, isOffered, onOpen, onToggleOffered, pickingContext = 'trade' }: ItemTileProps) {
-  const isAd = pickingContext === 'ad'
+ *  comment). Outside any picking context the tile opens the Item page; picking for a new ad
+ *  toggles the item into and out of that pick instead. */
+function ItemTile({ item, isOffered, onOpen, onToggleOffered }: ItemTileProps) {
   const action = onToggleOffered
     ? isOffered
-      ? isAd
-        ? `Remove ${item.name} as this ad's item`
-        : `Remove ${item.name} from your offer`
-      : isAd
-        ? `Use ${item.name} for this ad`
-        : `Add ${item.name} to your offer`
+      ? `Remove ${item.name} as this ad's item`
+      : `Use ${item.name} for this ad`
     : item.name
   const label = `${action}, rated ${item.rating} out of ${MAX_STARS}`
 
@@ -523,7 +679,7 @@ function ItemTile({ item, isOffered, onOpen, onToggleOffered, pickingContext = '
       overlay={
         <>
           <span className="inventory-page__tile-name">{item.name}</span>
-          {isOffered && <span className="inventory-page__tile-offered">{isAd ? 'Chosen' : 'In offer'}</span>}
+          {isOffered && <span className="inventory-page__tile-offered">Chosen</span>}
         </>
       }
     >
@@ -532,6 +688,508 @@ function ItemTile({ item, isOffered, onOpen, onToggleOffered, pickingContext = '
       </span>
       <RatingBadge value={item.rating} />
     </SquareTile>
+  )
+}
+
+interface TradeItemTileProps {
+  item: InventoryItem
+  isOffered: boolean
+  isSplit: boolean
+  /** Mirrors TODO #11's "when the grid is full of items (6), open inventory is not available
+   *  anymore" on Trading's own page — the trading table (this item's ultimate destination) tops
+   *  out at 6 real slots there too, so adding a 7th here would just have nowhere to land once you
+   *  next looked at either grid. */
+  canAddMore: boolean
+  onOpenSplit: () => void
+  /** The ✓-added half below has nothing left to *do* (Q&A: adding/removing there is a no-op by
+   *  design, see its own comment) — closing the split is the only thing left for it to be useful
+   *  for, so it gets this instead of an add/remove handler. */
+  onCloseSplit: () => void
+  onInspect: () => void
+  onAdd: () => void
+}
+
+/** TODO #9.1: "when clicking on a grid item split it into 2. on top have inspect option that open
+ *  the item/skill. on the bottom a + that adds it to the offer." Inventory's own version of
+ *  TradingPage's split tile (TODO #11) — same "in-place split" shape, mirrored rather than shared:
+ *  this one only ever *adds*, since every item in Inventory's own grid is real stock, not
+ *  something that can be "removed" from existence the way an offered item can from Trading's
+ *  table. Removing an already-offered item stays the transfer box's own job (its `×` button)
+ *  rather than something this tile also does — the bottom half of an already-offered tile shows a
+ *  plain "in offer" mark instead of a working control, so tapping it can only ever close the
+ *  split, never quietly undo something the transfer box's own list already promises full control
+ *  over. */
+function TradeItemTile({ item, isOffered, isSplit, canAddMore, onOpenSplit, onCloseSplit, onInspect, onAdd }: TradeItemTileProps) {
+  if (!isSplit) {
+    const offeredSuffix = isOffered ? ', in your offer' : ''
+    return (
+      <SquareTile
+        label={`${item.name}${offeredSuffix} — tap for options, rated ${item.rating} out of ${MAX_STARS}`}
+        onClick={onOpenSplit}
+        overlay={
+          <>
+            <span className="inventory-page__tile-name">{item.name}</span>
+            {isOffered && <span className="inventory-page__tile-offered">In offer</span>}
+          </>
+        }
+      >
+        <span className="square-tile__icon" aria-hidden="true">
+          {item.icon}
+        </span>
+        <RatingBadge value={item.rating} />
+      </SquareTile>
+    )
+  }
+
+  return (
+    <div className="inventory-page__split-tile" role="group" aria-label={`${item.name} options`}>
+      <button type="button" className="inventory-page__split-inspect" onClick={onInspect}>
+        <span aria-hidden="true">{item.icon}</span>
+        <span className="inventory-page__tile-name">{item.name}</span>
+      </button>
+      {isOffered ? (
+        <button type="button" className="inventory-page__split-added" onClick={onCloseSplit}>
+          <span aria-hidden="true">✓</span> In offer
+        </button>
+      ) : canAddMore ? (
+        <button
+          type="button"
+          className="inventory-page__split-add"
+          aria-label={`Add ${item.name} to your offer`}
+          onClick={onAdd}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      ) : (
+        <button type="button" className="inventory-page__split-added" onClick={onCloseSplit}>
+          Table full
+        </button>
+      )}
+    </div>
+  )
+}
+
+interface TradeSkillTileProps {
+  skill: Skill
+  isOffered: boolean
+  isSplit: boolean
+  canAddMore: boolean
+  onOpenSplit: () => void
+  onCloseSplit: () => void
+  onInspect: () => void
+  onAdd: () => void
+}
+
+/** Direct feedback: "skills should have the inspect / add behaviour" — the Skills view was
+ *  read-only browsing in a trading context too until this (the file banner comment's own history
+ *  of that gap). Otherwise an exact mirror of `TradeItemTile` right above — same split shape, same
+ *  "adds only, removing stays the overlay's own job" reasoning, just for a `Skill` instead of an
+ *  `InventoryItem`. Kept as its own copy rather than a shared generic component: the two types
+ *  don't actually share a common shape beyond `id`/`name`/`icon`/`rating`, and a shared component
+ *  would need to invent one. */
+function TradeSkillTile({ skill, isOffered, isSplit, canAddMore, onOpenSplit, onCloseSplit, onInspect, onAdd }: TradeSkillTileProps) {
+  if (!isSplit) {
+    const offeredSuffix = isOffered ? ', in your offer' : ''
+    return (
+      <SquareTile
+        label={`${skill.name}${offeredSuffix} — tap for options, rated ${skill.rating} out of ${MAX_STARS}`}
+        onClick={onOpenSplit}
+        overlay={
+          <>
+            <span className="inventory-page__tile-name">{skill.name}</span>
+            {isOffered && <span className="inventory-page__tile-offered">In offer</span>}
+          </>
+        }
+      >
+        <span className="square-tile__icon" aria-hidden="true">
+          {skill.icon}
+        </span>
+        <RatingBadge value={skill.rating} />
+      </SquareTile>
+    )
+  }
+
+  return (
+    <div className="inventory-page__split-tile" role="group" aria-label={`${skill.name} options`}>
+      <button type="button" className="inventory-page__split-inspect" onClick={onInspect}>
+        <span aria-hidden="true">{skill.icon}</span>
+        <span className="inventory-page__tile-name">{skill.name}</span>
+      </button>
+      {isOffered ? (
+        <button type="button" className="inventory-page__split-added" onClick={onCloseSplit}>
+          <span aria-hidden="true">✓</span> In offer
+        </button>
+      ) : canAddMore ? (
+        <button
+          type="button"
+          className="inventory-page__split-add"
+          aria-label={`Add ${skill.name} to your offer`}
+          onClick={onAdd}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      ) : (
+        <button type="button" className="inventory-page__split-added" onClick={onCloseSplit}>
+          Table full
+        </button>
+      )}
+    </div>
+  )
+}
+
+/* ---------- The trading-table overlay (TODO #9.1) ---------- */
+
+/** Your side of the overlay's own grid, "for now" — same size Trading's own grid uses, since
+ *  they're two views onto the exact same 6-slot offer. */
+const TABLE_OVERLAY_COLUMNS = 3
+const TABLE_OVERLAY_ROWS = 2
+const TABLE_OVERLAY_SLOTS = TABLE_OVERLAY_COLUMNS * TABLE_OVERLAY_ROWS
+
+/** Everything the overlay's grid can show — deliberately smaller than TradingPage's own
+ *  `TableEntry` union: "don't show the suggestions in it. don't show the to inventory button
+ *  either" (TODO #9.1) rules out every kind but these three (`'skill'` joined once direct feedback
+ *  gave skills the same trading-table treatment items already had). There's no `'suggested-time'`
+ *  kind here the way TradingPage's own union has one — direct feedback: "when its a suggestion it
+ *  shouldn't show up on the inventory in trading context" at all, not even as a tappable
+ *  placeholder, so an un-offered Time is simply absent from `entries` below (see the caller)
+ *  rather than rendered as anything. */
+type TableOverlayEntry =
+  | { kind: 'time'; hours: number }
+  | { kind: 'item'; item: InventoryItem }
+  | { kind: 'skill'; skill: Skill }
+
+function tableOverlayEntryKey(entry: TableOverlayEntry): string {
+  if (entry.kind === 'item') return entry.item.id
+  if (entry.kind === 'skill') return `skill-${entry.skill.id}`
+  return entry.kind
+}
+
+/** TODO #9.1: "fill up the grid starting from the lower right corner, the last should be the
+ *  upper left" together with "the items already in trade should keep their respected positions."
+ *  Read literally, "fill from the bottom-right, keep positions" only both hold at once if each
+ *  entry's slot depends on *its own* place in `entries` and nothing else — conceptually, entry 0
+ *  (Time) is always pinned to the bottom-right slot; entry 1 always takes the next slot to its
+ *  left; and so on, regardless of how many more entries show up later. A scheme that instead
+ *  shifted *inward* by however many entries there currently are would move entry 0 every time a
+ *  new one arrived — exactly what "keep their positions" rules out.
+ *
+ *  `entries[0]` is `null` whenever Time is merely a suggestion (see the caller) rather than the
+ *  list simply skipping it — a `null` still *consumes* the bottom-right slot, rendered as an empty
+ *  placeholder, so the first real item still lands one slot to its left exactly where it would if
+ *  Time *were* shown there. Without that, adding an item while Time is still a suggestion would
+ *  put that item in the bottom-right slot, and it would then have to jump left the moment Time
+ *  was actually added — the same "shifted by how many entries exist now" bug this whole scheme
+ *  exists to avoid, just triggered by Time instead of an item.
+ *
+ *  `entries` must already be in stable, real insertion order for any of this to mean anything (see
+ *  `offeredItemsInAddOrder` at the call site); slicing to `TABLE_OVERLAY_SLOTS` first is just a
+ *  defensive cap — the "can't add more once full" rule upstream (`canAddMoreToTable`) should mean
+ *  this never actually trims anything real. */
+function tableOverlaySlots(entries: (TableOverlayEntry | null)[]): (TableOverlayEntry | null)[] {
+  const slots: (TableOverlayEntry | null)[] = Array.from({ length: TABLE_OVERLAY_SLOTS }, () => null)
+  entries.slice(0, TABLE_OVERLAY_SLOTS).forEach((entry, index) => {
+    slots[TABLE_OVERLAY_SLOTS - 1 - index] = entry
+  })
+  return slots
+}
+
+interface TradeTableOverlayProps {
+  trade: Trade
+  /** Insertion order, not catalogue order — see `tableOverlaySlots`'s own comment on why that
+   *  distinction is what makes "keep their positions" true at all. */
+  offeredItems: InventoryItem[]
+  /** Same insertion-order contract as `offeredItems` — see the same comment. Grouped after every
+   *  offered item rather than perfectly interleaved with them (tradeDraftContextInstance.ts's own
+   *  file comment explains why: items and skills are two separate lists, not one combined one). */
+  offeredSkills: Skill[]
+  offeredHours: number
+  isTimeOffered: boolean
+  isExpanded: boolean
+  onToggleExpanded: () => void
+  onChangeHours: (hours: number) => void
+  onRemoveTime: () => void
+  onInspectItem: (itemId: string) => void
+  onRemoveItem: (itemId: string) => void
+  onInspectSkill: (skillId: string) => void
+  onRemoveSkill: (skillId: string) => void
+  onAccept: () => void
+  onDecline: () => void
+}
+
+/** TODO #9.1: "for the trading area copy the top of the trading page. 3x2 grid, accept/reject
+ *  buttons + the generosity meter... show the already filled in items (including the time on
+ *  offer)... put the trading table on the bottom, make it overlay the inventory parts... make it
+ *  hide when the user searches or scrolls/flips the page. In hidden form it should say 'choose
+ *  what to trade' and add a button to expand it."
+ *
+ *  Its own heading reads "Trading with XY" — direct feedback: the plain drop-area/list TransferBox
+ *  that used to carry that same heading (and did everything else this overlay now does: list what's
+ *  offered, flag it as accepted, link back to the trade) is gone from this page entirely, since
+ *  this overlay already replaced every job it had.
+ *
+ *  A wholly separate component from TradingPage's own `TradingTableZone` rather than a shared one
+ *  (Q&A for this round) — the two look alike on purpose, but Inventory's version only ever shows
+ *  *your* side (there's no partner grid here to speak of), never suggestions or an inventory
+ *  opener (there's nothing to open — you're already looking at it), and Accept here can't do more
+ *  than navigate to the trade itself: this page never held the trade's `status` (that's
+ *  TradingPage's own local state, never shared — see TradeDraftContext.tsx's file comment on what
+ *  did and didn't move into shared state this round), so accepting the same way finishes the job
+ *  on the page that can actually change it. Decline needs no such compromise — clearing the offer
+ *  and restoring the default hours is exactly what TradeDraftContext's own `resetOffer` already
+ *  does, and both pages now share that state directly. */
+function TradeTableOverlay({
+  trade,
+  offeredItems,
+  offeredSkills,
+  offeredHours,
+  isTimeOffered,
+  isExpanded,
+  onToggleExpanded,
+  onChangeHours,
+  onRemoveTime,
+  onInspectItem,
+  onRemoveItem,
+  onInspectSkill,
+  onRemoveSkill,
+  onAccept,
+  onDecline,
+}: TradeTableOverlayProps) {
+  const [isAdjustingHours, setIsAdjustingHours] = useState(false)
+  const [splitItemId, setSplitItemId] = useState<string | null>(null)
+  const [splitSkillId, setSplitSkillId] = useState<string | null>(null)
+
+  if (!isExpanded) {
+    return (
+      <div className="inventory-page__table-collapsed">
+        <span>Choose what to trade</span>
+        <button
+          type="button"
+          className="inventory-page__table-expand"
+          aria-label="Expand the trading table"
+          onClick={onToggleExpanded}
+        >
+          <span aria-hidden="true">▴</span>
+        </button>
+      </div>
+    )
+  }
+
+  // Time's own conceptual slot is always entries[0] — `null` while it's merely a suggestion (see
+  // tableOverlaySlots's own comment for why that still reserves the bottom-right slot rather than
+  // letting the first item slide into it). Skills come after every item — see this component's
+  // own `offeredSkills` prop comment on why the two kinds are grouped rather than interleaved.
+  const entries: (TableOverlayEntry | null)[] = [
+    isTimeOffered ? { kind: 'time', hours: offeredHours } : null,
+    ...offeredItems.map((item): TableOverlayEntry => ({ kind: 'item', item })),
+    ...offeredSkills.map((skill): TableOverlayEntry => ({ kind: 'skill', skill })),
+  ]
+  const slots = tableOverlaySlots(entries)
+
+  return (
+    <section className="inventory-page__table-overlay" aria-label={`Trading with ${trade.partner}`}>
+      <div className="inventory-page__table-header">
+        <h2 className="inventory-page__table-heading">Trading with {trade.partner}</h2>
+        <button
+          type="button"
+          className="inventory-page__table-collapse"
+          aria-label="Collapse the trading table"
+          onClick={onToggleExpanded}
+        >
+          <span aria-hidden="true">▾</span>
+        </button>
+      </div>
+
+      <ul className="inventory-page__table-grid" aria-label="Your offer on the table">
+        {slots.map((entry, index) =>
+          entry === null ? (
+            <li className="inventory-page__table-cell" key={`empty-${index}`}>
+              <span className="inventory-page__table-empty" aria-hidden="true" />
+            </li>
+          ) : (
+            <li className="inventory-page__table-cell" key={tableOverlayEntryKey(entry)}>
+              <TableOverlayTileView
+                entry={entry}
+                isAdjustingHours={isAdjustingHours}
+                onOpenTime={() => setIsAdjustingHours((open) => !open)}
+                onChangeHours={onChangeHours}
+                onRemoveTime={() => {
+                  onRemoveTime()
+                  setIsAdjustingHours(false)
+                }}
+                splitItemId={splitItemId}
+                onOpenSplitItem={setSplitItemId}
+                onInspectItem={onInspectItem}
+                onRemoveItem={(itemId) => {
+                  onRemoveItem(itemId)
+                  setSplitItemId(null)
+                }}
+                splitSkillId={splitSkillId}
+                onOpenSplitSkill={setSplitSkillId}
+                onInspectSkill={onInspectSkill}
+                onRemoveSkill={(skillId) => {
+                  onRemoveSkill(skillId)
+                  setSplitSkillId(null)
+                }}
+              />
+            </li>
+          ),
+        )}
+      </ul>
+
+      <div className="inventory-page__table-respond" role="group" aria-label="Respond to this offer">
+        <div className="inventory-page__table-actions">
+          {canRespondToOffer(trade.status) && (
+            <>
+              <button
+                type="button"
+                className="inventory-page__table-accept"
+                aria-label="Accept trade"
+                onClick={onAccept}
+              >
+                <span aria-hidden="true">✅</span>
+              </button>
+              <button
+                type="button"
+                className="inventory-page__table-decline"
+                aria-label="Decline offer"
+                onClick={onDecline}
+              >
+                <span aria-hidden="true">✕</span>
+              </button>
+            </>
+          )}
+        </div>
+
+        <GenerosityBar yourHours={isTimeOffered ? offeredHours : 0} partnerHours={trade.partnerHours} />
+      </div>
+    </section>
+  )
+}
+
+/** Time as a plain read-out/adjuster, and items as the same inspect/remove split TradingPage's own
+ *  grid uses (Q&A for this round: "yes — inspect / − remove", so the overlay is a real second
+ *  place to manage the offer, not just a preview). No suggestions, no inventory opener, no
+ *  open-profile tile, and (direct feedback) no suggested-Time tile either — see TableOverlayEntry's
+ *  own comment for why none of those exist here at all; a suggested Time is simply absent, not
+ *  rendered as anything, so this component only ever has to handle a *real* Time entry. */
+function TableOverlayTileView({
+  entry,
+  isAdjustingHours,
+  onOpenTime,
+  onChangeHours,
+  onRemoveTime,
+  splitItemId,
+  onOpenSplitItem,
+  onInspectItem,
+  onRemoveItem,
+  splitSkillId,
+  onOpenSplitSkill,
+  onInspectSkill,
+  onRemoveSkill,
+}: {
+  entry: TableOverlayEntry
+  isAdjustingHours: boolean
+  onOpenTime: () => void
+  onChangeHours: (hours: number) => void
+  onRemoveTime: () => void
+  splitItemId: string | null
+  onOpenSplitItem: (itemId: string) => void
+  onInspectItem: (itemId: string) => void
+  onRemoveItem: (itemId: string) => void
+  splitSkillId: string | null
+  onOpenSplitSkill: (skillId: string) => void
+  onInspectSkill: (skillId: string) => void
+  onRemoveSkill: (skillId: string) => void
+}) {
+  if (entry.kind === 'time') {
+    return (
+      <div className="inventory-page__table-time-cell">
+        <SquareTile
+          label={`Your offered hours: ${entry.hours}. Tap to adjust.`}
+          onClick={onOpenTime}
+          overlay={<span>{entry.hours} h</span>}
+        >
+          <span className="square-tile__icon" aria-hidden="true">
+            ⏱️
+          </span>
+        </SquareTile>
+        {isAdjustingHours && (
+          <TimeScrollPicker
+            hours={entry.hours}
+            maxHours={MOCK_HOURS_BALANCE}
+            onChangeHours={onChangeHours}
+            onRemove={onRemoveTime}
+            onClose={onOpenTime}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (entry.kind === 'skill') {
+    const isSplit = entry.skill.id === splitSkillId
+    if (!isSplit) {
+      return (
+        <SquareTile
+          label={`${entry.skill.name} — tap for options`}
+          onClick={() => onOpenSplitSkill(entry.skill.id)}
+          overlay={<span className="inventory-page__tile-name">{entry.skill.name}</span>}
+        >
+          <span className="square-tile__icon" aria-hidden="true">
+            {entry.skill.icon}
+          </span>
+        </SquareTile>
+      )
+    }
+
+    return (
+      <div className="inventory-page__split-tile" role="group" aria-label={`${entry.skill.name} options`}>
+        <button type="button" className="inventory-page__split-inspect" onClick={() => onInspectSkill(entry.skill.id)}>
+          <span aria-hidden="true">{entry.skill.icon}</span>
+          <span className="inventory-page__tile-name">{entry.skill.name}</span>
+        </button>
+        <button
+          type="button"
+          className="inventory-page__split-remove"
+          aria-label={`Remove ${entry.skill.name} from your offer`}
+          onClick={() => onRemoveSkill(entry.skill.id)}
+        >
+          <span aria-hidden="true">−</span>
+        </button>
+      </div>
+    )
+  }
+
+  const isSplit = entry.item.id === splitItemId
+  if (!isSplit) {
+    return (
+      <SquareTile
+        label={`${entry.item.name} — tap for options`}
+        onClick={() => onOpenSplitItem(entry.item.id)}
+        overlay={<span className="inventory-page__tile-name">{entry.item.name}</span>}
+      >
+        <span className="square-tile__icon" aria-hidden="true">
+          {entry.item.icon}
+        </span>
+      </SquareTile>
+    )
+  }
+
+  return (
+    <div className="inventory-page__split-tile" role="group" aria-label={`${entry.item.name} options`}>
+      <button type="button" className="inventory-page__split-inspect" onClick={() => onInspectItem(entry.item.id)}>
+        <span aria-hidden="true">{entry.item.icon}</span>
+        <span className="inventory-page__tile-name">{entry.item.name}</span>
+      </button>
+      <button
+        type="button"
+        className="inventory-page__split-remove"
+        aria-label={`Remove ${entry.item.name} from your offer`}
+        onClick={() => onRemoveItem(entry.item.id)}
+      >
+        <span aria-hidden="true">−</span>
+      </button>
+    </div>
   )
 }
 
@@ -562,16 +1220,16 @@ function FlowGrid<T>({ items, getKey, columns, gridLabel, renderTile }: FlowGrid
   )
 }
 
-/** A read-only SquareTile for the Skills view — matches Home's own Ads tile (GridSection.tsx)
- *  rather than SkillsPage's own two-stacked-star-rows tile, per direct feedback ("skills should be
- *  represented similarly as ... the offers are represented on the homepage"): the icon, the name
- *  overlaid at the bottom, and a single "N★" `RatingBadge` pinned to the corner. Only the
- *  self-rating shows — the same one number Home's and Search's badges show regardless of kind
- *  (mockOffers.ts's own comment on `Offer.rating`: "the tile overlay still just wants one number");
- *  the review rating isn't lost, just not repeated here — it's still on the Skill page a tap away.
- *  No pick button underneath, unlike SkillsPage's own tile: this page's "add to offer" concept is
- *  items-only, and skills already have their own picking flow elsewhere (file banner comment), so
- *  tapping a tile here just opens the Skill page. */
+/** A read-only SquareTile for the Skills view outside a trading context — matches Home's own Ads
+ *  tile (GridSection.tsx) rather than SkillsPage's own two-stacked-star-rows tile, per direct
+ *  feedback ("skills should be represented similarly as ... the offers are represented on the
+ *  homepage"): the icon, the name overlaid at the bottom, and a single "N★" `RatingBadge` pinned to
+ *  the corner. Only the self-rating shows — the same one number Home's and Search's badges show
+ *  regardless of kind (mockOffers.ts's own comment on `Offer.rating`: "the tile overlay still just
+ *  wants one number"); the review rating isn't lost, just not repeated here — it's still on the
+ *  Skill page a tap away. In a trading context this is `TradeSkillTile` instead (its own split
+ *  inspect/add, direct feedback) — this plain version is what's left for browsing outside one,
+ *  where tapping a tile still just opens the Skill page. */
 function InventorySkillTile({ skill, onOpen }: { skill: Skill; onOpen: () => void }) {
   return (
     <SquareTile

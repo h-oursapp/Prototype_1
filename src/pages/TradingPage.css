@@ -123,54 +123,63 @@
 
 /* ---------- Trading table extras ---------- */
 
-.trading-page__stepper {
-  flex-shrink: 0;
+/* Wraps every Time tile (both sides) so TimeScrollPicker (TODO #11) has a `position: relative`
+ * anchor to float over — see TableTileView's own comment on why this is unconditional rather than
+ * only added once a picker is actually open. Neither `.paged-grid__cell` nor its ancestors clip
+ * overflow (PagedGrid.css), so the picker is free to paint past this cell's own square edge. */
+.trading-page__time-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* TODO #11's split tile: "when clicking on a grid item split it into 2. on top have inspect
+ * option... on the bottom a - that removes it." Same square footprint as an unsplit tile (the
+ * grid cell around it doesn't change size either way) split into two stacked halves instead of
+ * one control — the top four-fifths for inspecting, a slim strip along the bottom for removing,
+ * so "remove" reads as the smaller, more deliberate of the two actions. */
+.trading-page__split-tile {
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  border: 1px solid var(--gridline);
+  clip-path: var(--chamfer);
+  overflow: hidden;
+}
+
+.trading-page__split-inspect {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.trading-page__stepper-button {
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-  color: var(--brand-primary-deep);
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  font-size: 20px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  clip-path: var(--chamfer);
+  border: none;
+  border-bottom: 1px solid var(--gridline);
 }
 
-.trading-page__stepper-button:hover:enabled {
-  background: var(--brand-tint);
-}
-
-.trading-page__stepper-button:disabled {
-  color: var(--text-faint);
-  cursor: not-allowed;
-}
-
-.trading-page__stepper-value {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* "Delete it entirely" (Márk) — a separate action from the −/+ steps above, so it reads as
- * distinct from "stepping down to 0h" rather than a fourth, easily-mistaken stepper button. */
-.trading-page__stepper-remove {
-  font-size: 11px;
-  color: var(--text-muted);
-  background: none;
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  clip-path: var(--chamfer);
-}
-
-.trading-page__stepper-remove:hover {
-  color: var(--text);
+.trading-page__split-inspect:hover {
   background: var(--surface-alt);
+}
+
+.trading-page__split-remove {
+  flex-shrink: 0;
+  height: 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--status-danger);
+  background: var(--status-danger-tint);
+  border: none;
+}
+
+.trading-page__split-remove:hover {
+  background: var(--status-danger);
+  color: var(--surface);
 }
 
 /* ---------- Respond row (Accept/Decline + the generosity meter) ---------- */
@@ -242,52 +251,6 @@
   color: var(--text-muted);
   background: var(--surface-alt);
   clip-path: var(--chamfer);
-}
-
-/* ---------- The generosity meter ---------- */
-
-/* "Full of the current color... similar style as the buttons, with border and chamfer, have the
- * text inside" (Márk) — a single solid, chamfered bar (same border+chamfer shape as
- * .trading-page__accept/__decline beside it), not the 5-segment strip-plus-caption this started
- * as. The neutral (no-zone-yet) look is the base rule below; each `.is-*` modifier below it
- * overrides both the fill and the text colour together. Fills whatever width the accept/decline
- * buttons beside it don't use. */
-.trading-page__generosity {
-  flex: 1;
-  min-width: 0;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  color: var(--text-muted);
-  background: var(--surface-alt);
-  border: 2px solid var(--border);
-  clip-path: var(--chamfer);
-}
-
-/* Text colour is --surface on purpose, not a fixed light/dark value: light mode's fill colours are
- * dark/saturated (white text reads well), dark mode's are pale (see index.css) and --surface there
- * is a dark plum — the same token flips to the right contrast in both themes for free. */
-.trading-page__generosity.is-red {
-  color: var(--surface);
-  background: var(--status-danger);
-  border-color: var(--status-danger);
-}
-
-.trading-page__generosity.is-yellow {
-  color: var(--surface);
-  background: var(--status-warning);
-  border-color: var(--status-warning);
-}
-
-.trading-page__generosity.is-green {
-  color: var(--surface);
-  background: var(--status-success);
-  border-color: var(--status-success);
 }
 
 /* ---------- Bottom bar: final review + the chat toggle ---------- */

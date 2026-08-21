@@ -71,11 +71,56 @@ likely to need changing once a real decision lands.
 Verified immediately before writing this:
 
 ```
-npm run test        53 files, 454 tests, all passing
+npm run test        56 files, 524 tests, all passing
 npx tsc --noEmit    clean
 npm run lint        clean
 npm run build       succeeds
 ```
+
+**2026-08-21, branch `todo-9-11-inventory-trading`** finished **TODO #9.1** (Inventory in a
+trading context) and carried **TODO #11** (Trading) through several more rounds of direct
+feedback — "Checkpoint 2," continuing the item-picking round ("Checkpoint 1") from earlier the
+same session.
+
+- **The core build**: a shared `TimeScrollPicker` (hours + minutes columns, scroll-and-snap,
+  minutes not persisted — TODO #11's own line) opens inline in Trading's Time tile; Trading's own
+  grid items gained the same split-tile inspect/remove interaction items/skills get elsewhere
+  (`SplitItemTile`); Inventory's own grid gained the matching split inspect/add; and a brand-new
+  bottom-anchored, collapsible **trading-table overlay** landed on Inventory — a 3×2 grid mirroring
+  what's already on the table (items, skills, time), Accept/Decline, and a `GenerosityBar` (pulled
+  out of `TradingPage.tsx` into its own shared component once there were two real callers). It
+  fills from the bottom-right corner and keeps every item/skill's position stable regardless of
+  what's added or removed after it — see §8 for the slot-filling algorithm that makes both of those
+  true at once.
+- **Direct feedback — "remove the profile reference from the grid."** The partner-profile-opener
+  tile tried as part of Checkpoint 2's plan was pulled back out of Trading's grid; `PartnerProfilePage`
+  (new this round) still exists and is still reachable by a direct URL, but nothing links to it —
+  TODO #11's own profile-button line is marked an open question again (§13).
+- **Direct feedback — Time defaults to a suggestion, not an active offer.** Opening Trading plainly
+  now shows Time as an opaque "1 hour" suggestion, the same muted styling every other suggestion
+  tile already has, until it's tapped; quick offers still pre-fill it as active immediately.
+  Removing an active Time reverts it to a suggestion again, not to the old "+ Time" tile, and a
+  suggested Time never appears in Inventory's own trading-table overlay at all. See §8 — this one
+  change cascaded into `TradeDraftContext` gaining fallback-parameterized getters and required
+  rewriting a large share of both pages' existing tests.
+- **Direct feedback — the old `TransferBox` is gone from Inventory's trading context.** Its heading,
+  drop area, and Accept button are fully replaced by the new trading-table overlay (the ad-picker's
+  own separate `TransferBox` use, at `?forAd=new`, is untouched); the overlay's own heading now
+  reads "Trading with {partner}" in its place.
+- **Direct feedback — the nav bar is hidden entirely on Inventory while trading**, and the
+  trading-table overlay now sits flush against the page's true bottom edge instead of the old
+  nav-bar-height offset (`PageShell`'s new `hideNavBar` prop). The overlay also re-expands itself
+  the moment an item or a skill is added, even if it was collapsed a moment before.
+- **Direct feedback — skills get the same split inspect/add behaviour items already had**, on
+  Inventory's own Skills view; offered skills now show up on the trading table too, sharing the
+  same 6-slot cap with items. This is the first time `TradeDraftContext` tracks anything beyond
+  items — see §8.
+
+Touched: `TradeDraftContext.tsx`/`tradeDraftContextInstance.ts`, `TradingPage.tsx`/`.css`,
+`InventoryPage.tsx`/`.css`, `PageShell.tsx`/`.css`, `PagedGrid.tsx`, `TransferBox.tsx`, `routes.ts`,
+`mockUser.ts`; new: `GenerosityBar.tsx`/`.css`, `TimeScrollPicker.tsx`/`.css`,
+`PartnerProfilePage.tsx`/`.css`. `npm run test` (524 tests, 56 files), `npx tsc --noEmit`,
+`npm run lint`, and `npm run build` all clean.
 
 **2026-08-21, branch `todo-4-14-20-navbar-logo-paging`** built **TODO #4** (nav bar hours size),
 **#14** (the h_OURs logo in every header), and **#20** (paging dots), all requested together at the
@@ -590,7 +635,9 @@ src/
                            regardless of what headerAction a page passes — see §8 for why that's
                            absolute rather than a flex child, and for the two knock-on layout bugs
                            (title running under the logo, headerAction drifting off the right edge)
-                           fixing that one thing surfaced
+                           fixing that one thing surfaced. Gained an optional `hideNavBar` prop
+                           (TODO #9.1) that skips the nav bar (and its collapsed reopen button)
+                           entirely — Inventory sets it while in a trading context, see §8
     topLevelRoutes.ts      isTopLevelRoute() — pure, unit-tested; the "back always goes Home
                            from here" page list (TODO #4), pulled out of PageShell.tsx so that
                            file can keep exporting only its component (Fast Refresh lint rule)
@@ -611,7 +658,10 @@ src/
                            dot even on a single page, TODO #9's second rework, see §8). Used to be
                            called `'floating-dots'` and sit `position: fixed` pinned over the
                            viewport's bottom edge; TODO #20 moved it back into the page's normal
-                           flow, right after the grid, once that collided with the nav bar itself
+                           flow, right after the grid, once that collided with the nav bar itself.
+                           Gained an optional `onPageChange` prop (TODO #9.1) firing on every page
+                           change, buttons or dots — Inventory uses it to collapse its
+                           trading-table overlay on a page flip
     RatingBadge.tsx/.css   the compact "N★" corner badge (TODO #13), reused by Home's grid tiles
                            (TODO #3), then Inventory's item *and* Skills-view tiles plus
                            PartnerInventoryPage's (TODO #9's second rework) once there were real
@@ -625,7 +675,16 @@ src/
                            widened to accept `boolean` options too (TODO #9's second rework: the new
                            "inventory scrollable" yes/no toggle), not just string/number
     TransferBox.tsx/.css   the "build an offer" box shared by Inventory and Skills, in both a
-                           trade context and (TODO #8) picking a new ad's one subject — see §8
+                           trade context and (TODO #8) picking a new ad's one subject — see §8.
+                           No longer used by Inventory's own trading context (TODO #9.1's overlay
+                           replaced it entirely, see §8) — its only remaining caller is the
+                           `?forAd=new` ad-picker. Gained an optional `heading` prop (default "Your
+                           offer") for that caller
+    GenerosityBar.tsx/.css a solid, chamfered bar scoring how balanced an offer looks — pulled out
+                           of `TradingPage.tsx` once Inventory's own trading-table overlay (TODO
+                           #9.1) needed the identical thing — see §8
+    TimeScrollPicker.tsx/.css  a two-column (hours/minutes) scroll-and-snap picker for Trading's
+                           Time tile (TODO #11) — minutes aren't persisted, per the TODO's own words
     SearchBar.tsx/.css     a text field + small submit button — Search's own search bar (TODO #13),
                            moved here once Inventory (TODO #9) needed the identical thing. Two
                            optional props added for Home's bar (TODO #3): `onSubmit` (every other
@@ -665,6 +724,9 @@ src/
                            rather than a second copy (TODO #2.1)
     ItemPage.tsx/.css      one inventory item's own page (view/edit/create) — TODO #10
     PartnerInventoryPage.tsx/.css   a trading partner's public inventory, read-only — see §8
+    PartnerProfilePage.tsx/.css   a trading partner's own profile, read-only (TODO #11) — routed
+                           at `/profile/partner?trade=<id>` but not linked from anywhere; the grid
+                           tile that would open it was built then pulled back out, see §8/§13
 
   assets/                  images imported as modules (fingerprinted/bundled by Vite), not served
                            from public/ — currently just hours-wordmark.png, the login page's logo
@@ -681,7 +743,10 @@ src/
                            inventoryScrollable, persisted to localStorage
 
   trading/                 TradeDraftContext + useTradeDraft — see §8. The *only* piece of
-                           cross-page state in this prototype; everything else is page-local
+                           cross-page state in this prototype; everything else is page-local. Now
+                           holds offered item ids *and* skill ids (TODO #9.1's Skills split
+                           inspect/add), plus offered hours and whether Time is really on the table
+                           at all versus just suggested (TODO #11's suggestion-first Time) — see §8
 
   utils/swipe.ts           swipe-gesture maths, pure — isSwipeUp/isSwipeLeft/isSwipeRight (TODO #3)
   utils/formatHours.ts     formatHoursBalance() — the nav bar's "10h15m" formatter (TODO #4), pure
@@ -850,11 +915,12 @@ real layout, real navigation, real filtering and local state; genuinely complex 
 | `/search` | SearchPage | §4 | One-row filter bar opening floating panels (TODO #13), now seeded from Settings' configurable default filter (TODO #3) rather than always "show everything"; `?q=`/`?view=` seed the query and force a view for Home's two entry points; map view shows the placeholder map above the same results grid the text view uses |
 | `/ads/new` | AdDetailPage `mode="create"` | §5 | Same component as below. Blank picture area shows Skill/Item picker buttons until `?skillId=`/`?itemId=` seeds the draft (TODO #8) |
 | `/ads/:adId` | AdDetailPage | §5 | Detail doubles as create/modify. Both ratings for a skill offer, condition only for an item offer (TODO #8) |
-| `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8) |
-| `/inventory` | InventoryPage | §6 | Search bar + visibility filter (now shared with the Skills view too) and rows sized to fill the page (TODO #9); paged by default with a floating dot pager, or flowing/scrolling if Settings' "inventory scrollable" is on; a sliding `ViewSwitch` toggle swaps between browsing items and read-only browsing your skills; `?trade=<id>` adds a transfer box, `?forAd=new` picks one item for a new ad (TODO #8) |
+| `/trading/:tradeId` | TradingPage | §6 | Non-scrollable; reworked twice, then a Checkpoint-2 round this session — see §8. `?quick=1&hours=N` preloads the offered hours (TODO #8), otherwise Time opens as a suggestion, not an active offer (TODO #11, see §8) |
+| `/inventory` | InventoryPage | §6 | Search bar + visibility filter (now shared with the Skills view too) and rows sized to fill the page (TODO #9); paged by default with a floating dot pager, or flowing/scrolling if Settings' "inventory scrollable" is on; a sliding `ViewSwitch` toggle swaps between browsing items and read-only browsing your skills; `?trade=<id>` hides the nav bar and adds a bottom-anchored, collapsible trading-table overlay instead of the old transfer box (TODO #9.1, see §8), `?forAd=new` picks one item for a new ad (TODO #8) |
 | `/inventory/:itemId` | ItemPage | — | View/edit an item (TODO #10) |
 | `/inventory/new` | ItemPage `mode="create"` | — | Same component as above |
 | `/inventory/partner?trade=<id>` | PartnerInventoryPage | §6 | A trading partner's public items, read-only — now shows the same "N★" `RatingBadge` your own Inventory's item tiles do — see §8 |
+| `/profile/partner?trade=<id>` | PartnerProfilePage | §6 | A trading partner's own profile, read-only (TODO #11) — built this session, not currently linked from anywhere (see §8/§13) |
 | `/wallet` | WalletPage | §7 | Charity/Foundation are `[OFFEN]` |
 | `/profile` | ProfilePage | §7 | TODO #5 rework: your best skills (one row, columns from the grid-size setting) show only a "N★" review-rating badge and open the Skill page; "All skills" expands the same grid to everything you have, with a Public/Private/All filter; the reviews section is gone entirely |
 | `/skills` | SkillsPage | §7 | TODO #6 rework: a search bar narrows the grid; tiles show only a "N★" review-rating badge (not two star rows) and open the Skill page; grid columns follow the Settings grid-size setting, rows uncapped; last tile is "+ Add skill"; transfer box at `?trade=<id>` or (TODO #8) `?forAd=new` |
@@ -1639,6 +1705,80 @@ are also used full-size on the Settings page (grid size, colour theme, default s
 onboarding's customize step, and Final Review's actual rating input — none of which are "search
 filters," and none of which were asked to shrink.
 
+### TODO #9.1/#11 rework — Checkpoint 2 (this session, branch `todo-9-11-inventory-trading`)
+
+**The split-tile inspect/act interaction now exists four times, deliberately not unified into one
+shared component.** Trading's own grid (`SplitItemTile`, inspect + remove), Inventory's main-grid
+items (`TradeItemTile`, inspect + add), Inventory's main-grid skills (`TradeSkillTile`, an exact
+mirror of `TradeItemTile` for `Skill`), and the trading-table overlay's own tiles
+(`TableOverlayTileView`, inspect + remove for both items and skills) all repeat the same "tap to
+split into an inspect half and an action half" shape. Two things ruled out one shared component:
+`InventoryItem` and `Skill` don't share a type shape (no common `id`/`title`/`icon` interface to
+write a generic tile against without inventing one with no other caller), and each of the four
+needs a different action label/behaviour (`+`, `−`, `✓ In offer`, `Table full`) wired to a
+different context-specific handler. Flagged rather than silently duplicated — if a fifth call site
+shows up, that's the point to actually extract the shared shape.
+
+**Inventory's new trading-table overlay fills from the bottom-right corner and keeps every
+item/skill's position stable, using true insertion order plus a placeholder that still reserves its
+slot.** `tableOverlaySlots()` maps over `TradeDraftContext`'s own append-ordered id arrays (not the
+catalogue's own order — filtering the catalogue by "is it offered" would reorder tiles the moment a
+*different* item became offered) into six fixed grid positions, filled back-to-front. The one
+wrinkle: a suggested-but-not-yet-offered Time has to occupy nothing on screen (TODO #9.1's "don't
+show the suggestion in it") while still not letting a later item slide into its reserved slot once
+Time *does* become real — solved by threading a `null` placeholder through the same array
+(`isTimeOffered ? {kind:'time',...} : null`) that the slot-filler still counts and skips over,
+rather than omitting the entry outright.
+
+**Time now defaults to a suggestion, not an active offer, unless it's a quick buy — a late
+direct-feedback round that reached further than it looked.** "Opening the trading window, the time
+should just be a suggestion... except if it's a quick buy" meant `TradeDraftContext` could no
+longer hardcode what an untouched trade's Time state should be: `getOfferedHours`/`getIsTimeOffered`
+both gained a required `fallback` parameter instead, and each caller supplies its own —
+`TradingPage` computes a quick-offer-aware fallback (already-active/pre-filled hours for
+`?quick=1`, a plain suggestion otherwise), Inventory always passes a plain default since its
+overlay has no notion of quick offers at all. `resetOffer` (used by both pages' Decline) now also
+resets `isTimeOffered` to `false` rather than `true`, so a declined offer looks exactly like a
+freshly-opened one rather than snapping back to an active default. This one behavioural change
+touched a large share of both pages' pre-existing tests — the generosity-meter calculation in
+particular, which reads `0` offered hours by default now instead of a real number — all re-audited
+and rewritten to match the new default rather than patched to keep old assertions passing.
+
+**`TradeDraftContext` grew a `useIdListState()` internal hook rather than a second hand-written
+copy of item-list logic, once skills needed the exact same four functions (`get`/`toggle`/`remove`/
+`clear`) items already had.** Items and skills are still two separate insertion-ordered lists, not
+one combined list — simpler, and each kind gets its own real "keep positions" story, but it does
+mean the two kinds are always grouped (every item, then every skill) rather than interleaved by the
+moment each was actually added, in the one place that shows both together (the overlay). Flagged
+rather than solved with a combined list: nothing before this round ever needed cross-kind ordering
+at all, so there's no existing behaviour a combined list would need to preserve.
+
+**`GenerosityBar` and `TimeScrollPicker` are new shared components**, both extracted the same way
+`StarRatingInput`/`SearchBar`/`FilterChip` were before them — on the strength of a second real
+caller, not speculatively. `GenerosityBar`'s pure scoring helper (`computeGenerosity`) is
+deliberately *not* exported alongside the component, since ESLint's
+`react-refresh/only-export-components` rule flags a file exporting both a component and a plain
+function; it's tested only through the component's own rendered output (text + `aria-valuetext`).
+
+**A partner-profile-opener tile was built, then pulled back out of Trading's grid, same session —
+direct feedback: "remove the profile reference from the grid."** `PartnerProfilePage` (new this
+round, read-only, mirrors `PartnerInventoryPage`'s own "one shared mock persona regardless of which
+named partner" simplification) still exists and is still routed, at `/profile/partner?trade=<id>`,
+but nothing in the app links to it any more. TODO #11's own "a button that opens my trading
+partner's profile" line is marked an open question again (§13) — not a decision this session gets
+to make unilaterally a second time.
+
+**The nav bar's hide condition and the trading-table overlay's own render condition are both keyed
+off the same `Boolean(trade)` check**, which is what makes moving the overlay flush to the page's
+true bottom edge (`bottom: 0` instead of `bottom: var(--nav-bar-height)`) safe without a second
+conditional: the overlay only ever renders when there's a trade in the URL, and that's exactly when
+`PageShell`'s new `hideNavBar` prop is also true. The overlay also now re-expands itself
+(`setIsTableExpanded(true)`) the instant an item or skill is added, even if search/scroll/a
+page-flip had collapsed it moments before — those three collapse triggers are unchanged (search: a
+plain event handler, not a `useEffect`, per an ESLint "don't derive state in an effect" fix; scroll:
+a native listener on `PageShell`'s own content element; page-flip: `PagedGrid`'s new `onPageChange`
+prop).
+
 ---
 
 ## 10. Testing
@@ -1829,6 +1969,16 @@ TODO #16 built, with a "show one dot even on a single page" rule added so that p
 visible for a list as short as the 5 mock skills. See §2's dated entry and §8's own subsection for
 every round of feedback this went through.
 
+**TODO #9.1 is done, and TODO #11's rework continued** (branch `todo-9-11-inventory-trading`,
+2026-08-21 — "Checkpoint 2"): Inventory's grid gained the split inspect/add interaction on both
+items and skills, and its old "picking items..."/"Your offer" transfer box was fully replaced by a
+new bottom-anchored, collapsible trading-table overlay that hides on search/scroll/page-flip and
+re-expands itself on every add; the nav bar is hidden entirely while trading. Trading's own grid
+gained the matching split inspect/remove, a real scroll-based time picker, and Time now opens as a
+suggestion rather than an active offer unless it's a quick buy. A partner-profile-opener tile was
+tried and reverted — TODO #11's profile-button line is an open question again (§13). See §2's dated
+entry and §8's own subsection for the full account.
+
 ---
 
 ## 13. Open questions — Márk's call, not yours
@@ -1854,6 +2004,11 @@ and the payment flow; charity and foundation mechanics; exact grid tuning; the t
    `useState`, not `MOCK_TRADES` — reloading resets a trade to its original mock status. Building
    real trade *creation* (the Appkarte's "not existing" pre-trade state) is a bigger step than any
    TODO so far has asked for; `TradingPage` still always needs a resolvable trade id.
+4. **Where a button that opens your trading partner's profile should live is still undecided**
+   (TODO #11's own line). A grid tile was tried this session and pulled back out on direct
+   feedback ("remove the profile reference from the grid") — `PartnerProfilePage` exists and is
+   fully built (§7), just not linked from anywhere yet. Whatever the eventual placement, it should
+   point there rather than rebuild the page.
 
 ---
 

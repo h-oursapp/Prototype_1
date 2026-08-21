@@ -38,6 +38,11 @@ interface PagedGridProps<T> {
    *  grid pages at all, which a page that always fits on one page (few skills, a small grid size)
    *  would otherwise never show. */
   pagerVariant?: 'buttons' | 'dots'
+  /** TODO #9.1: Inventory's own trading-table overlay hides itself once the user "flips the
+   *  page" — this is that signal. Optional since every other caller (Home, Offers, Trading, the
+   *  partner's inventory) has never needed to know. Fires on every page change, buttons or dots
+   *  alike, with the page actually landed on. */
+  onPageChange?: (page: number) => void
 }
 
 /** A non-scrollable, paged grid: one page of `columns × rows` tiles at a time, every page always
@@ -68,6 +73,7 @@ export function PagedGrid<T>({
   rows,
   gridLabel,
   pagerVariant = 'buttons',
+  onPageChange,
 }: PagedGridProps<T>) {
   const perPage = columns * rows
   const totalPages = Math.max(1, Math.ceil(items.length / perPage))
@@ -76,6 +82,10 @@ export function PagedGrid<T>({
   // longer exists (e.g. a filter changes elsewhere), this settles on the new last page on the
   // very next render instead of needing a useEffect to notice and correct it.
   const currentPage = Math.min(page, totalPages - 1)
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage)
+    onPageChange?.(nextPage)
+  }
   const visibleItems = items.slice(currentPage * perPage, currentPage * perPage + perPage)
   // Always exactly `perPage` slots — a page short of real items pads out with empty ones instead
   // of leaving a gap-shaped hole in the last row.
@@ -112,7 +122,7 @@ export function PagedGrid<T>({
               className={`paged-grid__dot ${index === currentPage ? 'is-active' : ''}`}
               aria-label={`Page ${index + 1} of ${totalPages}`}
               aria-current={index === currentPage ? 'true' : undefined}
-              onClick={() => setPage(index)}
+              onClick={() => goToPage(index)}
             />
           ))}
         </div>
@@ -124,7 +134,7 @@ export function PagedGrid<T>({
               className="paged-grid__pager-button"
               aria-label="Previous page"
               disabled={currentPage === 0}
-              onClick={() => setPage(currentPage - 1)}
+              onClick={() => goToPage(currentPage - 1)}
             >
               <span aria-hidden="true">←</span>
             </button>
@@ -136,7 +146,7 @@ export function PagedGrid<T>({
               className="paged-grid__pager-button"
               aria-label="Next page"
               disabled={currentPage >= totalPages - 1}
-              onClick={() => setPage(currentPage + 1)}
+              onClick={() => goToPage(currentPage + 1)}
             >
               <span aria-hidden="true">→</span>
             </button>

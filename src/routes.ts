@@ -23,6 +23,10 @@ export const ROUTES = {
   partnerInventory: '/inventory/partner',
   wallet: '/wallet',
   profile: '/profile',
+  /** A trading partner's own profile, read-only — reached from Trading's own grid (TODO #11).
+   *  Same shape as partnerInventory below: always needs `?trade=`, since the partner's name and
+   *  the "back to trading" link both come from the trade, not the route. */
+  partnerProfile: '/profile/partner',
   skills: '/skills',
   /** Skill detail doubles as create/modify (§7), same pattern as adDetail — ':skillId' is the
    *  literal pattern, see skillDetail(). */
@@ -72,6 +76,9 @@ export const inventoryForTrade = (tradeId: string) => `${ROUTES.inventory}?trade
 
 /** A trading partner's public inventory for one trade — see ROUTES.partnerInventory. */
 export const partnerInventoryForTrade = (tradeId: string) => `${ROUTES.partnerInventory}?trade=${tradeId}`
+
+/** A trading partner's own profile for one trade — see ROUTES.partnerProfile. */
+export const partnerProfileForTrade = (tradeId: string) => `${ROUTES.partnerProfile}?trade=${tradeId}`
 
 /** An item's own page in a trading context (TODO #10): same convention as inventoryForTrade —
  *  the page gains an "Add to offer" action once it knows which trade it's for. Reaching Inventory's

@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { TradingPage } from '../../pages/TradingPage'
@@ -22,8 +23,10 @@ function renderTradingPage(tradeId = 'trade-1') {
  *  would unmount everything (LocationProbe included) the moment the URL stops matching
  *  '/trading/:tradeId', since nothing else is registered to catch it. A wildcard fallback route
  *  that renders LocationProbe — the same shape App.tsx's own catch-all uses — keeps it mounted
- *  wherever the navigation actually lands. */
-function renderTradingPageAndTrackNavigation(tradeId = 'trade-1') {
+ *  wherever the navigation actually lands. `extra` is an optional sibling — e.g. a
+ *  `TradeDraftToggle` (below), for tests that need an item on the table before they can navigate
+ *  away from one (TODO #11's split tile). */
+function renderTradingPageAndTrackNavigation(tradeId = 'trade-1', extra: ReactNode = null) {
   render(
     <SettingsProvider>
       <TradeDraftProvider>
@@ -33,6 +36,7 @@ function renderTradingPageAndTrackNavigation(tradeId = 'trade-1') {
             <Route path="*" element={<LocationProbe />} />
           </Routes>
         </MemoryRouter>
+        {extra}
       </TradeDraftProvider>
     </SettingsProvider>,
   )
@@ -94,13 +98,64 @@ describe('TradingPage', () => {
   it('fills the rest of each grid with non-interactive suggestion tiles', () => {
     renderTradingPage()
 
-    // 3×2 = 6 slots a side; the inventory-opener + one Time tile are real on both sides, so 4
-    // slots are left over for mock suggestions.
+    // 3×2 = 6 slots a side. Your side: the inventory-opener + one Time tile are real, so 4
+    // slots are left for mock suggestions. The partner's side has the same two real tiles — "a
+    // button that opens my trading partner's profile" is still an open question (see
+    // TradingPage.tsx's file banner comment), so there's no third real tile here.
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
     expect(within(yourTable).getAllByRole('img', { name: /^Suggested:/ })).toHaveLength(4)
 
     const partnerTable = screen.getByRole('list', { name: "Lena K.'s offer on the table" })
     expect(within(partnerTable).getAllByRole('img', { name: /^Suggested:/ })).toHaveLength(4)
+  })
+
+  it('keeps the "Open your inventory" tile while the real offer still has a spare slot', async () => {
+    const user = userEvent.setup()
+    const itemIds = ['item-1', 'item-2', 'item-3', 'item-4']
+    renderWithRouter(
+      <>
+        <TradingPage />
+        {itemIds.map((itemId) => (
+          <TradeDraftToggle key={itemId} tradeId="trade-1" itemId={itemId} />
+        ))}
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+
+    for (const itemId of itemIds) {
+      await user.click(screen.getByText(`toggle ${itemId}`))
+    }
+
+    // trade-1 offers time by default, so this is 1 time tile + 4 items = 5 of 6 slots — one
+    // spare slot left, so the opener stays.
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).getByRole('button', { name: 'Open your inventory' })).toBeInTheDocument()
+  })
+
+  it('hides the "Open your inventory" tile once the real offer alone fills all 6 slots (TODO #11)', async () => {
+    const user = userEvent.setup()
+    const itemIds = ['item-1', 'item-2', 'item-3', 'item-4', 'item-5']
+    renderWithRouter(
+      <>
+        <TradingPage />
+        {itemIds.map((itemId) => (
+          <TradeDraftToggle key={itemId} tradeId="trade-1" itemId={itemId} />
+        ))}
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+
+    for (const itemId of itemIds) {
+      await user.click(screen.getByText(`toggle ${itemId}`))
+    }
+
+    // 1 time tile + 5 items = 6 of 6 slots, no room left — the opener disappears along with the
+    // spare slot it would have needed, which is also the only way back into Inventory's own
+    // picking flow from this page.
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    expect(within(yourTable).queryByRole('button', { name: 'Open your inventory' })).not.toBeInTheDocument()
+    expect(within(yourTable).getAllByRole('listitem')).toHaveLength(6)
+    expect(within(yourTable).queryAllByRole('img', { name: /^Suggested:/ })).toHaveLength(0)
   })
 
   it("excludes an item from its own suggestion tray once it's actually offered", async () => {
@@ -120,7 +175,9 @@ describe('TradingPage', () => {
 
     await user.click(screen.getByText('toggle item-17'))
 
-    expect(within(yourTable).getByRole('img', { name: 'Garden hose' })).toBeInTheDocument()
+    // TODO #11's split tile makes an offered item tappable now (open its inspect/remove split),
+    // so it's a button, not the read-only role="img" it was before that landed.
+    expect(within(yourTable).getByRole('button', { name: 'Garden hose — tap for options' })).toBeInTheDocument()
     expect(within(yourTable).queryByRole('img', { name: /^Suggested: Garden hose/ })).toBeNull()
   })
 
@@ -139,45 +196,142 @@ describe('TradingPage', () => {
 
     await user.click(screen.getByText('toggle item-1'))
 
-    expect(within(yourTable).getByRole('img', { name: 'Acoustic guitar' })).toBeInTheDocument()
+    expect(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' })).toBeInTheDocument()
   })
 
-  it('shows a Time tile on both sides of the table, and adjusts yours via the stepper', async () => {
+  it('splits an offered item into inspect/remove halves when tapped (TODO #11)', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(
+      <>
+        <TradingPage />
+        <TradeDraftToggle tradeId="trade-1" itemId="item-1" />
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+    await user.click(screen.getByText('toggle item-1'))
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+
+    const split = within(yourTable).getByRole('group', { name: 'Acoustic guitar options' })
+    expect(within(split).getByText('Acoustic guitar')).toBeInTheDocument()
+    expect(within(split).getByRole('button', { name: 'Remove Acoustic guitar from your offer' })).toBeInTheDocument()
+  })
+
+  it('opens the item page from the split tile’s inspect half (TODO #11)', async () => {
+    const user = userEvent.setup()
+    renderTradingPageAndTrackNavigation('trade-1', <TradeDraftToggle tradeId="trade-1" itemId="item-1" />)
+    await user.click(screen.getByText('toggle item-1'))
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    await user.click(screen.getByText('Acoustic guitar'))
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/inventory/item-1')
+  })
+
+  it('removes the item and closes the split from its remove half (TODO #11)', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(
+      <>
+        <TradingPage />
+        <TradeDraftToggle tradeId="trade-1" itemId="item-1" />
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+    await user.click(screen.getByText('toggle item-1'))
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    await user.click(within(yourTable).getByRole('button', { name: 'Remove Acoustic guitar from your offer' }))
+
+    expect(within(yourTable).queryByText('Acoustic guitar')).toBeNull()
+    expect(within(yourTable).queryByRole('group', { name: 'Acoustic guitar options' })).toBeNull()
+  })
+
+  it('only ever splits one item at a time — opening another closes the first (TODO #11)', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(
+      <>
+        <TradingPage />
+        <TradeDraftToggle tradeId="trade-1" itemId="item-1" />
+        <TradeDraftToggle tradeId="trade-1" itemId="item-2" />
+      </>,
+      { route: '/trading/trade-1', path: '/trading/:tradeId' },
+    )
+    await user.click(screen.getByText('toggle item-1'))
+    await user.click(screen.getByText('toggle item-2'))
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' }))
+    expect(within(yourTable).getByRole('group', { name: 'Acoustic guitar options' })).toBeInTheDocument()
+
+    const secondItemTile = within(yourTable).getAllByRole('button', { name: /— tap for options$/ })[0]
+    await user.click(secondItemTile)
+
+    expect(within(yourTable).queryByRole('group', { name: 'Acoustic guitar options' })).toBeNull()
+  })
+
+  it('puts the Time tile right after the inventory-opener, before any items (TODO #11)', () => {
+    // A plain (non-quick) open: the opener is slot 1, Time's own slot 2 is a suggestion by
+    // default now (direct feedback), reading a flat "1 h" rather than trade-1's real yourHours.
+    renderTradingPage()
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    const slots = within(yourTable).getAllByRole('listitem')
+    expect(within(slots[0]).getByRole('button', { name: 'Open your inventory' })).toBeInTheDocument()
+    expect(within(slots[1]).getByRole('button', { name: /^Suggested: 1 hour/ })).toBeInTheDocument()
+    expect(within(slots[1]).getByText('1 h')).toBeInTheDocument()
+  })
+
+  it('pre-fills that same Time slot from the ad\'s listed hours on a quick offer, instead of leaving it as a suggestion (TODO #11)', () => {
+    // Quick Buy carries the ad's listed hours through as ?hours= — same two slots as a plain
+    // open, just pre-filled with that value rather than trade.yourHours.
+    renderWithRouter(<TradingPage />, { route: '/trading/trade-1?quick=1&hours=7', path: '/trading/:tradeId' })
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    const slots = within(yourTable).getAllByRole('listitem')
+    expect(within(slots[0]).getByRole('button', { name: 'Open your inventory' })).toBeInTheDocument()
+    expect(within(slots[1]).getByText('7 h')).toBeInTheDocument()
+  })
+
+  it('shows Time as an opaque suggestion by default, and adds it via the scroll picker once tapped (direct feedback)', async () => {
     const user = userEvent.setup()
     renderTradingPage()
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).getByText('2 h')).toBeInTheDocument()
+    const suggestion = within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ })
+    expect(suggestion).toBeInTheDocument()
+    expect(within(yourTable).getByText('1 h')).toBeInTheDocument()
 
     const partnerTable = screen.getByRole('list', { name: "Lena K.'s offer on the table" })
     expect(within(partnerTable).getByText('3 h')).toBeInTheDocument()
 
-    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
-    const stepper = screen.getByRole('group', { name: 'Your offered hours' })
-    expect(within(stepper).getByText('2 h')).toBeInTheDocument()
+    // Tapping the suggestion makes it active — "like now" — and opens the picker straight away.
+    await user.click(suggestion)
+    const picker = screen.getByRole('group', { name: 'Choose the offered time' })
+    expect(within(picker).getByRole('button', { name: '1 hours' })).toHaveAttribute('aria-current', 'true')
 
-    await user.click(within(stepper).getByRole('button', { name: 'Offer one hour more' }))
-    expect(within(stepper).getByText('3 h')).toBeInTheDocument()
+    await user.click(within(picker).getByRole('button', { name: '3 hours' }))
+    expect(within(picker).getByRole('button', { name: '3 hours' })).toHaveAttribute('aria-current', 'true')
     expect(within(yourTable).getByText('3 h')).toBeInTheDocument()
   })
 
-  it('removes the time tile entirely, and offers a way to add it back', async () => {
+  it('removes the time tile entirely, reverting it to a suggestion again (direct feedback)', async () => {
     const user = userEvent.setup()
     renderTradingPage()
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
-    await user.click(screen.getByRole('button', { name: 'Remove time from the table' }))
+    await user.click(within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ }))
+    await user.click(screen.getByRole('button', { name: 'Remove' }))
 
-    // The tile itself is gone, not just zeroed — "delete it entirely," not "step down to 0h".
-    expect(within(yourTable).queryByText(/h$/)).toBeNull()
-    expect(screen.queryByRole('group', { name: 'Your offered hours' })).toBeNull()
-    const addTimeTile = within(yourTable).getByRole('button', { name: 'Add a time offer' })
-    expect(addTimeTile).toBeInTheDocument()
+    // Back to a suggestion, not gone — "if its removed make it a suggestion again."
+    expect(screen.queryByRole('group', { name: 'Choose the offered time' })).toBeNull()
+    const suggestion = within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ })
+    expect(suggestion).toBeInTheDocument()
+    expect(within(yourTable).getByText('1 h')).toBeInTheDocument()
 
-    await user.click(addTimeTile)
-    expect(screen.getByRole('group', { name: 'Your offered hours' })).toBeInTheDocument()
-    expect(within(yourTable).getByText('2 h')).toBeInTheDocument() // back to trade-1's yourHours
+    await user.click(suggestion)
+    expect(screen.getByRole('group', { name: 'Choose the offered time' })).toBeInTheDocument()
+    expect(within(yourTable).getByText('1 h')).toBeInTheDocument() // starts fresh at 1h, not a stale amount
   })
 
   it('accepts an open trade with the checkmark button, and then hides it', async () => {
@@ -209,7 +363,7 @@ describe('TradingPage', () => {
 
     await user.click(screen.getByText('toggle item-1'))
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).getByRole('img', { name: 'Acoustic guitar' })).toBeInTheDocument()
+    expect(within(yourTable).getByRole('button', { name: 'Acoustic guitar — tap for options' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Decline offer' }))
 
@@ -218,9 +372,11 @@ describe('TradingPage', () => {
     // The trade stays open — Accept/Decline are both still available for the next offer.
     expect(screen.getByRole('button', { name: 'Accept trade' })).toBeInTheDocument()
 
-    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
-    const stepper = screen.getByRole('group', { name: 'Your offered hours' })
-    await user.click(within(stepper).getByRole('button', { name: 'Offer one hour more' }))
+    // Time is back to being a suggestion too (direct feedback: "if its removed make it a
+    // suggestion again" applies just as much to a declined offer) — tapping it both adds it and
+    // opens the picker in one go.
+    await user.click(within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ }))
+    expect(screen.getByRole('group', { name: 'Choose the offered time' })).toBeInTheDocument()
     expect(screen.queryByText('Offer declined — build a new one above.')).toBeNull()
   })
 
@@ -265,8 +421,21 @@ describe('TradingPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/trades/trade-3/review')
   })
 
-  it('shows a fair-trade generosity message when the two sides are close', () => {
-    renderTradingPage() // trade-1: 2h offered vs Lena's 3h
+  it('shows a too-good-to-be-true generosity message by default — Time is just a suggestion, not really on offer yet (direct feedback)', () => {
+    renderTradingPage() // trade-1: nothing really offered yet vs Lena's real 3h
+
+    const meter = screen.getByRole('meter', { name: 'Generosity meter' })
+    expect(meter).toHaveAttribute('aria-valuetext', 'This is too good to be true.')
+  })
+
+  it('shows a fair-trade generosity message once the suggested time is added and adjusted to match', async () => {
+    const user = userEvent.setup()
+    renderTradingPage() // trade-1: partner offers 3h
+
+    const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
+    await user.click(within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ }))
+    const picker = screen.getByRole('group', { name: 'Choose the offered time' })
+    await user.click(within(picker).getByRole('button', { name: '2 hours' }))
 
     const meter = screen.getByRole('meter', { name: 'Generosity meter' })
     expect(meter).toHaveAttribute('aria-valuetext', "That's a fair trade!")
@@ -280,13 +449,18 @@ describe('TradingPage', () => {
     expect(screen.getByText('You are extremely generous!')).toBeInTheDocument()
   })
 
-  it('shows a too-good-to-be-true generosity message once your time is removed entirely', async () => {
+  it('goes back to too-good-to-be-true once an active time offer is removed again', async () => {
     const user = userEvent.setup()
     renderTradingPage()
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    await user.click(within(yourTable).getByRole('button', { name: /Tap to adjust/ }))
-    await user.click(screen.getByRole('button', { name: 'Remove time from the table' }))
+    await user.click(within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ }))
+    const picker = screen.getByRole('group', { name: 'Choose the offered time' })
+    await user.click(within(picker).getByRole('button', { name: '2 hours' }))
+    expect(screen.getByText("That's a fair trade!")).toBeInTheDocument()
+
+    // The picker is already open from adding it a moment ago — no need to tap the tile again.
+    await user.click(screen.getByRole('button', { name: 'Remove' }))
 
     expect(screen.getByText('This is too good to be true.')).toBeInTheDocument()
   })
@@ -352,11 +526,12 @@ describe('TradingPage', () => {
     expect(within(yourTable).getByText('5 h')).toBeInTheDocument()
   })
 
-  it('ignores ?hours= on a plain (non-quick) open, keeping the usual default', () => {
+  it('ignores ?hours= on a plain (non-quick) open — Time is still just a suggestion', () => {
     renderWithRouter(<TradingPage />, { route: '/trading/trade-1?hours=5', path: '/trading/:tradeId' })
 
     const yourTable = screen.getByRole('list', { name: 'Your offer on the table' })
-    expect(within(yourTable).getByText('2 h')).toBeInTheDocument() // trade-1's yourHours
+    expect(within(yourTable).getByRole('button', { name: /^Suggested: 1 hour/ })).toBeInTheDocument()
+    expect(within(yourTable).getByText('1 h')).toBeInTheDocument()
   })
 
   it('falls back to the usual default when ?hours= is missing or not a number', () => {

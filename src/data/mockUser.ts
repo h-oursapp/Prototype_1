@@ -125,6 +125,18 @@ export const MOCK_PARTNER_SKILLS: Skill[] = [
   },
 ]
 
+/** A generic stand-in for "the trading partner's own profile" (TODO #11's "a button that opens
+ *  my trading partner's profile") — the same simplification MOCK_PARTNER_INVENTORY/
+ *  MOCK_PARTNER_SKILLS above already make: one shared persona regardless of which of the mock
+ *  trades' six named partners you're actually viewing. Only the name and avatar shown on
+ *  PartnerProfilePage come from the trade itself (Trade.partner/partnerAvatar); everything here
+ *  is the same for all of them, exactly like the partner's inventory and skills already are. */
+export const MOCK_PARTNER_PROFILE = {
+  headline: 'Trades hands-on help for things that need patience more than tools.',
+  memberSince: 'January 2025',
+  personalRating: 5,
+}
+
 /** Looks up one of *your* skills by id, for the Skill page (§7). Partner skills aren't navigable
  *  to a detail page yet, so this only searches MOCK_SKILLS — mirrors findOffer/findTrade. */
 export function findSkill(skillId: string | undefined): Skill | undefined {
